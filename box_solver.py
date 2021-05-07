@@ -1,4 +1,3 @@
-
 import numpy as np
 import qmeq
 import matplotlib.pyplot as plt
@@ -8,27 +7,49 @@ import fock_tunnel_mat as ftm
 import fock_basis_rotation as fbr
 import box_class as bc
 
+import multiprocessing
+from joblib import Parallel, delayed
+from time import perf_counter
+
 def main():
-	epsU = 2e-3
-	epsD = 1e-3
+	epsU = 2e-2
+	epsD = 1e-2
 
-	epsL = 2e-9
-	epsR = 1e-9
+	epsL = 2e-2
+	epsR = 1e-2
 
+	epsLu	= 2e-2
+	epsLd	= 1e-2
+	epsRu	= 2e-2
+	epsRd	= 1e-2
+
+	epsMu	= 2e-2
+	epsMd	= 1e-2
+
+	model	= 2
+	
 	dphi	= 1e-5
 	
-	bias	= 2e2
-	mu1	= bias/2
-	mu2	= -mu1
 	gamma 	= 0.1
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
-	tLu	= np.exp(0j/2*np.pi + 1j*dphi )*t
+	phase	= np.exp(0j/2*np.pi + 1j*dphi )
+
+	tLu	= t*phase
 	tLd	= t
 	tRu	= t
 	tRd	= t
-	
-	T1	= 5e1
-	T2 	= 5e1
+
+	tLu2	= tLu
+	tLd2	= tLd
+	tRu2	= tRu
+	tRd2	= tRd
+
+	T1	= 1e1
+	T2 	= T1
+
+	bias	= 2e2
+	mu1	= bias/2
+	mu2	= -mu1
 
 	dband	= 1e5
 	Vg	= +1e1
@@ -38,14 +59,19 @@ def main():
 	mu_lst 	= { 0:mu1 , 1:mu2}
 	method	= 'Lindblad'
 
-	N		= 2
-	maj_op,overlaps	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
+	if model == 1:
+		maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
+	elif model == 2:
+		maj_op, overlaps, par	= abs_box(tLu, tLd, tRu, tRd, tLu2, tLd2, tRu2, tRd2, epsLu, epsRu, epsLd, epsRd)
+	else:
+		maj_op, overlaps, par	= eight_box(tLu, tLd, tRu, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
+
 	maj_box		= bc.majorana_box(maj_op, overlaps, Vg)
 	maj_box.diagonalize()
 	Ea		= maj_box.elec_en
 	tunnel		= maj_box.constr_tunnel()
 	
-	sys	= qmeq.Builder_many_body(Ea=Ea, Na=np.array([0,0,1,1]), Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
+	sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
 
 	sys.solve(qdq=False, rotateq=False)
 	print('Eigenenergies:', sys.Ea)
@@ -54,42 +80,43 @@ def main():
 	fig, (ax1,ax2)	= plt.subplots(1, 2)
 
 	points	= 100
-	m_bias	= 1e3
+	m_bias	= 1e2
 	x	= np.linspace(-m_bias, m_bias, points)
 	y	= x
 	
 	X,Y	= np.meshgrid(x, y)
-	I	= []
-	for bias in y:
-		mu_r	= -bias/2
-		mu_l	= bias/2
-		mu_lst	= { 0:mu_l, 1:mu_r}
-		I_y	= []
-		for Vg in x:
-			Ea	= maj_box.adj_charging(Vg)
-			sys 	= qmeq.Builder_many_body(Ea=Ea, Na=np.array([0,0,1,1]), Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
-			sys.solve(qdq=False, rotateq=False)
-			I_y.append(sys.current[0])
+	I	= np.zeros(X.shape, dtype=np.float64 )
 
-		I.append(I_y)
-
+	num_cores	= 4
+	unordered_res	= Parallel(n_jobs=num_cores)(delayed(bias_sweep)(indices, bias, X[indices], I, maj_box, par, tunnel, dband, T_lst, method) for indices, bias in np.ndenumerate(Y) ) 
+	for el in unordered_res:
+		I[el[0] ]	= el[1]
+	
 	c	= ax1.pcolor(X, Y, I, shading='auto')
 	fig.colorbar(c, ax=ax1)
 
 	angles	= np.linspace(dphi, 2*np.pi+dphi, 1000)
-	Vg	= 0
+	Vg	= 0e1
 	maj_box.adj_charging(Vg)
 	mu_lst	= { 0:mu1, 1:mu2}
 
 	I	= []
 	for phi in angles:
 		tLu	= np.exp(1j*phi)*t
+		tLu2	= tLu
+		#tLu2	= t
 
-		maj_op,overlaps	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
+		if model == 1:
+			maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
+		elif model == 2:
+			maj_op, overlaps, par	= abs_box(tLu, tLd, tRu, tRd, tLu2, tLd2, tRu2, tRd2, epsLu, epsRu, epsLd, epsRd)
+		else:
+			maj_op, overlaps, par	= eight_box(tLu, tLd, tRu, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
+
 		maj_box.change(majoranas = maj_op)
 		tunnel		= maj_box.constr_tunnel()
 
-		sys		= qmeq.Builder_many_body(Ea=Ea, Na=np.array([0,0,1,1]), Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
+		sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
 		sys.solve(qdq=False, rotateq=False)
 		I.append(sys.current[0])
 
@@ -102,24 +129,52 @@ def main():
 	ax2.set_ylabel('current')
 	ax1.set_xlabel(r'$V_g$')
 	ax1.set_ylabel(r'$V_{bias}$')
+	ax2.set_ylim(bottom=0)
 
 	fig.tight_layout()
 	
 	plt.show()
 
+def bias_sweep(indices, bias, Vg, I, maj_box, par, tunnel, dband, T_lst, method):
+	mu_r	= -bias/2
+	mu_l	= bias/2
+	mu_lst	= { 0:mu_l, 1:mu_r}
+	Ea	= maj_box.adj_charging(Vg)
+	sys 	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
+	sys.solve(qdq=False, rotateq=False)
+
+	return [indices, sys.current[0] ]
+
 def simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR):
 	overlaps	= np.array([[0, epsU, epsL, 0], [0, 0, 0, epsR], [0, 0, 0, epsD], [0, 0, 0, 0]] )
 	maj_op		= [fc.maj_operator(index=0, lead=0, coupling=tLu), fc.maj_operator(index=1, lead=1, coupling=tRu), \
 					fc.maj_operator(index=2, lead=0, coupling=tLd), fc.maj_operator(index=3, lead=1, coupling=tRd) ]
-	return maj_op, overlaps
+	par		= np.array([0,0,1,1])
+	return maj_op, overlaps, par
 
 def abs_box(tLu1, tRu1, tLd1, tRd1, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd):
 	maj_op		= [fc.maj_operator(index=0, lead=0, coupling=tLu1), fc.maj_operator(index=1, lead=0, coupling=tLu2), \
 				fc.maj_operator(index=2, lead=1, coupling=tRu1), fc.maj_operator(index=3, lead=1, coupling=tRu2), \
 				fc.maj_operator(index=4, lead=0, coupling=tLd1), fc.maj_operator(index=5, lead=0, coupling=tLd2), 
 				fc.maj_operator(index=6, lead=1, coupling=tRd1), fc.maj_operator(index=7, lead=1, coupling=tRd2) ]
-	overlaps	= fbr.default_overlaps(4, [epsLu, epsRu, epsLd, epsRd] )
-	return maj_op, overlaps
+	N		= len(maj_op )
+	overlaps	= fbr.default_overlaps(N, [epsLu, epsRu, epsLd, epsRd] )
+	par		= np.array([0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1])
+	return maj_op, overlaps, par
+
+def eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd):
+	maj_op		= [fc.maj_operator(index=0, lead=0, coupling=tLu), fc.maj_operator(index=1, lead=-1, coupling=0), \
+				fc.maj_operator(index=2, lead=-1, coupling=0), fc.maj_operator(index=3, lead=1, coupling=tRu), \
+				fc.maj_operator(index=4, lead=0, coupling=tLd), fc.maj_operator(index=5, lead=-1, coupling=0), 
+				fc.maj_operator(index=6, lead=-1, coupling=0), fc.maj_operator(index=7, lead=1, coupling=tRd) ]
+	N		= len(maj_op )
+	nullen		= np.zeros((4, 4) )
+	overlapsU	= np.diag([epsLu, epsMu, epsRu], k=1 )
+	overlapsD	= np.diag([epsLd, epsMd, epsRd], k=1 )
+	overlaps	= np.matrix( np.block( [[overlapsU, nullen], [nullen, overlapsD]] ) )
+
+	par		= np.array([0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1])
+	return maj_op, overlaps, par
 
 def format_func(value, tick_number):
     # find number of multiples of pi/2

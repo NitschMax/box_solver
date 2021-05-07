@@ -4,15 +4,15 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as tck
 
 def main():
-	epsU = 0.0
-	epsD = 0.0
+	epsU = 2e-9
+	epsD = 1e-9
 	dphi	= 1e-10
 	
 	mu1	= 1e2
 	mu2	= -mu1
 	gamma = 0.1
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
-	phase	= np.exp(1j/4*np.pi-dphi )
+	phase	= np.exp(1j/2*np.pi-dphi )
 	tLu	= t*phase
 	tLd	= t
 	tRu	= t
@@ -81,7 +81,6 @@ def main():
 	ax1.set_xlabel(r'$V_g$')
 	ax1.set_ylabel(r'$V_{bias}$')
 	plt.tight_layout()
-	plt.show()
 
 	ax1.plot(angles, I)
 	plt.show()

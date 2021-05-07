@@ -45,7 +45,7 @@ def main():
 	T_lst 	= { 0:T1 , 1:T1}
 	mu_lst 	= { 0:mu1 , 1:mu2}
 
-	maj_op,overlaps	= bs.abs_box(tLu1, tLd1, tRu1, tRd1, tLu2, tLd2, tRu2, tRd2, epsLu, epsRu, epsLd, epsRd)
+	maj_op,overlaps,par	= bs.abs_box(tLu1, tLd1, tRu1, tRd1, tLu2, tLd2, tRu2, tRd2, epsLu, epsRu, epsLd, epsRd)
 	maj_box		= bc.majorana_box(maj_op, overlaps, Vg)
 	maj_box.diagonalize()
 	Ea		= maj_box.elec_en
@@ -55,7 +55,7 @@ def main():
 	method	= 'Lindblad'
 	U	= rotation()
 
-	sys	= qmeq.Builder_many_body(Ea=Ea, Na=np.array([0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1]), Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
+	sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
 
 	sys.solve(qdq=False, rotateq=False)
 	print('Eigenenergies:', sys.Ea)
@@ -77,8 +77,7 @@ def main():
 		I_y	= []
 		for Vg in x:
 			Ea	= maj_box.adj_charging(Vg)
-			print(mu_lst, Ea)
-			sys 	= qmeq.Builder_many_body(Ea=Ea, Na=np.array([0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1]), Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
+			sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
 			sys.solve(qdq=False, rotateq=False)
 			I_y.append(sys.current[0] )
 
@@ -100,11 +99,11 @@ def main():
 	for phi in angles:
 		tLu1	= np.exp(1j*phi)*t
 		tLu2	= tLu1
-		maj_op,overlaps	= bs.abs_box(tLu1, tRu1, tLd1, tRd1, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
+		maj_op,overlaps,par	= bs.abs_box(tLu1, tRu1, tLd1, tRd1, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
 		maj_box.change(majoranas = maj_op)
 		tunnel		= maj_box.constr_tunnel()
 
-		sys	= qmeq.Builder_many_body(Ea=Ea, Na=np.array([0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1]), Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
+		sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
 		sys.solve(qdq=False, rotateq=False)
 		I.append(sys.current[0])
 	

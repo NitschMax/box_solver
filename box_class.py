@@ -29,7 +29,8 @@ class majorana_box:
 	def adj_charging(self, Vg):
 		half_number		= int(2**self.elec_num/2 )
 		self.Vg			= Vg
-		self.elec_en[half_number:]	= self.energies[half_number] - Vg
+		self.elec_en			= self.energies.copy()
+		self.elec_en[half_number:]	= self.energies[half_number:] - Vg
 		return self.elec_en
 
 	def constr_tunnel(self):

@@ -18,11 +18,12 @@ def main():
 
 
 def default_overlaps(N, eps=[]):
-	if len(eps) != N:
-		eps	= np.ones(N)
-	nullen		= np.zeros((1, 2*N ) )
+	half_number	= int(N/2)
+	if len(eps) != half_number:
+		eps	= np.ones(half_number)
+	nullen		= np.zeros((1, N ) )
 	overlaps	= np.array([[]])
-	for i in range(N):
+	for i in range(half_number):
 		one_d_over		= nullen.copy()
 		one_d_over[0, 2*i+1]	= eps[i]
 		if i == 0:
@@ -32,7 +33,7 @@ def default_overlaps(N, eps=[]):
 			overlaps	= np.concatenate((overlaps, one_d_over), axis=0)
 			overlaps	= np.concatenate((overlaps, nullen), axis=0)
 
-	return overlaps*1e-3
+	return overlaps
 
 def rotated_system(N, overlaps):
 	overlaps	-= np.transpose(overlaps)
@@ -44,8 +45,8 @@ def rotated_system(N, overlaps):
 	hamilton_e	= hamilton[:half_number,:half_number]
 	hamilton_o	= hamilton[half_number:,half_number:]
 
-	eigval_e, eigvec_e	= np.linalg.eig(hamilton_e)
-	eigval_o, eigvec_o	= np.linalg.eig(hamilton_o)
+	eigval_e, eigvec_e	= np.linalg.eigh(hamilton_e)
+	eigval_o, eigvec_o	= np.linalg.eigh(hamilton_o)
 	nullen			= np.zeros((half_number, half_number) )
 	U			= np.matrix(np.block([[eigvec_e, nullen], [nullen, eigvec_o] ] ) )
 
