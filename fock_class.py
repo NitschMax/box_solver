@@ -75,13 +75,15 @@ class fock_state:
 		return self.valid
 		
 class maj_operator:
-	def __init__(self, index, fac=1, lead=-1, coupling=1e-6):
+	def __init__(self, index, fac=1, lead=[], coupling=[]):
 		self.index	= index
 		self.fac	= fac
 		self.lead	= lead
+		if len(lead) != len(coupling):
+			print('The coupling to the leads is not valid. This can case mistakes in the tunneling.')
 		self.coupling	= coupling
 
-		if self.lead >= 0:
+		if len(self.lead) >= 0:
 			self.couples	= True
 		else:
 			self.couples	= False

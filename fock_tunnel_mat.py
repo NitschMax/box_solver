@@ -24,9 +24,13 @@ def constr_tunnel_mat(N, maj_op):
 	number_states	= fock_states.len
 	half_number	= int(number_states/2)
 
+	leads	= []
+	for majorana in maj_op:
+		leads	= np.concatenate((leads, majorana.lead) )
+	number_leads	= int(max(leads ) ) +1
 
 	counter	= 0
-	tunnel	= np.zeros((2, number_states, number_states), dtype=np.complex128)
+	tunnel	= np.zeros((number_leads, number_states, number_states), dtype=np.complex128)
 	for majorana in maj_op:
 		if not majorana.couples:
 			continue
@@ -38,12 +42,13 @@ def constr_tunnel_mat(N, maj_op):
 				op.act_on(state_cp)
 				if state_cp.valid:
 					bra_ind		= fock_states.find(state_cp)
-					if ket_ind > bra_ind:
-						coupling	= majorana.coupling
-					else:
-						coupling	= np.conj(majorana.coupling )
+					for lead_ind, lead in enumerate(majorana.lead):
+						if ket_ind > bra_ind:
+							coupling	= majorana.coupling[lead_ind]
+						else:
+							coupling	= np.conj(majorana.coupling[lead_ind] )
 
-					tunnel[majorana.lead, bra_ind, ket_ind]	+= coupling*state_cp.fac
+						tunnel[lead, bra_ind, ket_ind]	+= coupling*state_cp.fac
 
 
 	return tunnel

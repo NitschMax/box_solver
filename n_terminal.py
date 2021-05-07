@@ -12,37 +12,22 @@ from joblib import Parallel, delayed
 from time import perf_counter
 
 def main():
-	epsU = 2e-2
-	epsD = 1e-2
+	eps12 	= 2e-1
+	eps34 	= 1e-1
 
-	epsL = 2e-2
-	epsR = 1e-2
+	eps23	= 0e-1
 
-	epsLu	= 2e-2
-	epsLd	= 1e-2
-	epsRu	= 2e-2
-	epsRd	= 1e-2
-
-	epsMu	= 2e-2
-	epsMd	= 1e-2
-
-	model	= 2
-	
 	dphi	= 1e-5
 	
 	gamma 	= 0.1
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
 	phase	= np.exp(0j/2*np.pi + 1j*dphi )
 
-	tLu	= t*phase
-	tLd	= t
-	tRu	= t
-	tRd	= t
-
-	tLu2	= tLu
-	tLd2	= tLd
-	tRu2	= tRu
-	tRd2	= tRd
+	t1	= t*phase
+	t2	= t
+	t3	= t
+	t4	= t
+	t5	= 0
 
 	T1	= 1e1
 	T2 	= T1
@@ -50,21 +35,17 @@ def main():
 	bias	= 2e2
 	mu1	= bias/2
 	mu2	= -mu1
+	mu3	= 0
 
 	dband	= 1e5
 	Vg	= +1e1
 	
 	nleads 	= 2
-	T_lst 	= { 0:T1 , 1:T1}
-	mu_lst 	= { 0:mu1 , 1:mu2}
+	T_lst 	= { 0:T1 , 1:T1, 2:T1}
+	mu_lst 	= { 0:mu1 , 1:mu2, 2:mu3}
 	method	= 'Lindblad'
 
-	if model == 1:
-		maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
-	elif model == 2:
-		maj_op, overlaps, par	= abs_box(tLu, tLd, tRu, tRd, tLu2, tLd2, tRu2, tRd2, epsLu, epsRu, epsLd, epsRd)
-	else:
-		maj_op, overlaps, par	= eight_box(tLu, tLd, tRu, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
+	maj_op, overlaps, par	= two_leads(t1, t2, t3, t4, t5, eps12, eps23, eps34 )
 
 	maj_box		= bc.majorana_box(maj_op, overlaps, Vg)
 	maj_box.diagonalize()
@@ -102,15 +83,9 @@ def main():
 
 	I	= []
 	for phi in angles:
-		tLu	= np.exp(1j*phi)*t
-		tLu2	= tLu
+		t4	= np.exp(1j*phi)*t
 
-		if model == 1:
-			maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
-		elif model == 2:
-			maj_op, overlaps, par	= abs_box(tLu, tLd, tRu, tRd, tLu2, tLd2, tRu2, tRd2, epsLu, epsRu, epsLd, epsRd)
-		else:
-			maj_op, overlaps, par	= eight_box(tLu, tLd, tRu, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
+		maj_op, overlaps, par	= two_leads(t1, t2, t3, t4, t5, eps12, eps23, eps34 )
 
 		maj_box.change(majoranas = maj_op)
 		tunnel		= maj_box.constr_tunnel()
@@ -144,35 +119,11 @@ def bias_sweep(indices, bias, Vg, I, maj_box, par, tunnel, dband, T_lst, method)
 
 	return [indices, sys.current[0] ]
 
-def simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR):
-	overlaps	= np.array([[0, epsU, epsL, 0], [0, 0, 0, epsR], [0, 0, 0, epsD], [0, 0, 0, 0]] )
-	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tLu]), fc.maj_operator(index=1, lead=[1], coupling=[tRu]), \
-					fc.maj_operator(index=2, lead=[0], coupling=[tLd]), fc.maj_operator(index=3, lead=[1], coupling=[tRd]) ]
+def two_leads(t1, t2, t3, t4, t5, eps12, eps23, eps34):
+	overlaps	= np.array([[0, eps12, 0, 0], [0, 0, eps23, 0], [0, 0, 0, eps34], [0, 0, 0, 0]] )
+	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[t1]), fc.maj_operator(index=1, lead=[0,1], coupling=[t2, t3]), \
+					fc.maj_operator(index=2, lead=[1], coupling=[t4]), fc.maj_operator(index=3, lead=[2], coupling=[t5]) ]
 	par		= np.array([0,0,1,1])
-	return maj_op, overlaps, par
-
-def abs_box(tLu1, tRu1, tLd1, tRd1, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd):
-	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tLu1]), fc.maj_operator(index=1, lead=[0], coupling=[tLu2]), \
-				fc.maj_operator(index=2, lead=[1], coupling=[tRu1]), fc.maj_operator(index=3, lead=[1], coupling=[tRu2]), \
-				fc.maj_operator(index=4, lead=[0], coupling=[tLd1]), fc.maj_operator(index=5, lead=[0], coupling=[tLd2]), 
-				fc.maj_operator(index=6, lead=[1], coupling=[tRd1]), fc.maj_operator(index=7, lead=[1], coupling=[tRd2]) ]
-	N		= len(maj_op )
-	overlaps	= fbr.default_overlaps(N, [epsLu, epsRu, epsLd, epsRd] )
-	par		= np.array([0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1])
-	return maj_op, overlaps, par
-
-def eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd):
-	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tLu]), fc.maj_operator(index=1, lead=[], coupling=[]), \
-				fc.maj_operator(index=2, lead=[], coupling=[]), fc.maj_operator(index=3, lead=[1], coupling=[tRu]), \
-				fc.maj_operator(index=4, lead=[0], coupling=[tLd]), fc.maj_operator(index=5, lead=[], coupling=[]), 
-				fc.maj_operator(index=6, lead=[], coupling=[]), fc.maj_operator(index=7, lead=[1], coupling=[tRd]) ]
-	N		= len(maj_op )
-	nullen		= np.zeros((4, 4) )
-	overlapsU	= np.diag([epsLu, epsMu, epsRu], k=1 )
-	overlapsD	= np.diag([epsLd, epsMd, epsRd], k=1 )
-	overlaps	= np.matrix( np.block( [[overlapsU, nullen], [nullen, overlapsD]] ) )
-
-	par		= np.array([0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1])
 	return maj_op, overlaps, par
 
 def format_func(value, tick_number):
