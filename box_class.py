@@ -39,6 +39,7 @@ class majorana_box:
 			self.tunnel	= np.array([np.dot(self.U.getH(), np.dot(t, self.U) ) for t in tunnel] )
 		else:
 			print('System not yet diagonalized. Tunnelmatrix in default basis returned!')
+			self.tunnel	= tunnel
 		return self.tunnel
 		
 	def change(self, majoranas=[], overlaps=[]):

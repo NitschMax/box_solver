@@ -12,43 +12,44 @@ from joblib import Parallel, delayed
 from time import perf_counter
 
 def main():
-	epsU = 2e-2
-	epsD = 1e-2
+	epsU = 0e-1
+	epsD = 0e-1
 
-	epsL = 2e-2
-	epsR = 1e-2
+	epsL = 0e-6
+	epsR = 0e-6
 
-	epsLu	= 2e-2
-	epsLd	= 1e-2
-	epsRu	= 2e-2
-	epsRd	= 1e-2
+	epsLu	= 2e-1
+	epsLd	= 1e-1
+	epsRu	= 2e-1
+	epsRd	= 1e-1
 
-	epsMu	= 2e-2
-	epsMd	= 1e-2
+	epsMu	= 2e-6
+	epsMd	= 1e-6
 
-	model	= 2
+	model	= 1
 	
-	dphi	= 1e-5
+	dphi	= 1e-6
 	
 	gamma 	= 0.1
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
-	phase	= np.exp(0j/2*np.pi + 1j*dphi )
+	phase	= np.exp(-0j/2*np.pi + 1j*dphi )
+	phase2	= np.exp(0j/4*np.pi + 1j*dphi )
 
 	tLu	= t*phase
 	tLd	= t
 	tRu	= t
 	tRd	= t
 
-	tLu2	= tLu
-	tLd2	= tLd
-	tRu2	= tRu
-	tRd2	= tRd
+	tLu2	= tLu*phase2
+	tLd2	= tLd*phase2
+	tRu2	= tRu*phase2
+	tRd2	= tRd*phase2
 
 	T1	= 1e1
 	T2 	= T1
 
 	bias	= 2e2
-	mu1	= bias/2
+	mu1	= +bias/2
 	mu2	= -mu1
 
 	dband	= 1e5
@@ -57,6 +58,9 @@ def main():
 	nleads 	= 2
 	T_lst 	= { 0:T1 , 1:T1}
 	mu_lst 	= { 0:mu1 , 1:mu2}
+	method	= 'Redfield'
+	method	= 'Pauli'
+	method	= '1vN'
 	method	= 'Lindblad'
 
 	if model == 1:
@@ -70,13 +74,16 @@ def main():
 	maj_box.diagonalize()
 	Ea		= maj_box.elec_en
 	tunnel		= maj_box.constr_tunnel()
-	
+
 	sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
 
 	sys.solve(qdq=False, rotateq=False)
 	print('Eigenenergies:', sys.Ea)
 	print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
+
+	return
+
 	fig, (ax1,ax2)	= plt.subplots(1, 2)
 
 	points	= 100
@@ -93,7 +100,7 @@ def main():
 		I[el[0] ]	= el[1]
 	
 	c	= ax1.pcolor(X, Y, I, shading='auto')
-	fig.colorbar(c, ax=ax1)
+	cbar	= fig.colorbar(c, ax=ax1)
 
 	angles	= np.linspace(dphi, 2*np.pi+dphi, 1000)
 	Vg	= 0e1
@@ -103,7 +110,7 @@ def main():
 	I	= []
 	for phi in angles:
 		tLu	= np.exp(1j*phi)*t
-		tLu2	= tLu
+		tLu2	= tLu*phase2
 
 		if model == 1:
 			maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
@@ -121,14 +128,28 @@ def main():
 
 	ax2.plot(angles, I, label=method)
 
+	fs	= 12
+
 	ax2.grid(True)
+
+	ax1.locator_params(axis='both', nbins=5 )
+	ax2.locator_params(axis='both', nbins=5 )
+	cbar.ax.locator_params(axis='y', nbins=7 )
+	
+	ax1.tick_params(labelsize=fs)
+	ax2.tick_params(labelsize=fs)
+
+	cbar.ax.set_title('current', size=fs)
+	cbar.ax.tick_params(labelsize=fs)
+
 	ax2.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
 	ax2.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
-	ax2.set_xlabel(r'$\exp( i \Phi )$')
-	ax2.set_ylabel('current')
-	ax1.set_xlabel(r'$V_g$')
-	ax1.set_ylabel(r'$V_{bias}$')
+	ax2.set_xlabel(r'$\Phi$', fontsize=fs)
+	ax2.set_ylabel('current', fontsize=fs)
+	ax1.set_xlabel(r'$V_g$', fontsize=fs)
+	ax1.set_ylabel(r'$V_{bias}$', fontsize=fs)
 	ax2.set_ylim(bottom=0)
+
 
 	fig.tight_layout()
 	

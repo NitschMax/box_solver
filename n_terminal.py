@@ -12,52 +12,69 @@ from joblib import Parallel, delayed
 from time import perf_counter
 
 def main():
-	eps12 	= 2e-1
-	eps34 	= 1e-1
+	eps	= 1e-4
+	eps12 	= 0e-1
+	eps34 	= 0e-1
 
-	eps23	= 0e-1
+	eps23	= 0e-3
 
-	dphi	= 1e-5
+	dphi	= 1e-3
 	
 	gamma 	= 0.1
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
-	phase	= np.exp(0j/2*np.pi + 1j*dphi )
 
-	t1	= t*phase
-	t2	= t
-	t3	= t
-	t4	= t
-	t5	= 0
+	phase	= np.exp( +0j/2*np.pi + 1j*dphi )
+	phase1	= np.exp( +1j/2*np.pi + 1j*dphi)
+
+	tb1	= t
+	tb2     = t*phase
+	tm2     = t
+	tm3     = t*phase
+
+	tt3	= t*0
+	tt4	= t*0
+
+	tb11	= phase1*tb1
+	tb21	= phase1*tb2
+	tm21	= phase1*tm2
+	tm31	= phase1*tm3
+	tt31	= t*0
+	tt41	= t*0
 
 	T1	= 1e1
 	T2 	= T1
 
 	bias	= 2e2
 	mu1	= bias/2
-	mu2	= -mu1
+	mu2	= -bias/2
 	mu3	= 0
 
 	dband	= 1e5
-	Vg	= +1e1
+	Vg	= +0e1
 	
 	nleads 	= 2
 	T_lst 	= { 0:T1 , 1:T1, 2:T1}
 	mu_lst 	= { 0:mu1 , 1:mu2, 2:mu3}
+	method	= 'Redfield'
 	method	= 'Lindblad'
+	method	= 'Pauli'
+	method	= '1vN'
 
-	maj_op, overlaps, par	= two_leads(t1, t2, t3, t4, t5, eps12, eps23, eps34 )
+	maj_op, overlaps, par	= abs_tree_leads(tb1, tb11, tb2, tb21, tm2, tm21, tm3, tm31, tt3, tt31, tt4, tt41, eps)
+	maj_op, overlaps, par	= three_leads(tb1, tb2, tm2, tm3, tt3, tt4, eps12, eps23, eps34 )
 
 	maj_box		= bc.majorana_box(maj_op, overlaps, Vg)
 	maj_box.diagonalize()
 	Ea		= maj_box.elec_en
 	tunnel		= maj_box.constr_tunnel()
-	
+
 	sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
 
 	sys.solve(qdq=False, rotateq=False)
 	print('Eigenenergies:', sys.Ea)
 	print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
+
 	fig, (ax1,ax2)	= plt.subplots(1, 2)
 
 	points	= 100
@@ -74,18 +91,24 @@ def main():
 		I[el[0] ]	= el[1]
 	
 	c	= ax1.pcolor(X, Y, I, shading='auto')
-	fig.colorbar(c, ax=ax1)
+	cbar	= fig.colorbar(c, ax=ax1)
 
-	angles	= np.linspace(dphi, 2*np.pi+dphi, 1000)
+	angles	= np.linspace(0, 2*np.pi, 1000) + 1e-4
 	Vg	= 0e1
 	maj_box.adj_charging(Vg)
+	Ea	= maj_box.elec_en
 	mu_lst	= { 0:mu1, 1:mu2}
 
 	I	= []
 	for phi in angles:
-		t4	= np.exp(1j*phi)*t
+		tb2	= np.exp(1j*phi)*t
+		tm3	= np.exp(1j*phi)*t
 
-		maj_op, overlaps, par	= two_leads(t1, t2, t3, t4, t5, eps12, eps23, eps34 )
+		tb21	= tb2*phase1
+		tm31	= tm3*phase1
+
+		maj_op, overlaps, par	= abs_tree_leads(tb1, tb11, tb2, tb21, tm2, tm21, tm3, tm31, tt3, tt31, tt4, tt41, eps)
+		maj_op, overlaps, par	= three_leads(tb1, tb2, tm2, tm3, tt3, tt4, eps12, eps23, eps34 )
 
 		maj_box.change(majoranas = maj_op)
 		tunnel		= maj_box.constr_tunnel()
@@ -96,13 +119,25 @@ def main():
 
 	ax2.plot(angles, I, label=method)
 
+	fs	= 12
+
+	ax1.locator_params(axis='both', nbins=5 )
+	ax2.locator_params(axis='both', nbins=5 )
+	cbar.ax.locator_params(axis='y', nbins=7 )
+	
+	ax1.tick_params(labelsize=fs)
+	ax2.tick_params(labelsize=fs)
+
+	cbar.ax.set_title('current', size=fs)
+	cbar.ax.tick_params(labelsize=fs)
+
 	ax2.grid(True)
 	ax2.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
 	ax2.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
-	ax2.set_xlabel(r'$\exp( i \Phi )$')
-	ax2.set_ylabel('current')
-	ax1.set_xlabel(r'$V_g$')
-	ax1.set_ylabel(r'$V_{bias}$')
+	ax2.set_xlabel(r'$\exp( i \Phi )$', fontsize=fs)
+	ax2.set_ylabel('current', fontsize=fs)
+	ax1.set_xlabel(r'$V_g$', fontsize=fs)
+	ax1.set_ylabel(r'$V_{bias}$', fontsize=fs)
 	ax2.set_ylim(bottom=0)
 
 	fig.tight_layout()
@@ -117,14 +152,42 @@ def bias_sweep(indices, bias, Vg, I, maj_box, par, tunnel, dband, T_lst, method)
 	sys 	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
 	sys.solve(qdq=False, rotateq=False)
 
-	return [indices, sys.current[0] ]
+	return [indices, sys.current[0]]
 
-def two_leads(t1, t2, t3, t4, t5, eps12, eps23, eps34):
+def three_leads(tb1, tb2, tm2, tm3, tt3, tt4, eps12, eps23, eps34):
 	overlaps	= np.array([[0, eps12, 0, 0], [0, 0, eps23, 0], [0, 0, 0, eps34], [0, 0, 0, 0]] )
-	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[t1]), fc.maj_operator(index=1, lead=[0,1], coupling=[t2, t3]), \
-					fc.maj_operator(index=2, lead=[1], coupling=[t4]), fc.maj_operator(index=3, lead=[2], coupling=[t5]) ]
+	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tb1]), fc.maj_operator(index=1, lead=[0,1], coupling=[tb2, tm2]), \
+					fc.maj_operator(index=2, lead=[1, 2], coupling=[tm3, tt3]), fc.maj_operator(index=3, lead=[2], coupling=[tt4]) ]
+	par		= np.array([1,1,0,0])
 	par		= np.array([0,0,1,1])
 	return maj_op, overlaps, par
+
+def abs_tree_leads(tb10, tb11, tb20, tb21, tm20, tm21, tm30, tm31, tt30, tt31, tt40, tt41, eps=0):
+	overlaps	= np.array([1, 2, 3, 4 ] )*eps
+	overlaps	= fbr.default_overlaps(8, overlaps)
+
+	maj_op		=  [fc.maj_operator(index=0, lead=[0], coupling=[tb10]), fc.maj_operator(index=1, lead=[0], coupling=[tb11]), \
+				fc.maj_operator(index=2, lead=[0,1], coupling=[tb20, tm20]), fc.maj_operator(index=3, lead=[0,1], coupling=[tb21,tm21]), \
+				fc.maj_operator(index=4, lead=[1,2], coupling=[tm30, tt30]), fc.maj_operator(index=5, lead=[1,2], coupling=[tm31, tt31]), \
+				fc.maj_operator(index=6, lead=[2], coupling=[tt40]), fc.maj_operator(index=7, lead=[2], coupling=[tt41]) ]
+	par		= np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1] )
+	return maj_op, overlaps, par
+
+def tunnel_mart(tb1, tb2, tm2, tm3, tt3, tt4):
+	tunnel=np.array([[ \
+	[ 0.+0.j, 0.+0.j, tb1-1.j*tb2, 0], \
+	[ 0.+0.j, 0.+0.j, 0.+0.j, tb1+1.j*tb2], \
+	[ np.conj(tb1)+1.j*np.conj(tb2), 0.+0.j, 0.+0.j, 0.+0.j], \
+	[ 0.+0.j, np.conj(tb1)-1.j*np.conj(tb2), 0.+0.j, 0.+0.j]], \
+	[[ 0.+0.j, 0.+0.j, -1.j*tm2, tm3], \
+	[  0.+0.j, 0.+0.j, -tm3, 1.j*tm2], \
+	[ 1.j*np.conj(tm2), -np.conj(tm3), 0.+0.j, 0.+0.j], \
+	[ np.conj(tm3), -1.j*np.conj(tm2), 0.+0.j, 0.+0.j]], \
+	[[ 0.+0.j, 0.+0.j, 0.+0.j, tt3-1.j*tt4], \
+	[  0.+0.j, 0.+0.j, -tt3-1.j*tt4, 0.+0.j], \
+	[ 0.+0.j, -np.conj(tt3)+1.j*np.conj(tt4), 0.+0.j, 0.+0.j], \
+	[ np.conj(tt3)+1.j*np.conj(tt4), 0.+0.j, 0.+0.j, 0.+0.j]]])
+	return tunnel
 
 def format_func(value, tick_number):
     # find number of multiples of pi/2
