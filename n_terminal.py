@@ -12,19 +12,23 @@ from joblib import Parallel, delayed
 from time import perf_counter
 
 def main():
-	eps	= 1e-4
+	eps	= 1e-3
 	eps12 	= 0e-1
 	eps34 	= 0e-1
 
 	eps23	= 0e-3
 
-	dphi	= 1e-3
+	dphi	= 1e-6
 	
 	gamma 	= 0.1
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
 
-	phase	= np.exp( +0j/2*np.pi + 1j*dphi )
-	phase1	= np.exp( +1j/2*np.pi + 1j*dphi)
+	phase	= np.exp( +1j/5*np.pi + 1j*dphi )
+
+	theta_1	= np.exp( 0j/3*np.pi + 1j*dphi )
+	theta_2	= np.exp( 0j/7*np.pi + 1j*dphi )
+	theta_3	= np.exp( 0j/5*np.pi + 1j*dphi )
+	theta_4	= np.exp( 0j/4*np.pi + 1j*dphi )
 
 	tb1	= t
 	tb2     = t*phase
@@ -34,10 +38,10 @@ def main():
 	tt3	= t*0
 	tt4	= t*0
 
-	tb11	= phase1*tb1
-	tb21	= phase1*tb2
-	tm21	= phase1*tm2
-	tm31	= phase1*tm3
+	tb11	= theta_1*tb1
+	tb21	= theta_2*tb2
+	tm21	= theta_2*tm2
+	tm31	= theta_3*tm3
 	tt31	= t*0
 	tt41	= t*0
 
@@ -56,12 +60,12 @@ def main():
 	T_lst 	= { 0:T1 , 1:T1, 2:T1}
 	mu_lst 	= { 0:mu1 , 1:mu2, 2:mu3}
 	method	= 'Redfield'
-	method	= 'Lindblad'
 	method	= 'Pauli'
+	method	= 'Lindblad'
 	method	= '1vN'
 
-	maj_op, overlaps, par	= abs_tree_leads(tb1, tb11, tb2, tb21, tm2, tm21, tm3, tm31, tt3, tt31, tt4, tt41, eps)
 	maj_op, overlaps, par	= three_leads(tb1, tb2, tm2, tm3, tt3, tt4, eps12, eps23, eps34 )
+	maj_op, overlaps, par	= abs_tree_leads(tb1, tb11, tb2, tb21, tm2, tm21, tm3, tm31, tt3, tt31, tt4, tt41, eps)
 
 	maj_box		= bc.majorana_box(maj_op, overlaps, Vg)
 	maj_box.diagonalize()
@@ -71,6 +75,7 @@ def main():
 	sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
 
 	sys.solve(qdq=False, rotateq=False)
+
 	print('Eigenenergies:', sys.Ea)
 	print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
@@ -84,16 +89,25 @@ def main():
 	
 	X,Y	= np.meshgrid(x, y)
 	I	= np.zeros(X.shape, dtype=np.float64 )
+	max_occ	= []
+	min_occ	= []
 
 	num_cores	= 4
 	unordered_res	= Parallel(n_jobs=num_cores)(delayed(bias_sweep)(indices, bias, X[indices], I, maj_box, par, tunnel, dband, T_lst, method) for indices, bias in np.ndenumerate(Y) ) 
+
 	for el in unordered_res:
 		I[el[0] ]	= el[1]
+		max_occ.append(el[2] )
+		min_occ.append(el[3] )
+	max_occ	= max(max_occ)
+	min_occ	= min(min_occ)
+	print('Maximal occupation:', max_occ)
+	print('Minimal occupation:', min_occ)
 	
 	c	= ax1.pcolor(X, Y, I, shading='auto')
 	cbar	= fig.colorbar(c, ax=ax1)
 
-	angles	= np.linspace(0, 2*np.pi, 1000) + 1e-4
+	angles	= np.linspace(0, 2*np.pi, 1000) + dphi
 	Vg	= 0e1
 	maj_box.adj_charging(Vg)
 	Ea	= maj_box.elec_en
@@ -104,11 +118,11 @@ def main():
 		tb2	= np.exp(1j*phi)*t
 		tm3	= np.exp(1j*phi)*t
 
-		tb21	= tb2*phase1
-		tm31	= tm3*phase1
+		tb21	= tb2*theta_2
+		tm31	= tm3*theta_3
 
-		maj_op, overlaps, par	= abs_tree_leads(tb1, tb11, tb2, tb21, tm2, tm21, tm3, tm31, tt3, tt31, tt4, tt41, eps)
 		maj_op, overlaps, par	= three_leads(tb1, tb2, tm2, tm3, tt3, tt4, eps12, eps23, eps34 )
+		maj_op, overlaps, par	= abs_tree_leads(tb1, tb11, tb2, tb21, tm2, tm21, tm3, tm31, tt3, tt31, tt4, tt41, eps)
 
 		maj_box.change(majoranas = maj_op)
 		tunnel		= maj_box.constr_tunnel()
@@ -151,8 +165,9 @@ def bias_sweep(indices, bias, Vg, I, maj_box, par, tunnel, dband, T_lst, method)
 	Ea	= maj_box.adj_charging(Vg)
 	sys 	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
 	sys.solve(qdq=False, rotateq=False)
+	occ	= sys.phi0[:Ea.size]
 
-	return [indices, sys.current[0]]
+	return [indices, sys.current[0], max(occ), min(occ)]
 
 def three_leads(tb1, tb2, tm2, tm3, tt3, tt4, eps12, eps23, eps34):
 	overlaps	= np.array([[0, eps12, 0, 0], [0, 0, eps23, 0], [0, 0, 0, eps34], [0, 0, 0, 0]] )

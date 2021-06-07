@@ -18,32 +18,33 @@ def main():
 	epsL = 0e-6
 	epsR = 0e-6
 
-	epsLu	= 2e-1
-	epsLd	= 1e-1
-	epsRu	= 2e-1
-	epsRd	= 1e-1
+	epsLu	= 2e-3
+	epsLd	= 1e-3
+	epsRu	= 2e-3
+	epsRd	= 1e-3
 
 	epsMu	= 2e-6
 	epsMd	= 1e-6
 
-	model	= 1
+	model	= 2
 	
 	dphi	= 1e-6
 	
 	gamma 	= 0.1
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
-	phase	= np.exp(-0j/2*np.pi + 1j*dphi )
-	phase2	= np.exp(0j/4*np.pi + 1j*dphi )
+	phase	= np.exp( -0j/2*np.pi + 1j*dphi )
+	theta_u	= np.exp( 7j/5*np.pi + 1j*dphi )
+	theta_d	= np.exp( 1j/4*np.pi + 1j*dphi )
 
 	tLu	= t*phase
 	tLd	= t
 	tRu	= t
 	tRd	= t
 
-	tLu2	= tLu*phase2
-	tLd2	= tLd*phase2
-	tRu2	= tRu*phase2
-	tRd2	= tRd*phase2
+	tLu2	= tLu*theta_u
+	tLd2	= tLd*theta_d
+	tRu2	= tRu*theta_u
+	tRd2	= tRd*theta_d
 
 	T1	= 1e1
 	T2 	= T1
@@ -82,8 +83,6 @@ def main():
 	print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
 
-	return
-
 	fig, (ax1,ax2)	= plt.subplots(1, 2)
 
 	points	= 100
@@ -110,7 +109,7 @@ def main():
 	I	= []
 	for phi in angles:
 		tLu	= np.exp(1j*phi)*t
-		tLu2	= tLu*phase2
+		tLu2	= tLu*theta_u
 
 		if model == 1:
 			maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
