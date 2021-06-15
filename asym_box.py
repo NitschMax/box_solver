@@ -31,19 +31,17 @@ def main():
 	theta_4	= np.exp( 0j/4*np.pi - 2j*dphi )
 
 	tb1	= t
-	tb2     = t*phase
-	tm2     = t
-	tm3     = t*phase
+	tb2     = t
+	tb3     = t
 
-	tt3	= t*0
-	tt4	= t*0
+	tt4	= t
 
-	tb11	= theta_1*tb1
-	tb21	= theta_2*tb2
-	tm21	= theta_2*tm2
-	tm31	= theta_3*tm3
-	tt31	= t*0
-	tt41	= t*0
+	tb11	= t
+	tb21	= t
+	tb31	= t
+
+	tt41	= t
+
 
 	T1	= 1e1
 	T2 	= T1
@@ -56,7 +54,6 @@ def main():
 	dband	= 1e5
 	Vg	= +0e1
 	
-	nleads 	= 2
 	T_lst 	= { 0:T1 , 1:T1, 2:T1}
 	mu_lst 	= { 0:mu1 , 1:mu2, 2:mu3}
 	method	= 'Redfield'
@@ -67,9 +64,9 @@ def main():
 	model	= 1
 
 	if model == 1:
-		maj_op, overlaps, par	= three_leads(tb1, tb2, tm2, tm3, tt3, tt4, eps12, eps23, eps34 )
+		maj_op, overlaps, par	= majorana_leads(tb1, tb2, tb3, tt4)
 	else:
-		maj_op, overlaps, par	= abs_tree_leads(tb1, tb11, tb2, tb21, tm2, tm21, tm3, tm31, tt3, tt31, tt4, tt41, eps)
+		maj_op, overlaps, par	= abs_leads(tb1, tb11, tb2, tb21, tb3, tb31, tt4, tt41, eps)
 
 	maj_box		= bc.majorana_box(maj_op, overlaps, Vg)
 	maj_box.diagonalize()
@@ -126,9 +123,9 @@ def main():
 		tm31	= tm3*theta_3
 
 		if model == 1:
-			maj_op, overlaps, par	= three_leads(tb1, tb2, tm2, tm3, tt3, tt4, eps12, eps23, eps34 )
+			maj_op, overlaps, par	= majorana_leads(tb1, tb2, tb3, tt4)
 		else:
-			maj_op, overlaps, par	= abs_tree_leads(tb1, tb11, tb2, tb21, tm2, tm21, tm3, tm31, tt3, tt31, tt4, tt41, eps)
+			maj_op, overlaps, par	= abs_leads(tb1, tb11, tb2, tb21, tb3, tb31, tt4, tt41, eps)
 
 		maj_box.change(majoranas = maj_op)
 		tunnel		= maj_box.constr_tunnel()
@@ -175,15 +172,14 @@ def bias_sweep(indices, bias, Vg, I, maj_box, par, tunnel, dband, T_lst, method)
 
 	return [indices, sys.current[0], max(occ), min(occ)]
 
-def three_leads(tb1, tb2, tm2, tm3, tt3, tt4, eps12, eps23, eps34):
+def majorana_leads(tb1, tb2, tb3, tt4, eps12=0, eps23=0, eps34=0):
 	overlaps	= np.array([[0, eps12, 0, 0], [0, 0, eps23, 0], [0, 0, 0, eps34], [0, 0, 0, 0]] )
-	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tb1]), fc.maj_operator(index=1, lead=[0,1], coupling=[tb2, tm2]), \
-					fc.maj_operator(index=2, lead=[1, 2], coupling=[tm3, tt3]), fc.maj_operator(index=3, lead=[2], coupling=[tt4]) ]
-	par		= np.array([1,1,0,0])
+	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tb1]), fc.maj_operator(index=1, lead=[0], coupling=[tb2]), \
+					fc.maj_operator(index=2, lead=[0], coupling=[tb3]), fc.maj_operator(index=3, lead=[1], coupling=[tt4]) ]
 	par		= np.array([0,0,1,1])
 	return maj_op, overlaps, par
 
-def abs_tree_leads(tb10, tb11, tb20, tb21, tm20, tm21, tm30, tm31, tt30, tt31, tt40, tt41, eps=0):
+def abs_leads(tb10, tb11, tb20, tb21, tm20, tm21, tm30, tm31, tt30, tt31, tt40, tt41, eps=0):
 	overlaps	= np.array([1, 2, 3, 4 ] )*eps
 	overlaps	= fbr.default_overlaps(8, overlaps)
 

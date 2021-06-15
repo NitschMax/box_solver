@@ -59,7 +59,6 @@ def main():
 	dband	= 1e5
 	Vg	= +1e1
 	
-	nleads 	= 2
 	T_lst 	= { 0:T1 , 1:T1}
 	mu_lst 	= { 0:mu1 , 1:mu2}
 	method	= 'Redfield'

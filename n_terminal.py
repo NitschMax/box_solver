@@ -23,7 +23,7 @@ def main():
 	gamma 	= 0.1
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
 
-	phase	= np.exp( 0j/3*np.pi + 1j*dphi )
+	phase	= np.exp( 1j/3*np.pi + 1j*dphi )
 
 	theta_1	= np.exp( 0j/4*np.pi + 1j*dphi )
 	theta_2	= np.exp( 0j/4*np.pi - 1j*dphi )
@@ -56,7 +56,6 @@ def main():
 	dband	= 1e5
 	Vg	= +0e1
 	
-	nleads 	= 2
 	T_lst 	= { 0:T1 , 1:T1, 2:T1}
 	mu_lst 	= { 0:mu1 , 1:mu2, 2:mu3}
 	method	= 'Redfield'
@@ -179,7 +178,6 @@ def three_leads(tb1, tb2, tm2, tm3, tt3, tt4, eps12, eps23, eps34):
 	overlaps	= np.array([[0, eps12, 0, 0], [0, 0, eps23, 0], [0, 0, 0, eps34], [0, 0, 0, 0]] )
 	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tb1]), fc.maj_operator(index=1, lead=[0,1], coupling=[tb2, tm2]), \
 					fc.maj_operator(index=2, lead=[1, 2], coupling=[tm3, tt3]), fc.maj_operator(index=3, lead=[2], coupling=[tt4]) ]
-	par		= np.array([1,1,0,0])
 	par		= np.array([0,0,1,1])
 	return maj_op, overlaps, par
 
