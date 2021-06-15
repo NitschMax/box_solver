@@ -13,22 +13,22 @@ from time import perf_counter
 
 def main():
 	eps	= 1e-3
-	eps12 	= 0e-1
-	eps34 	= 0e-1
+	eps12 	= 1e-3
+	eps34 	= 1e-3
 
 	eps23	= 0e-3
 
-	dphi	= 1e-6
+	dphi	= 1e-5
 	
 	gamma 	= 0.1
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
 
-	phase	= np.exp( +1j/5*np.pi + 1j*dphi )
+	phase	= np.exp( 1j/3*np.pi + 1j*dphi )
 
-	theta_1	= np.exp( 0j/3*np.pi + 1j*dphi )
-	theta_2	= np.exp( 0j/7*np.pi + 1j*dphi )
-	theta_3	= np.exp( 0j/5*np.pi + 1j*dphi )
-	theta_4	= np.exp( 0j/4*np.pi + 1j*dphi )
+	theta_1	= np.exp( 1j/4*np.pi + 1j*dphi )
+	theta_2	= np.exp( 1j/4*np.pi - 1j*dphi )
+	theta_3	= np.exp( 1j/4*np.pi + 2j*dphi )
+	theta_4	= np.exp( 1j/4*np.pi - 2j*dphi )
 
 	tb1	= t
 	tb2     = t*phase
@@ -64,8 +64,12 @@ def main():
 	method	= 'Lindblad'
 	method	= '1vN'
 
-	maj_op, overlaps, par	= three_leads(tb1, tb2, tm2, tm3, tt3, tt4, eps12, eps23, eps34 )
-	maj_op, overlaps, par	= abs_tree_leads(tb1, tb11, tb2, tb21, tm2, tm21, tm3, tm31, tt3, tt31, tt4, tt41, eps)
+	model	= 1
+
+	if model == 1:
+		maj_op, overlaps, par	= three_leads(tb1, tb2, tm2, tm3, tt3, tt4, eps12, eps23, eps34 )
+	else:
+		maj_op, overlaps, par	= abs_tree_leads(tb1, tb11, tb2, tb21, tm2, tm21, tm3, tm31, tt3, tt31, tt4, tt41, eps)
 
 	maj_box		= bc.majorana_box(maj_op, overlaps, Vg)
 	maj_box.diagonalize()
@@ -121,8 +125,10 @@ def main():
 		tb21	= tb2*theta_2
 		tm31	= tm3*theta_3
 
-		maj_op, overlaps, par	= three_leads(tb1, tb2, tm2, tm3, tt3, tt4, eps12, eps23, eps34 )
-		maj_op, overlaps, par	= abs_tree_leads(tb1, tb11, tb2, tb21, tm2, tm21, tm3, tm31, tt3, tt31, tt4, tt41, eps)
+		if model == 1:
+			maj_op, overlaps, par	= three_leads(tb1, tb2, tm2, tm3, tt3, tt4, eps12, eps23, eps34 )
+		else:
+			maj_op, overlaps, par	= abs_tree_leads(tb1, tb11, tb2, tb21, tm2, tm21, tm3, tm31, tt3, tt31, tt4, tt41, eps)
 
 		maj_box.change(majoranas = maj_op)
 		tunnel		= maj_box.constr_tunnel()

@@ -23,8 +23,8 @@ def main():
 	epsRu	= 2e-3
 	epsRd	= 1e-3
 
-	epsMu	= 2e-6
-	epsMd	= 1e-6
+	epsMu	= 0e-9
+	epsMd	= 0e-9
 
 	model	= 2
 	
@@ -33,16 +33,19 @@ def main():
 	gamma 	= 0.1
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
 	phase	= np.exp( -0j/2*np.pi + 1j*dphi )
-	theta_u	= np.exp( 7j/5*np.pi + 1j*dphi )
-	theta_d	= np.exp( 1j/4*np.pi + 1j*dphi )
+	theta_u	= np.exp( 1j/5*np.pi + 1j*dphi )
+	theta_d	= np.exp( 0j/5*np.pi + 1j*dphi )
+	faktorU	= 1e-0
+	faktorD	= 1e-0
+	faktorR	= 1e-1
 
 	tLu	= t*phase
 	tLd	= t
-	tRu	= t
-	tRd	= t
+	tRu	= t*faktorR
+	tRd	= t*faktorR
 
-	tLu2	= tLu*theta_u
-	tLd2	= tLd*theta_d
+	tLu2	= tLu*theta_u*faktorU
+	tLd2	= tLd*theta_d*faktorD
 	tRu2	= tRu*theta_u
 	tRd2	= tRd*theta_d
 
@@ -67,7 +70,7 @@ def main():
 	if model == 1:
 		maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
 	elif model == 2:
-		maj_op, overlaps, par	= abs_box(tLu, tLd, tRu, tRd, tLu2, tLd2, tRu2, tRd2, epsLu, epsRu, epsLd, epsRd)
+		maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
 	else:
 		maj_op, overlaps, par	= eight_box(tLu, tLd, tRu, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
 
@@ -109,14 +112,14 @@ def main():
 	I	= []
 	for phi in angles:
 		tLu	= np.exp(1j*phi)*t
-		tLu2	= tLu*theta_u
+		tLu2	= tLu*theta_u*faktorU
 
 		if model == 1:
 			maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
 		elif model == 2:
-			maj_op, overlaps, par	= abs_box(tLu, tLd, tRu, tRd, tLu2, tLd2, tRu2, tRd2, epsLu, epsRu, epsLd, epsRd)
+			maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
 		else:
-			maj_op, overlaps, par	= eight_box(tLu, tLd, tRu, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
+			maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
 
 		maj_box.change(majoranas = maj_op)
 		tunnel		= maj_box.constr_tunnel()
