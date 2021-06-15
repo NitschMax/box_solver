@@ -49,22 +49,21 @@ def main():
 	bias	= 2e2
 	mu1	= bias/2
 	mu2	= -bias/2
-	mu3	= 0
 
 	dband	= 1e5
 	Vg	= +0e1
 	
-	T_lst 	= { 0:T1 , 1:T1, 2:T1}
-	mu_lst 	= { 0:mu1 , 1:mu2, 2:mu3}
+	T_lst 	= { 0:T1 , 1:T1}
+	mu_lst 	= { 0:mu1 , 1:mu2}
 	method	= 'Redfield'
 	method	= 'Pauli'
-	method	= 'Lindblad'
 	method	= '1vN'
+	method	= 'Lindblad'
 
 	model	= 1
 
 	if model == 1:
-		maj_op, overlaps, par	= majorana_leads(tb1, tb2, tb3, tt4)
+		maj_op, overlaps, par	= majorana_leads(tb1, tb2, tb3, tt4, eps12, eps23, eps34)
 	else:
 		maj_op, overlaps, par	= abs_leads(tb1, tb11, tb2, tb21, tb3, tb31, tt4, tt41, eps)
 
@@ -72,6 +71,7 @@ def main():
 	maj_box.diagonalize()
 	Ea		= maj_box.elec_en
 	tunnel		= maj_box.constr_tunnel()
+	print(Ea, par, tunnel)
 
 	sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
 
