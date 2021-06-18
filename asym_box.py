@@ -23,16 +23,17 @@ def main():
 	gamma 	= 0.1
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
 
-	phase	= np.exp( 0j/3*np.pi + 1j*dphi )
+	phase1	= np.exp( 0j/2*np.pi + 1j*dphi )
+	phase3	= np.exp( 0j/2*np.pi + 1j*dphi )
 
 	theta_1	= np.exp( 0j/4*np.pi + 1j*dphi )
 	theta_2	= np.exp( 0j/4*np.pi - 1j*dphi )
 	theta_3	= np.exp( 0j/4*np.pi + 2j*dphi )
 	theta_4	= np.exp( 0j/4*np.pi - 2j*dphi )
 
-	tb1	= t
+	tb1	= t*phase1
 	tb2     = t
-	tb3     = t
+	tb3     = t*phase3
 
 	tt4	= t
 
@@ -57,8 +58,8 @@ def main():
 	mu_lst 	= { 0:mu1 , 1:mu2}
 	method	= 'Redfield'
 	method	= 'Pauli'
-	method	= '1vN'
 	method	= 'Lindblad'
+	method	= '1vN'
 
 	model	= 1
 
@@ -108,19 +109,21 @@ def main():
 	c	= ax1.pcolor(X, Y, I, shading='auto')
 	cbar	= fig.colorbar(c, ax=ax1)
 
-	angles	= np.linspace(0, 2*np.pi, 1000) + dphi
-	Vg	= 0e1
-	maj_box.adj_charging(Vg)
-	Ea	= maj_box.elec_en
-	mu_lst	= { 0:mu1, 1:mu2}
+	x	= np.linspace(-np.pi/2, np.pi/2, 100) + dphi
+	y	= x
+	
+	X,Y	= np.meshgrid(x, y)
+	I	= np.zeros(X.shape, dtype=np.float64 )
+	max_occ	= []
+	min_occ	= []
 
-	I	= []
-	for phi in angles:
-		tb2	= np.exp(1j*phi)*t
-		tm3	= np.exp(1j*phi)*t
-
-		tb21	= tb2*theta_2
-		tm31	= tm3*theta_3
+	for indices,el in np.ndenumerate(I):
+		phi_1	= X[indices] + Y[indices]
+		phi_3	= X[indices] - Y[indices]
+		tb1	= np.exp(1j*phi_1 )*t
+		tb2	= t
+		tb3	= np.exp(1j*phi_3 )*t
+		tt4	= t
 
 		if model == 1:
 			maj_op, overlaps, par	= majorana_leads(tb1, tb2, tb3, tt4)
@@ -132,30 +135,38 @@ def main():
 
 		sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
 		sys.solve(qdq=False, rotateq=False)
-		I.append(sys.current[0])
 
-	ax2.plot(angles, I, label=method)
+		I[indices ]	= sys.current[0]
+
+	print('Minimal current: ', np.amin(I) )
+	c	= ax2.pcolor(X, Y, I, shading='auto')
+	cbar2	= fig.colorbar(c, ax=ax2)
 
 	fs	= 12
 
 	ax1.locator_params(axis='both', nbins=5 )
 	ax2.locator_params(axis='both', nbins=5 )
 	cbar.ax.locator_params(axis='y', nbins=7 )
+	cbar2.ax.locator_params(axis='y', nbins=7 )
 	
 	ax1.tick_params(labelsize=fs)
 	ax2.tick_params(labelsize=fs)
 
 	cbar.ax.set_title('current', size=fs)
 	cbar.ax.tick_params(labelsize=fs)
+	cbar2.ax.set_title('current', size=fs)
+	cbar2.ax.tick_params(labelsize=fs)
 
-	ax2.grid(True)
 	ax2.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
 	ax2.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
-	ax2.set_xlabel(r'$\exp( i \Phi )$', fontsize=fs)
-	ax2.set_ylabel('current', fontsize=fs)
+	ax2.yaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
+	ax2.yaxis.set_major_formatter(plt.FuncFormatter(format_func) )
+	ax2.set_xlabel(r'$\Phi_{avg}$', fontsize=fs)
+	ax2.set_ylabel(r'$\Phi_{diff}$', fontsize=fs)
+	ax2.set_xlabel(r'$\Phi_{1}$', fontsize=fs)
+	ax2.set_ylabel(r'$\Phi_{3}$', fontsize=fs)
 	ax1.set_xlabel(r'$V_g$', fontsize=fs)
 	ax1.set_ylabel(r'$V_{bias}$', fontsize=fs)
-	ax2.set_ylim(bottom=0)
 
 	fig.tight_layout()
 	
@@ -215,6 +226,10 @@ def format_func(value, tick_number):
         return r"$\pi/2$"
     elif N == 2:
         return r"$\pi$"
+    elif N == -1:
+        return r"$-\pi/2$"
+    elif N == -2:
+        return r"$-\pi$"
     elif N % 2 > 0:
         return r"${0}\pi/2$".format(N)
     else:
