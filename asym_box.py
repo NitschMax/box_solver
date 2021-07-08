@@ -14,8 +14,8 @@ import scipy.optimize as opt
 
 def main():
 	eps	= 1e-4
-	eps12 	= 1e-5
-	eps34 	= 1e-5
+	eps12 	= 0e-5
+	eps34 	= 0e-5
 
 	eps23	= 0e-3
 
