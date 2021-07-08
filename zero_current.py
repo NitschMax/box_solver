@@ -14,8 +14,8 @@ import scipy.optimize as opt
 
 def main():
 	eps	= 1e-4
-	eps12 	= 1e-5
-	eps34 	= 1e-5
+	eps12 	= 0e-6
+	eps34 	= 0e-6
 
 	eps23	= 0e-3
 
@@ -24,27 +24,14 @@ def main():
 	gamma 	= 0.1
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
 
-	phase1	= np.exp( +0j/2*np.pi + 1j*dphi )
+	phase1	= np.exp( +1j/2*np.pi + 1j*dphi )
 	phase3	= np.exp( +0j/2*np.pi + 1j*dphi )
-
-	theta_1	= np.exp( 0j/4*np.pi + 1j*dphi )
-	theta_2	= np.exp( 0j/4*np.pi - 1j*dphi )
-	theta_3	= np.exp( 0j/4*np.pi + 2j*dphi )
-	theta_4	= np.exp( 0j/4*np.pi - 2j*dphi )
-	quasi_zero	= 0e-5
 
 	tb1	= t*phase1
 	tb2     = t
-	tb3     = t*phase3*quasi_zero
+	tb3     = t*phase3
 
 	tt4	= t
-
-	tb11	= t
-	tb21	= t
-	tb31	= t
-
-	tt41	= t
-
 
 	T1	= 1e1
 	T2 	= T1
@@ -58,123 +45,57 @@ def main():
 	
 	T_lst 	= { 0:T1 , 1:T1}
 	mu_lst 	= { 0:mu1 , 1:mu2}
-	method	= 'Redfield'
-	method	= 'Pauli'
 	method	= 'Lindblad'
 	method	= '1vN'
 
-	model	= 1
-	
-	test_run	= False
-
-	if model == 1:
-		maj_op, overlaps, par	= majorana_leads(tb1, tb2, tb3, tt4, eps12, eps23, eps34)
-	else:
-		maj_op, overlaps, par	= abs_leads(tb1, tb11, tb2, tb21, tb3, tb31, tt4, tt41, eps)
+	maj_op, overlaps, par	= majorana_leads(tb1, tb2, tb3, tt4, eps12, eps23, eps34)
 
 	maj_box		= bc.majorana_box(maj_op, overlaps, Vg)
 	maj_box.diagonalize()
 	Ea		= maj_box.elec_en
 	tunnel		= maj_box.constr_tunnel()
 
-	if test_run:
-		sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
+	sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
 
-		sys.solve(qdq=False, rotateq=False)
+	sys.solve(qdq=False, rotateq=False)
 
-		print('Eigenenergies:', sys.Ea)
-		print('Density matrix:', sys.phi0 )
-		print('Current:', sys.current )
-
-	fig, (ax1,ax2)	= plt.subplots(1, 2)
-
-	points	= 100
-	m_bias	= 1e2
-	x	= np.linspace(-m_bias, m_bias, points)
-	y	= x
+	print('Eigenenergies:', sys.Ea)
+	print('Density matrix:', sys.phi0 )
+	print('Current:', sys.current )
 	
-	X,Y	= np.meshgrid(x, y)
-	I	= np.zeros(X.shape, dtype=np.float64 )
-	max_occ	= []
-	min_occ	= []
-
-	num_cores	= 4
-	unordered_res	= Parallel(n_jobs=num_cores)(delayed(bias_sweep)(indices, bias, X[indices], I, maj_box, par, tunnel, dband, T_lst, method) for indices, bias in np.ndenumerate(Y) ) 
-
-	for el in unordered_res:
-		I[el[0] ]	= el[1]
-		max_occ.append(el[2] )
-		min_occ.append(el[3] )
-	max_occ	= max(max_occ)
-	min_occ	= min(min_occ)
-	print('Maximal occupation:', max_occ)
-	print('Minimal occupation:', min_occ)
-	
-	c	= ax1.pcolor(X, Y, I, shading='auto')
-	cbar	= fig.colorbar(c, ax=ax1)
-
-	x	= np.linspace(-np.pi/2, np.pi/2, 100) + dphi
-	y	= x
-	
-	X,Y	= np.meshgrid(x, y)
-	I	= np.zeros(X.shape, dtype=np.float64 )
-	max_occ	= []
-	min_occ	= []
+	angles	= np.linspace(-np.pi/2, np.pi/2, 1000)
+	I	= []
 
 	print('Trying to find the roots.')
-	roots	= opt.fmin(current, x0=[0, np.pi/4], args=(maj_box, t, Ea, dband, mu_lst, T_lst, method, model ) )
+	roots	= opt.fmin(current, x0=[0, np.pi/4], args=(maj_box, t, Ea, dband, mu_lst, T_lst, method ) )
 	print('Phase-diff with minimal current:', 'pi*'+str(roots/np.pi) )
-	print('Minimal current: ', current(roots, maj_box, t, Ea, dband, mu_lst, T_lst, method, model) )
-
-	for indices,el in np.ndenumerate(I):
-		I[indices ]	= current([X[indices], Y[indices] ], maj_box, t, Ea, dband, mu_lst, T_lst, method, model) 
-
-	c	= ax2.pcolor(X, Y, I, shading='auto')
-	cbar2	= fig.colorbar(c, ax=ax2)
-
-	ax2.contourf(X, Y, I)
-	ax2.scatter(roots[0], roots[1], marker='x', color='r')
-
-	fs	= 12
-
-	ax1.locator_params(axis='both', nbins=5 )
-	ax2.locator_params(axis='both', nbins=5 )
-	cbar.ax.locator_params(axis='y', nbins=7 )
-	cbar2.ax.locator_params(axis='y', nbins=7 )
+	print('Minimal current: ', current(roots, maj_box, t, Ea, dband, mu_lst, T_lst, method) )
+	return
 	
-	ax1.tick_params(labelsize=fs)
-	ax2.tick_params(labelsize=fs)
-
-	cbar.ax.set_title('current', size=fs)
-	cbar.ax.tick_params(labelsize=fs)
-	cbar2.ax.set_title('current', size=fs)
-	cbar2.ax.tick_params(labelsize=fs)
-
-	ax2.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
-	ax2.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
-	ax2.yaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
-	ax2.yaxis.set_major_formatter(plt.FuncFormatter(format_func) )
-	ax2.set_xlabel(r'$\Phi_{avg}$', fontsize=fs)
-	ax2.set_ylabel(r'$\Phi_{diff}$', fontsize=fs)
-	ax1.set_xlabel(r'$V_g$', fontsize=fs)
-	ax1.set_ylabel(r'$V_{bias}$', fontsize=fs)
-
-	fig.tight_layout()
+	for phi_diff in angles:
+		I.append(current([0, phi_diff], maj_box, t, Ea, dband, mu_lst, T_lst, method) )
 	
+
+	fs	= 13
+	fig, ax	= plt.subplots(1,1)
+	ax.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 4))
+	ax.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
+	ax.set_xlabel(r'$\phi$', fontsize=fs)
+	ax.set_ylabel('I', fontsize=fs)
+	plt.plot(angles, I )
+	plt.grid(True )
+
 	plt.show()
 
-def current(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model):
+def current(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method):
 	phi_1	= phases[0] + phases[1]
 	phi_3	= phases[0] - phases[1]
 	tb1	= np.exp(1j*phi_1 )*t
 	tb2	= t
-	tb3	= np.exp(1j*phi_3 )*t*0.00
+	tb3	= np.exp(1j*phi_3 )*t*1.1
 	tt4	= t
 
-	if model == 1:
-		maj_op, overlaps, par	= majorana_leads(tb1, tb2, tb3, tt4)
-	else:
-		maj_op, overlaps, par	= abs_leads(tb1, tb11, tb2, tb21, tb3, tb31, tt4, tt41, eps)
+	maj_op, overlaps, par	= majorana_leads(tb1, tb2, tb3, tt4)
 
 	maj_box.change(majoranas = maj_op)
 	tunnel		= maj_box.constr_tunnel()
@@ -184,6 +105,7 @@ def current(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model):
 
 	return sys.current[0]
 
+	
 def bias_sweep(indices, bias, Vg, I, maj_box, par, tunnel, dband, T_lst, method):
 	mu_r	= -bias/2
 	mu_l	= bias/2
@@ -231,19 +153,19 @@ def tunnel_mart(tb1, tb2, tm2, tm3, tt3, tt4):
 
 def format_func(value, tick_number):
     # find number of multiples of pi/2
-    N = int(np.round(2 * value / np.pi))
+    N = int(np.round(4 * value / np.pi))
     if N == 0:
         return "0"
     elif N == 1:
-        return r"$\pi/2$"
+        return r"$\pi/4$"
     elif N == 2:
-        return r"$\pi$"
+        return r"$\pi/2$"
     elif N == -1:
-        return r"$-\pi/2$"
+        return r"$-\pi/4$"
     elif N == -2:
-        return r"$-\pi$"
+        return r"$-\pi/2$"
     elif N % 2 > 0:
-        return r"${0}\pi/2$".format(N)
+        return r"${0}\pi/4$".format(N)
     else:
         return r"${0}\pi$".format(N // 2)
 
