@@ -19,7 +19,7 @@ def main():
 
 	eps23	= 0e-3
 
-	dphi	= 1e-9
+	dphi	= 1e-5
 	
 	gamma 	= 0.1
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
@@ -27,15 +27,15 @@ def main():
 	phase1	= np.exp( +0j/2*np.pi + 1j*dphi )
 	phase3	= np.exp( +0j/2*np.pi + 1j*dphi )
 
-	theta_1	= np.exp( 0j/4*np.pi + 1j*dphi )
-	theta_2	= np.exp( 0j/4*np.pi - 1j*dphi )
-	theta_3	= np.exp( 0j/4*np.pi + 2j*dphi )
+	theta_1	= np.exp( 1j/5*np.pi + 1j*dphi )
+	theta_2	= np.exp( 3j/4*np.pi - 1j*dphi )
+	theta_3	= np.exp( 2j/3*np.pi + 2j*dphi )
 	theta_4	= np.exp( 0j/4*np.pi - 2j*dphi )
 	quasi_zero	= 0e-5
 
 	tb1	= t*phase1
 	tb2     = t
-	tb3     = t*phase3*quasi_zero
+	tb3     = t*phase3
 
 	tt4	= t
 
@@ -45,6 +45,7 @@ def main():
 
 	tt41	= t
 
+	thetas	= np.array([theta_1, theta_2, theta_3, theta_4])
 
 	T1	= 1e1
 	T2 	= T1
@@ -63,7 +64,7 @@ def main():
 	method	= 'Lindblad'
 	method	= '1vN'
 
-	model	= 1
+	model	= 2
 	
 	test_run	= False
 
@@ -122,18 +123,20 @@ def main():
 	min_occ	= []
 
 	print('Trying to find the roots.')
-	roots	= opt.fmin(current, x0=[0, np.pi/4], args=(maj_box, t, Ea, dband, mu_lst, T_lst, method, model ) )
+	roots	= opt.fmin(current, x0=[0, np.pi/4], args=(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas ) )
 	print('Phase-diff with minimal current:', 'pi*'+str(roots/np.pi) )
-	print('Minimal current: ', current(roots, maj_box, t, Ea, dband, mu_lst, T_lst, method, model) )
+	min_cur	= current(roots, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas )
+	print('Minimal current: ', min_cur )
 
 	for indices,el in np.ndenumerate(I):
-		I[indices ]	= current([X[indices], Y[indices] ], maj_box, t, Ea, dband, mu_lst, T_lst, method, model) 
+		I[indices ]	= current([X[indices], Y[indices] ], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas) 
 
 	c	= ax2.pcolor(X, Y, I, shading='auto')
 	cbar2	= fig.colorbar(c, ax=ax2)
 
 	ax2.contourf(X, Y, I)
-	ax2.scatter(roots[0], roots[1], marker='x', color='r')
+	if min_cur < 1e-7:
+		ax2.scatter(roots[0], roots[1], marker='x', color='r')
 
 	fs	= 12
 
@@ -163,18 +166,24 @@ def main():
 	
 	plt.show()
 
-def current(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model):
+def current(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[]):
 	phi_1	= phases[0] + phases[1]
 	phi_3	= phases[0] - phases[1]
-	tb1	= np.exp(1j*phi_1 )*t
+	tb1	= np.exp(1j*phi_1 )*t*1.00
 	tb2	= t
-	tb3	= np.exp(1j*phi_3 )*t*0.00
+	tb3	= np.exp(1j*phi_3 )*t*1.00
 	tt4	= t
+
+	if len(thetas) == 4:
+		tb11	= tb1*thetas[0]
+		tb21	= tb2*thetas[1]
+		tb31	= tb3*thetas[2]
+		tt41	= tt4*thetas[3]
 
 	if model == 1:
 		maj_op, overlaps, par	= majorana_leads(tb1, tb2, tb3, tt4)
 	else:
-		maj_op, overlaps, par	= abs_leads(tb1, tb11, tb2, tb21, tb3, tb31, tt4, tt41, eps)
+		maj_op, overlaps, par	= abs_leads(tb1, tb11, tb2, tb21, tb3, tb31, tt4, tt41)
 
 	maj_box.change(majoranas = maj_op)
 	tunnel		= maj_box.constr_tunnel()
@@ -202,14 +211,14 @@ def majorana_leads(tb1, tb2, tb3, tt4, eps12=0, eps23=0, eps34=0):
 	par		= np.array([0,0,1,1])
 	return maj_op, overlaps, par
 
-def abs_leads(tb10, tb11, tb20, tb21, tm20, tm21, tm30, tm31, tt30, tt31, tt40, tt41, eps=0):
+def abs_leads(tb10, tb11, tb20, tb21, tb30, tb31, tt40, tt41, eps=0):
 	overlaps	= np.array([1, 2, 3, 4 ] )*eps
 	overlaps	= fbr.default_overlaps(8, overlaps)
 
 	maj_op		=  [fc.maj_operator(index=0, lead=[0], coupling=[tb10]), fc.maj_operator(index=1, lead=[0], coupling=[tb11]), \
-				fc.maj_operator(index=2, lead=[0,1], coupling=[tb20, tm20]), fc.maj_operator(index=3, lead=[0,1], coupling=[tb21,tm21]), \
-				fc.maj_operator(index=4, lead=[1,2], coupling=[tm30, tt30]), fc.maj_operator(index=5, lead=[1,2], coupling=[tm31, tt31]), \
-				fc.maj_operator(index=6, lead=[2], coupling=[tt40]), fc.maj_operator(index=7, lead=[2], coupling=[tt41]) ]
+				fc.maj_operator(index=2, lead=[0], coupling=[tb20]), fc.maj_operator(index=3, lead=[0], coupling=[tb21]), \
+				fc.maj_operator(index=4, lead=[0], coupling=[tb30]), fc.maj_operator(index=5, lead=[0], coupling=[tb31]), \
+				fc.maj_operator(index=6, lead=[1], coupling=[tt40]), fc.maj_operator(index=7, lead=[1], coupling=[tt41]) ]
 	par		= np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1] )
 	return maj_op, overlaps, par
 
