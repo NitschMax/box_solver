@@ -90,27 +90,13 @@ def main():
 
 	fig, (ax1,ax2)	= plt.subplots(1, 2)
 
-	points	= 100
-	m_bias	= 1e2
-	x	= np.linspace(-m_bias, m_bias, points)
-	y	= x
-	
-	X,Y	= np.meshgrid(x, y)
-	I	= np.zeros(X.shape, dtype=np.float64 )
-	max_occ	= []
-	min_occ	= []
+	bias_variation	= False
+	if bias_variation:
+		X, Y, I	= bias_scan(maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model, thetas)
 
-	num_cores	= 4
-	unordered_res	= Parallel(n_jobs=num_cores)(delayed(bias_sweep)(indices, bias, X[indices], I, maj_box, par, tunnel, dband, T_lst, method) for indices, bias in np.ndenumerate(Y) ) 
-
-	for el in unordered_res:
-		I[el[0] ]	= el[1]
-		max_occ.append(el[2] )
-		min_occ.append(el[3] )
-	max_occ	= max(max_occ)
-	min_occ	= min(min_occ)
-	print('Maximal occupation:', max_occ)
-	print('Minimal occupation:', min_occ)
+	x	= np.linspace(0, 2, 10)
+	X, Y	= np.meshgrid(x, x)
+	I	= np.zeros(X.shape, dtype=np.float64)
 	
 	c	= ax1.pcolor(X, Y, I, shading='auto')
 	cbar	= fig.colorbar(c, ax=ax1)
@@ -165,6 +151,30 @@ def main():
 	fig.tight_layout()
 	
 	plt.show()
+
+def bias_scan(maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model, thetas=[]):
+	points	= 100
+	m_bias	= 1e2
+	x	= np.linspace(-m_bias, m_bias, points)
+	y	= x
+	
+	X,Y	= np.meshgrid(x, y)
+	I	= np.zeros(X.shape, dtype=np.float64 )
+	max_occ	= []
+	min_occ	= []
+
+	num_cores	= 4
+	unordered_res	= Parallel(n_jobs=num_cores)(delayed(bias_sweep)(indices, bias, X[indices], I, maj_box, par, tunnel, dband, T_lst, method) for indices, bias in np.ndenumerate(Y) ) 
+
+	for el in unordered_res:
+		I[el[0] ]	= el[1]
+		max_occ.append(el[2] )
+		min_occ.append(el[3] )
+	max_occ	= max(max_occ)
+	min_occ	= min(min_occ)
+	print('Maximal occupation:', max_occ)
+	print('Minimal occupation:', min_occ)
+	return X, Y, I
 
 def current(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[]):
 	phi_1	= phases[0] + phases[1]
