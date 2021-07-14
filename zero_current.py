@@ -63,37 +63,59 @@ def main():
 	print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
 	
-	angles	= np.linspace(-np.pi/2, np.pi/2, 1000)
-	I	= []
+	x	= np.linspace(1e-5, 1, 100 )
+	y	= x
+	
+	X,Y	= np.meshgrid(x, y)
+	I	= np.ones(X.shape, dtype=np.float64 )
 
-	print('Trying to find the roots.')
-	roots	= opt.fmin(current, x0=[0, np.pi/4], args=(maj_box, t, Ea, dband, mu_lst, T_lst, method ) )
-	print('Phase-diff with minimal current:', 'pi*'+str(roots/np.pi) )
-	print('Minimal current: ', current(roots, maj_box, t, Ea, dband, mu_lst, T_lst, method) )
-	return
-	
-	for phi_diff in angles:
-		I.append(current([0, phi_diff], maj_box, t, Ea, dband, mu_lst, T_lst, method) )
-	
+	for indices, t1 in np.ndenumerate(X):
+		t3	= Y[indices]
+		t_s	= [t1*t, t, t3*t, t]
+		roots	= opt.fmin(current_2d, x0=[np.pi/4, np.pi/4], args=(maj_box, t_s, Ea, dband, mu_lst, T_lst, method ), maxiter=100, full_output=True )
+		print(roots[1] )
+		I[indices]	= roots[1]
+
+	I	= np.round(I, 5)
+	I	= np.ceil(I)
 
 	fs	= 13
 	fig, ax	= plt.subplots(1,1)
-	ax.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 4))
-	ax.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
-	ax.set_xlabel(r'$\phi$', fontsize=fs)
-	ax.set_ylabel('I', fontsize=fs)
-	plt.plot(angles, I )
-	plt.grid(True )
+	ax.set_xlabel(r'$t_1$', fontsize=fs)
+	ax.set_ylabel(r'$t_3$', fontsize=fs)
+	c	= ax.pcolor(X, Y, I, shading='auto')
+	cbar	= fig.colorbar(c, ax=ax)
+
+	ax.contourf(X, Y, I)
+	#plt.grid(True )
 
 	plt.show()
 
-def current(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method):
-	phi_1	= phases[0] + phases[1]
-	phi_3	= phases[0] - phases[1]
+def current(phase, maj_box, t, Ea, dband, mu_lst, T_lst, method):
+	phi_1	= phase
+	phi_3	= -phase
 	tb1	= np.exp(1j*phi_1 )*t
 	tb2	= t
-	tb3	= np.exp(1j*phi_3 )*t*1.1
+	tb3	= np.exp(1j*phi_3 )*t
 	tt4	= t
+
+	maj_op, overlaps, par	= majorana_leads(tb1, tb2, tb3, tt4)
+
+	maj_box.change(majoranas = maj_op)
+	tunnel		= maj_box.constr_tunnel()
+
+	sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
+	sys.solve(qdq=False, rotateq=False)
+
+	return sys.current[0]
+
+def current_2d(phases, maj_box, t_s, Ea, dband, mu_lst, T_lst, method):
+	phi_1	= phases[0] + phases[1]
+	phi_3	= phases[0] - phases[1]
+	tb1	= np.exp(1j*phi_1 )*t_s[0]
+	tb2	= t_s[1]
+	tb3	= np.exp(1j*phi_3 )*t_s[2]
+	tt4	= t_s[3]
 
 	maj_op, overlaps, par	= majorana_leads(tb1, tb2, tb3, tt4)
 

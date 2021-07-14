@@ -27,10 +27,13 @@ def main():
 	phase1	= np.exp( +0j/2*np.pi + 1j*dphi )
 	phase3	= np.exp( +0j/2*np.pi + 1j*dphi )
 
-	theta_1	= np.exp( 1j/5*np.pi + 1j*dphi )
+	theta_1	= np.exp( 2j/5*np.pi + 1j*dphi )
 	theta_2	= np.exp( 3j/4*np.pi - 1j*dphi )
 	theta_3	= np.exp( 2j/3*np.pi + 2j*dphi )
 	theta_4	= np.exp( 0j/4*np.pi - 2j*dphi )
+
+	thetas	= np.array([theta_1, theta_2, theta_3, theta_4])
+
 	quasi_zero	= 0e-5
 
 	tb1	= t*phase1
@@ -44,8 +47,6 @@ def main():
 	tb31	= t
 
 	tt41	= t
-
-	thetas	= np.array([theta_1, theta_2, theta_3, theta_4])
 
 	T1	= 1e1
 	T2 	= T1
@@ -64,7 +65,7 @@ def main():
 	method	= 'Lindblad'
 	method	= '1vN'
 
-	model	= 2
+	model	= 1
 	
 	test_run	= False
 
@@ -123,7 +124,7 @@ def main():
 	min_occ	= []
 
 	print('Trying to find the roots.')
-	roots	= opt.fmin(current, x0=[0, np.pi/4], args=(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas ) )
+	roots	= opt.fmin(current, x0=[np.pi/4, np.pi/4], args=(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas ) )
 	print('Phase-diff with minimal current:', 'pi*'+str(roots/np.pi) )
 	min_cur	= current(roots, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas )
 	print('Minimal current: ', min_cur )
@@ -135,8 +136,7 @@ def main():
 	cbar2	= fig.colorbar(c, ax=ax2)
 
 	ax2.contourf(X, Y, I)
-	if min_cur < 1e-7:
-		ax2.scatter(roots[0], roots[1], marker='x', color='r')
+	ax2.scatter(roots[0], roots[1], marker='x', color='r')
 
 	fs	= 12
 
@@ -169,9 +169,9 @@ def main():
 def current(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[]):
 	phi_1	= phases[0] + phases[1]
 	phi_3	= phases[0] - phases[1]
-	tb1	= np.exp(1j*phi_1 )*t*1.00
+	tb1	= np.exp(1j*phi_1 )*t*1.0
 	tb2	= t
-	tb3	= np.exp(1j*phi_3 )*t*1.00
+	tb3	= np.exp(1j*phi_3 )*t*0.3
 	tt4	= t
 
 	if len(thetas) == 4:
