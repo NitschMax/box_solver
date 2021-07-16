@@ -92,61 +92,76 @@ def main():
 
 	bias_variation	= False
 	if bias_variation:
-		X, Y, I	= bias_scan(maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model, thetas)
+		X, Y, I		= bias_scan(maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model, thetas)
+		xlablel1	= r'$V_g$'
+		ylablel1	= r'$V_bias$'
 
-	x	= np.linspace(0, 2, 10)
+	x	= np.linspace(0, 2, 100)
 	X, Y	= np.meshgrid(x, x)
+	Y	+= dphi
 	I	= np.zeros(X.shape, dtype=np.float64)
+	phases	= [0.0*np.pi, 0.2*np.pi]
+	current_abs_value	= lambda factors: current(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], factors=factors)
+	roots	= opt.fmin(current_abs_value, x0=[1,1], full_output=True )
+	print('Factors with minimal current:', str(roots[0] ) )
+	print('Minimal current: ', roots[1] )
+	xlabel1	= r't_1'
+	ylabel1	= r't_3'
+
+	for indices,el in np.ndenumerate(I):
+		break
+		factors	= [X[indices], Y[indices] ]
+		I[indices]	= current_abs_value(factors)
 	
-	c	= ax1.pcolor(X, Y, I, shading='auto')
-	cbar	= fig.colorbar(c, ax=ax1)
+	c	= ax2.contourf(X, Y, I)
+	cbar	= fig.colorbar(c, ax=ax2)
+	ax2.scatter(roots[0][0], roots[0][1], marker='x', color='r')
 
 	x	= np.linspace(-np.pi/2, np.pi/2, 100) + dphi
-	y	= x
 	
-	X,Y	= np.meshgrid(x, y)
+	X,Y	= np.meshgrid(x, x)
 	I	= np.zeros(X.shape, dtype=np.float64 )
 	max_occ	= []
 	min_occ	= []
 
+	factors	= [1.0, 0.0]*1/np.sqrt(1)
 	print('Trying to find the roots.')
-	roots	= opt.fmin(current, x0=[np.pi/4, np.pi/4], args=(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas ) )
-	print('Phase-diff with minimal current:', 'pi*'+str(roots/np.pi) )
-	min_cur	= current(roots, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas )
-	print('Minimal current: ', min_cur )
+	roots	= opt.fmin(current, x0=[np.pi/4, np.pi/4], args=(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, factors), full_output=True )
+	print('Phase-diff with minimal current:', 'pi*'+str(roots[0]/np.pi) )
+	print('Minimal current: ', roots[1] )
 
 	for indices,el in np.ndenumerate(I):
-		I[indices ]	= current([X[indices], Y[indices] ], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas) 
+		I[indices ]	= current([X[indices], Y[indices] ], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, factors) 
 
-	c	= ax2.pcolor(X, Y, I, shading='auto')
-	cbar2	= fig.colorbar(c, ax=ax2)
+	c	= ax1.contourf(X, Y, I)
+	cbar2	= fig.colorbar(c, ax=ax1)
 
-	ax2.contourf(X, Y, I)
-	ax2.scatter(roots[0], roots[1], marker='x', color='r')
+	ax1.scatter(roots[0][0], roots[0][1], marker='x', color='r')
+	ax1.scatter(phases[0], phases[1], marker='o', color='black')
 
 	fs	= 12
 
-	ax1.locator_params(axis='both', nbins=5 )
 	ax2.locator_params(axis='both', nbins=5 )
+	ax1.locator_params(axis='both', nbins=5 )
 	cbar.ax.locator_params(axis='y', nbins=7 )
 	cbar2.ax.locator_params(axis='y', nbins=7 )
 	
-	ax1.tick_params(labelsize=fs)
 	ax2.tick_params(labelsize=fs)
+	ax1.tick_params(labelsize=fs)
 
 	cbar.ax.set_title('current', size=fs)
 	cbar.ax.tick_params(labelsize=fs)
 	cbar2.ax.set_title('current', size=fs)
 	cbar2.ax.tick_params(labelsize=fs)
 
-	ax2.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
-	ax2.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
-	ax2.yaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
-	ax2.yaxis.set_major_formatter(plt.FuncFormatter(format_func) )
-	ax2.set_xlabel(r'$\Phi_{avg}$', fontsize=fs)
-	ax2.set_ylabel(r'$\Phi_{diff}$', fontsize=fs)
-	ax1.set_xlabel(r'$V_g$', fontsize=fs)
-	ax1.set_ylabel(r'$V_{bias}$', fontsize=fs)
+	ax1.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
+	ax1.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
+	ax1.yaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
+	ax1.yaxis.set_major_formatter(plt.FuncFormatter(format_func) )
+	ax2.set_xlabel(xlabel1, fontsize=fs)
+	ax2.set_ylabel(ylabel1, fontsize=fs)
+	ax1.set_xlabel(r'$\Phi_{avg}$', fontsize=fs)
+	ax1.set_ylabel(r'$\Phi_{diff}$', fontsize=fs)
 
 	fig.tight_layout()
 	
@@ -176,12 +191,12 @@ def bias_scan(maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model, thet
 	print('Minimal occupation:', min_occ)
 	return X, Y, I
 
-def current(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[]):
+def current(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], factors=[1.0, 1.0]):
 	phi_1	= phases[0] + phases[1]
 	phi_3	= phases[0] - phases[1]
-	tb1	= np.exp(1j*phi_1 )*t*1.0
+	tb1	= np.exp(1j*phi_1 )*t*factors[0]
 	tb2	= t
-	tb3	= np.exp(1j*phi_3 )*t*0.3
+	tb3	= np.exp(1j*phi_3 )*t*factors[1]
 	tt4	= t
 
 	if len(thetas) == 4:

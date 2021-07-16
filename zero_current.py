@@ -19,7 +19,7 @@ def main():
 
 	eps23	= 0e-3
 
-	dphi	= 1e-9
+	dphi	= 1e-6
 	
 	gamma 	= 0.1
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
@@ -62,32 +62,97 @@ def main():
 	print('Eigenenergies:', sys.Ea)
 	print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
-	
+
+	fig, (ax1,ax2)	= plt.subplots(1,2)
+
+	x	= np.linspace(-np.pi/2-dphi, np.pi/2+dphi, 100)
+	X, Y	= np.meshgrid(x, x)
+	X	+= dphi
+	Y	-= dphi
+	I2	= np.zeros(X.shape, dtype=np.float64)
+	x0		= [1,1]
+	x0upperNeigh	= x0
+
+	for indices, phase1 in np.ndenumerate(X):
+		if indices[1] == 0:
+			x0	= x0upperNeigh
+		print(indices, x0)
+		phase3	= Y[indices]
+		phases	= [phase1, phase3]
+		current_abs_value	= lambda factors: current_2d(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, factors)
+		roots	= opt.fmin(current_abs_value, x0=x0, full_output=True, maxiter=200 )
+		flag	= roots[4]
+		if flag	== 2:
+			roots	= opt.fmin(current_abs_value, x0=[1,1], full_output=True, maxiter=200 )
+		x0	= roots[0]
+		if indices[1] == 0:
+			x0upperNeigh	= x0
+		print(roots[1] )
+		I2[indices]	= roots[1]
+
+
+	I2	= np.round(I2, 5)
+	I2	= np.ceil(I2)
+
+	c2	= ax2.contourf(X, Y, I2)
+	cbar2	= fig.colorbar(c2, ax=ax2)
+	print('Factors with minimal current:', str(roots[0] ) )
+	print('Minimal current: ', roots[1] )
+
 	x	= np.linspace(1e-5, 1, 100 )
 	y	= x
 	
 	X,Y	= np.meshgrid(x, y)
 	I	= np.ones(X.shape, dtype=np.float64 )
+	x0		= [np.pi/4, np.pi/4]
+	x0upperNeigh	= x0
 
 	for indices, t1 in np.ndenumerate(X):
+		if indices[1] == 0:
+			x0	= x0upperNeigh
 		t3	= Y[indices]
-		t_s	= [t1*t, t, t3*t, t]
-		roots	= opt.fmin(current_2d, x0=[np.pi/4, np.pi/4], args=(maj_box, t_s, Ea, dband, mu_lst, T_lst, method ), maxiter=100, full_output=True )
+		factors	= [t1, t3]
+		roots	= opt.fmin(current_2d, x0=x0, args=(maj_box, t, Ea, dband, mu_lst, T_lst, method, factors ), maxiter=100, full_output=True )
+		flag	= roots[4]
+		if flag	== 2:
+			roots	= opt.fmin(current_abs_value, x0=[np.pi/4,np.pi/4], full_output=True, maxiter=200 )
+		x0	= roots[0]
+		if indices[1] == 0:
+			x0upperNeigh	= x0
 		print(roots[1] )
 		I[indices]	= roots[1]
+
+	fs	= 13
+	ax1.set_xlabel(r'$t_1$', fontsize=fs)
+	ax1.set_ylabel(r'$t_3$', fontsize=fs)
+	ax2.set_xlabel(r'$\Phi_{avg}$', fontsize=fs)
+	ax2.set_ylabel(r'$\Phi_{diff}$', fontsize=fs)
 
 	I	= np.round(I, 5)
 	I	= np.ceil(I)
 
-	fs	= 13
-	fig, ax	= plt.subplots(1,1)
-	ax.set_xlabel(r'$t_1$', fontsize=fs)
-	ax.set_ylabel(r'$t_3$', fontsize=fs)
-	c	= ax.pcolor(X, Y, I, shading='auto')
-	cbar	= fig.colorbar(c, ax=ax)
+	c1	= ax1.contourf(X, Y, I)
+	cbar1	= fig.colorbar(c1, ax=ax1)
 
-	ax.contourf(X, Y, I)
-	#plt.grid(True )
+	ax1.locator_params(axis='both', nbins=5 )
+	ax2.locator_params(axis='both', nbins=5 )
+	cbar1.ax.locator_params(axis='y', nbins=7 )
+	cbar2.ax.locator_params(axis='y', nbins=7 )
+	
+	ax1.tick_params(labelsize=fs)
+	ax2.tick_params(labelsize=fs)
+
+	cbar1.ax.set_title('rounded current', size=fs)
+	cbar1.ax.tick_params(labelsize=fs)
+	cbar2.ax.set_title('current', size=fs)
+	cbar2.ax.tick_params(labelsize=fs)
+
+	ax2.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
+	ax2.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
+	ax2.yaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
+	ax2.yaxis.set_major_formatter(plt.FuncFormatter(format_func) )
+
+	plt.tight_layout()
 
 	plt.show()
 
@@ -109,13 +174,13 @@ def current(phase, maj_box, t, Ea, dband, mu_lst, T_lst, method):
 
 	return sys.current[0]
 
-def current_2d(phases, maj_box, t_s, Ea, dband, mu_lst, T_lst, method):
+def current_2d(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, factors=[1.0, 1.0]):
 	phi_1	= phases[0] + phases[1]
 	phi_3	= phases[0] - phases[1]
-	tb1	= np.exp(1j*phi_1 )*t_s[0]
-	tb2	= t_s[1]
-	tb3	= np.exp(1j*phi_3 )*t_s[2]
-	tt4	= t_s[3]
+	tb1	= t*np.exp(1j*phi_1 )*factors[0]
+	tb2	= t
+	tb3	= t*np.exp(1j*phi_3 )*factors[1]
+	tt4	= t
 
 	maj_op, overlaps, par	= majorana_leads(tb1, tb2, tb3, tt4)
 
