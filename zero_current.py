@@ -70,23 +70,12 @@ def main():
 	X	+= dphi
 	Y	-= dphi
 	I2	= np.zeros(X.shape, dtype=np.float64)
-	x0		= [1,1]
-	x0upperNeigh	= x0
 
 	for indices, phase1 in np.ndenumerate(X):
-		if indices[1] == 0:
-			x0	= x0upperNeigh
-		print(indices, x0)
 		phase3	= Y[indices]
 		phases	= [phase1, phase3]
 		current_abs_value	= lambda factors: current_2d(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, factors)
-		roots	= opt.fmin(current_abs_value, x0=x0, full_output=True, maxiter=200 )
-		flag	= roots[4]
-		if flag	== 2:
-			roots	= opt.fmin(current_abs_value, x0=[1,1], full_output=True, maxiter=200 )
-		x0	= roots[0]
-		if indices[1] == 0:
-			x0upperNeigh	= x0
+		roots	= opt.fmin(current_abs_value, x0=[1,1], full_output=True, maxiter=200 )
 		print(roots[1] )
 		I2[indices]	= roots[1]
 
@@ -104,21 +93,11 @@ def main():
 	
 	X,Y	= np.meshgrid(x, y)
 	I	= np.ones(X.shape, dtype=np.float64 )
-	x0		= [np.pi/4, np.pi/4]
-	x0upperNeigh	= x0
 
 	for indices, t1 in np.ndenumerate(X):
-		if indices[1] == 0:
-			x0	= x0upperNeigh
 		t3	= Y[indices]
 		factors	= [t1, t3]
-		roots	= opt.fmin(current_2d, x0=x0, args=(maj_box, t, Ea, dband, mu_lst, T_lst, method, factors ), maxiter=100, full_output=True )
-		flag	= roots[4]
-		if flag	== 2:
-			roots	= opt.fmin(current_abs_value, x0=[np.pi/4,np.pi/4], full_output=True, maxiter=200 )
-		x0	= roots[0]
-		if indices[1] == 0:
-			x0upperNeigh	= x0
+		roots	= opt.fmin(current_abs_value, x0=[np.pi/4,np.pi/4], full_output=True, maxiter=200 )
 		print(roots[1] )
 		I[indices]	= roots[1]
 
