@@ -92,7 +92,7 @@ def main():
 
 	fig, (ax1,ax2)	= plt.subplots(1, 2)
 
-	bias_variation	= True
+	bias_variation	= False
 	if bias_variation:
 		points	= 100
 		m_bias	= 1e2
@@ -101,63 +101,16 @@ def main():
 		X,Y	= np.meshgrid(x, y)
 		I	= bias_sc.scan_and_plot(fig, ax1, X, Y, maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model, thetas)
 
+	x	= np.linspace(-np.pi/2 -dphi , np.pi/2 + dphi, 10)
+	X,Y	= np.meshgrid(x, x)
+	factors	= [1.0, 1.0]*1/np.sqrt(1)
+	tunnel_scan.phase_scan_and_plot(fig, ax1, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[])
 
-	x	= np.linspace(0, 2, 100)
+	x	= np.linspace(0, 2, 10)
 	X, Y	= np.meshgrid(x, x)
 	Y	+= dphi
 	phases	= [0.0*np.pi, 0.2*np.pi]
 	tunnel_scan.abs_scan_and_plot(fig, ax2, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[])
-	
-	plt.tight_layout()
-	plt.show()
-
-	return
-
-	x	= np.linspace(-np.pi/2, np.pi/2, 100) + dphi
-	
-	X,Y	= np.meshgrid(x, x)
-	I	= np.zeros(X.shape, dtype=np.float64 )
-	max_occ	= []
-	min_occ	= []
-
-	factors	= [1.0, 0.0]*1/np.sqrt(1)
-	print('Trying to find the roots.')
-	roots	= opt.fmin(current, x0=[np.pi/4, np.pi/4], args=(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, factors), full_output=True )
-	print('Phase-diff with minimal current:', 'pi*'+str(roots[0]/np.pi) )
-	print('Minimal current: ', roots[1] )
-
-	for indices,el in np.ndenumerate(I):
-		I[indices ]	= current([X[indices], Y[indices] ], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, factors) 
-
-	c	= ax1.contourf(X, Y, I)
-	cbar2	= fig.colorbar(c, ax=ax1)
-
-	ax1.scatter(roots[0][0], roots[0][1], marker='x', color='r')
-	ax1.scatter(phases[0], phases[1], marker='o', color='black')
-
-	fs	= 12
-
-	ax2.locator_params(axis='both', nbins=5 )
-	ax1.locator_params(axis='both', nbins=5 )
-	cbar.ax.locator_params(axis='y', nbins=7 )
-	cbar2.ax.locator_params(axis='y', nbins=7 )
-	
-	ax2.tick_params(labelsize=fs)
-	ax1.tick_params(labelsize=fs)
-
-	cbar.ax.set_title('current', size=fs)
-	cbar.ax.tick_params(labelsize=fs)
-	cbar2.ax.set_title('current', size=fs)
-	cbar2.ax.tick_params(labelsize=fs)
-
-	ax1.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
-	ax1.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
-	ax1.yaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
-	ax1.yaxis.set_major_formatter(plt.FuncFormatter(format_func) )
-	ax2.set_xlabel(xlabel1, fontsize=fs)
-	ax2.set_ylabel(ylabel1, fontsize=fs)
-	ax1.set_xlabel(r'$\Phi_{avg}$', fontsize=fs)
-	ax1.set_ylabel(r'$\Phi_{diff}$', fontsize=fs)
 
 	fig.tight_layout()
 	
@@ -196,25 +149,6 @@ def tunnel_mart(tb1, tb2, tm2, tm3, tt3, tt4):
 	[ 0.+0.j, -np.conj(tt3)+1.j*np.conj(tt4), 0.+0.j, 0.+0.j], \
 	[ np.conj(tt3)+1.j*np.conj(tt4), 0.+0.j, 0.+0.j, 0.+0.j]]])
 	return tunnel
-
-
-def format_func(value, tick_number):
-    # find number of multiples of pi/2
-    N = int(np.round(2 * value / np.pi))
-    if N == 0:
-        return "0"
-    elif N == 1:
-        return r"$\pi/2$"
-    elif N == 2:
-        return r"$\pi$"
-    elif N == -1:
-        return r"$-\pi/2$"
-    elif N == -2:
-        return r"$-\pi$"
-    elif N % 2 > 0:
-        return r"${0}\pi/2$".format(N)
-    else:
-        return r"${0}\pi$".format(N // 2)
 
 if __name__=='__main__':
 	main()

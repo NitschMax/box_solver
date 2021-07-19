@@ -2,6 +2,43 @@ import numpy as np
 import scipy.optimize as opt
 import asym_box as box
 import qmeq
+import matplotlib.pyplot as plt
+
+def phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[]):
+	print('Trying to find the roots.')
+	roots	= opt.fmin(current, x0=[np.pi/4, np.pi/4], args=(factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas), full_output=True )
+	print('Phase-diff with minimal current:', 'pi*'+str(roots[0]/np.pi) )
+	print('Minimal current: ', roots[1] )
+
+	I	= np.zeros(X.shape, dtype=np.float64 )
+
+	for indices,el in np.ndenumerate(I):
+		I[indices ]	= current([X[indices], Y[indices] ], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas) 
+	return I, roots
+
+def phase_scan_and_plot(fig, ax, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[]):
+	I, roots	= phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[])
+
+	ax.scatter(roots[0][0], roots[0][1], marker='x', color='r')
+	c	= ax.contourf(X, Y, I)
+	cbar	= fig.colorbar(c, ax=ax)
+
+	fs	= 12
+	ax.locator_params(axis='both', nbins=5 )
+	cbar.ax.locator_params(axis='y', nbins=7 )
+	
+	ax.tick_params(labelsize=fs)
+
+	cbar.ax.set_title('current', size=fs)
+	cbar.ax.tick_params(labelsize=fs)
+	ax.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
+	ax.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
+	ax.yaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
+	ax.yaxis.set_major_formatter(plt.FuncFormatter(format_func) )
+	ax.set_xlabel(r'$\Phi_{avg}$', fontsize=fs)
+	ax.set_ylabel(r'$\Phi_{diff}$', fontsize=fs)
+
+	return I, roots
 
 def abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[]):
 	I	= np.zeros(X.shape, dtype=np.float64)
@@ -21,9 +58,17 @@ def abs_scan_and_plot(fig, ax, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_ls
 	I, roots	= abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[])
 	c		= ax.contourf(X, Y, I)
 	cbar		= fig.colorbar(c, ax=ax)
+	fs		= 12
+
 	ax.scatter(roots[0][0], roots[0][1], marker='x', color='r')
-	ax.set_xlabel(r'$t_1$')
-	ax.set_ylabel(r'$t_3$')
+	ax.set_xlabel(r'$t_1$', fontsize=fs)
+	ax.set_ylabel(r'$t_3$', fontsize=fs)
+
+	cbar.ax.set_title('current', size=fs)
+	cbar.ax.tick_params(labelsize=fs)
+	ax.locator_params(axis='both', nbins=5 )
+	cbar.ax.locator_params(axis='y', nbins=7 )
+	ax.tick_params(labelsize=fs)
 
 	return I, roots
 
@@ -53,5 +98,24 @@ def current(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model
 	sys.solve(qdq=False, rotateq=False)
 
 	return sys.current[0]
+
+def format_func(value, tick_number):
+    # find number of multiples of pi/2
+    N = int(np.round(2 * value / np.pi))
+    if N == 0:
+        return "0"
+    elif N == 1:
+        return r"$\pi/2$"
+    elif N == 2:
+        return r"$\pi$"
+    elif N == -1:
+        return r"$-\pi/2$"
+    elif N == -2:
+        return r"$-\pi$"
+    elif N % 2 > 0:
+        return r"${0}\pi/2$".format(N)
+    else:
+        return r"${0}\pi$".format(N // 2)
+
 
 
