@@ -6,6 +6,7 @@ import fock_class as fc
 import fock_tunnel_mat as ftm
 import fock_basis_rotation as fbr
 import box_class as bc
+import bias_scan as bias
 
 import multiprocessing
 from joblib import Parallel, delayed
@@ -51,9 +52,9 @@ def main():
 	T1	= 1e1
 	T2 	= T1
 
-	bias	= 2e2
-	mu1	= bias/2
-	mu2	= -bias/2
+	v_bias	= 2e2
+	mu1	= v_bias/2
+	mu2	= -v_bias/2
 
 	dband	= 1e5
 	Vg	= +0e1
@@ -90,11 +91,17 @@ def main():
 
 	fig, (ax1,ax2)	= plt.subplots(1, 2)
 
-	bias_variation	= False
+	bias_variation	= True
 	if bias_variation:
-		X, Y, I		= bias_scan(maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model, thetas)
-		xlablel1	= r'$V_g$'
-		ylablel1	= r'$V_bias$'
+		points	= 100
+		m_bias	= 1e2
+		x	= np.linspace(-m_bias, m_bias, points)
+		y	= x
+		X,Y	= np.meshgrid(x, y)
+		I	= bias.scan_and_plot(fig, ax1, X, Y, maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model, thetas)
+
+	plt.show()
+	return
 
 	x	= np.linspace(0, 2, 100)
 	X, Y	= np.meshgrid(x, x)
@@ -167,30 +174,6 @@ def main():
 	
 	plt.show()
 
-def bias_scan(maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model, thetas=[]):
-	points	= 100
-	m_bias	= 1e2
-	x	= np.linspace(-m_bias, m_bias, points)
-	y	= x
-	
-	X,Y	= np.meshgrid(x, y)
-	I	= np.zeros(X.shape, dtype=np.float64 )
-	max_occ	= []
-	min_occ	= []
-
-	num_cores	= 4
-	unordered_res	= Parallel(n_jobs=num_cores)(delayed(bias_sweep)(indices, bias, X[indices], I, maj_box, par, tunnel, dband, T_lst, method) for indices, bias in np.ndenumerate(Y) ) 
-
-	for el in unordered_res:
-		I[el[0] ]	= el[1]
-		max_occ.append(el[2] )
-		min_occ.append(el[3] )
-	max_occ	= max(max_occ)
-	min_occ	= min(min_occ)
-	print('Maximal occupation:', max_occ)
-	print('Minimal occupation:', min_occ)
-	return X, Y, I
-
 def current(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], factors=[1.0, 1.0]):
 	phi_1	= phases[0] + phases[1]
 	phi_3	= phases[0] - phases[1]
@@ -217,17 +200,6 @@ def current(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=
 	sys.solve(qdq=False, rotateq=False)
 
 	return sys.current[0]
-
-def bias_sweep(indices, bias, Vg, I, maj_box, par, tunnel, dband, T_lst, method):
-	mu_r	= -bias/2
-	mu_l	= bias/2
-	mu_lst	= { 0:mu_l, 1:mu_r}
-	Ea	= maj_box.adj_charging(Vg)
-	sys 	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
-	sys.solve(qdq=False, rotateq=False)
-	occ	= sys.phi0[:Ea.size]
-
-	return [indices, sys.current[0], max(occ), min(occ)]
 
 def majorana_leads(tb1, tb2, tb3, tt4, eps12=0, eps23=0, eps34=0):
 	overlaps	= np.array([[0, eps12, 0, 0], [0, 0, eps23, 0], [0, 0, 0, eps34], [0, 0, 0, 0]] )
