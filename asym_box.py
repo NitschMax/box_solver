@@ -6,7 +6,8 @@ import fock_class as fc
 import fock_tunnel_mat as ftm
 import fock_basis_rotation as fbr
 import box_class as bc
-import bias_scan as bias
+import bias_scan as bias_sc
+import tunnel_scan
 
 import multiprocessing
 from joblib import Parallel, delayed
@@ -98,31 +99,19 @@ def main():
 		x	= np.linspace(-m_bias, m_bias, points)
 		y	= x
 		X,Y	= np.meshgrid(x, y)
-		I	= bias.scan_and_plot(fig, ax1, X, Y, maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model, thetas)
+		I	= bias_sc.scan_and_plot(fig, ax1, X, Y, maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model, thetas)
 
-	plt.show()
-	return
 
 	x	= np.linspace(0, 2, 100)
 	X, Y	= np.meshgrid(x, x)
 	Y	+= dphi
-	I	= np.zeros(X.shape, dtype=np.float64)
 	phases	= [0.0*np.pi, 0.2*np.pi]
-	current_abs_value	= lambda factors: current(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], factors=factors)
-	roots	= opt.fmin(current_abs_value, x0=[1,1], full_output=True )
-	print('Factors with minimal current:', str(roots[0] ) )
-	print('Minimal current: ', roots[1] )
-	xlabel1	= r't_1'
-	ylabel1	= r't_3'
-
-	for indices,el in np.ndenumerate(I):
-		break
-		factors	= [X[indices], Y[indices] ]
-		I[indices]	= current_abs_value(factors)
+	tunnel_scan.abs_scan_and_plot(fig, ax2, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[])
 	
-	c	= ax2.contourf(X, Y, I)
-	cbar	= fig.colorbar(c, ax=ax2)
-	ax2.scatter(roots[0][0], roots[0][1], marker='x', color='r')
+	plt.tight_layout()
+	plt.show()
+
+	return
 
 	x	= np.linspace(-np.pi/2, np.pi/2, 100) + dphi
 	
@@ -174,33 +163,6 @@ def main():
 	
 	plt.show()
 
-def current(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], factors=[1.0, 1.0]):
-	phi_1	= phases[0] + phases[1]
-	phi_3	= phases[0] - phases[1]
-	tb1	= np.exp(1j*phi_1 )*t*factors[0]
-	tb2	= t
-	tb3	= np.exp(1j*phi_3 )*t*factors[1]
-	tt4	= t
-
-	if len(thetas) == 4:
-		tb11	= tb1*thetas[0]
-		tb21	= tb2*thetas[1]
-		tb31	= tb3*thetas[2]
-		tt41	= tt4*thetas[3]
-
-	if model == 1:
-		maj_op, overlaps, par	= majorana_leads(tb1, tb2, tb3, tt4)
-	else:
-		maj_op, overlaps, par	= abs_leads(tb1, tb11, tb2, tb21, tb3, tb31, tt4, tt41)
-
-	maj_box.change(majoranas = maj_op)
-	tunnel		= maj_box.constr_tunnel()
-
-	sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
-	sys.solve(qdq=False, rotateq=False)
-
-	return sys.current[0]
-
 def majorana_leads(tb1, tb2, tb3, tt4, eps12=0, eps23=0, eps34=0):
 	overlaps	= np.array([[0, eps12, 0, 0], [0, 0, eps23, 0], [0, 0, 0, eps34], [0, 0, 0, 0]] )
 	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tb1]), fc.maj_operator(index=1, lead=[0], coupling=[tb2]), \
@@ -234,6 +196,7 @@ def tunnel_mart(tb1, tb2, tm2, tm3, tt3, tt4):
 	[ 0.+0.j, -np.conj(tt3)+1.j*np.conj(tt4), 0.+0.j, 0.+0.j], \
 	[ np.conj(tt3)+1.j*np.conj(tt4), 0.+0.j, 0.+0.j, 0.+0.j]]])
 	return tunnel
+
 
 def format_func(value, tick_number):
     # find number of multiples of pi/2
