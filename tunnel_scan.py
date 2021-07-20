@@ -10,6 +10,11 @@ def phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, mode
 	print('Phase-diff with minimal current:', 'pi*'+str(roots[0]/np.pi) )
 	print('Minimal current: ', roots[1] )
 
+	minC	= np.mod(roots[0], np.pi )-np.pi/2 
+	diff	= current(minC, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas) - roots[1]
+	if np.abs(diff) > 1e-16:
+		print('Result for minimum not Pi-periodic! Difference:', diff)
+
 	I	= np.zeros(X.shape, dtype=np.float64 )
 
 	for indices,el in np.ndenumerate(I):
@@ -17,11 +22,13 @@ def phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, mode
 	return I, roots
 
 def phase_scan_and_plot(fig, ax, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[]):
-	I, roots	= phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[])
+	I, roots	= phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas)
 
-	ax.scatter(roots[0][0], roots[0][1], marker='x', color='r')
 	c	= ax.contourf(X, Y, I)
 	cbar	= fig.colorbar(c, ax=ax)
+	
+	minC	= np.mod(roots[0], np.pi )-np.pi/2 
+	ax.scatter(minC[0], minC[1], marker='x', color='r')
 
 	fs	= 12
 	ax.locator_params(axis='both', nbins=5 )
@@ -42,7 +49,7 @@ def phase_scan_and_plot(fig, ax, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T
 
 def abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[]):
 	I	= np.zeros(X.shape, dtype=np.float64)
-	current_abs_value	= lambda factors: current(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[])
+	current_abs_value	= lambda factors: current(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas)
 	roots	= opt.fmin(current_abs_value, x0=[1,1], full_output=True )
 
 	print('Factors with minimal current:', str(roots[0] ) )
@@ -55,12 +62,17 @@ def abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, 
 	return I, roots
 
 def abs_scan_and_plot(fig, ax, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[]):
-	I, roots	= abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[])
+	I, roots	= abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas)
 	c		= ax.contourf(X, Y, I)
 	cbar		= fig.colorbar(c, ax=ax)
 	fs		= 12
 
-	ax.scatter(roots[0][0], roots[0][1], marker='x', color='r')
+	xmin	= roots[0][0]
+	ymin	= roots[0][1]
+	if xmin < 4 and ymin < 4:
+		ax.scatter(roots[0][0], roots[0][1], marker='x', color='r')
+	else:
+		print('Minimum result outside considered range!')
 	ax.set_xlabel(r'$t_1$', fontsize=fs)
 	ax.set_ylabel(r'$t_3$', fontsize=fs)
 

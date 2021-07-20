@@ -15,7 +15,7 @@ from time import perf_counter
 import scipy.optimize as opt
 
 def main():
-	eps	= 1e-4
+	eps	= 0e-4
 	eps12 	= 0e-5
 	eps34 	= 0e-5
 
@@ -29,9 +29,9 @@ def main():
 	phase1	= np.exp( +0j/2*np.pi + 1j*dphi )
 	phase3	= np.exp( +0j/2*np.pi + 1j*dphi )
 
-	theta_1	= np.exp( 2j/5*np.pi + 1j*dphi )
-	theta_2	= np.exp( 3j/4*np.pi - 1j*dphi )
-	theta_3	= np.exp( 2j/3*np.pi + 2j*dphi )
+	theta_1	= np.exp( 3j/5*np.pi + 1j*dphi )
+	theta_2	= np.exp( 0j/4*np.pi - 1j*dphi )
+	theta_3	= np.exp( 0j/3*np.pi + 2j*dphi )
 	theta_4	= np.exp( 0j/4*np.pi - 2j*dphi )
 
 	thetas	= np.array([theta_1, theta_2, theta_3, theta_4])
@@ -67,7 +67,7 @@ def main():
 	method	= 'Lindblad'
 	method	= '1vN'
 
-	model	= 1
+	model	= 2
 	
 	test_run	= False
 
@@ -103,17 +103,16 @@ def main():
 
 	x	= np.linspace(-np.pi/2 -dphi , np.pi/2 + dphi, 10)
 	X,Y	= np.meshgrid(x, x)
-	factors	= [1.0, 1.0]*1/np.sqrt(1)
-	tunnel_scan.phase_scan_and_plot(fig, ax1, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[])
+	factors	= [0.9, 1.0]*1/np.sqrt(1)
+	tunnel_scan.phase_scan_and_plot(fig, ax1, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas)
 
 	x	= np.linspace(0, 2, 10)
 	X, Y	= np.meshgrid(x, x)
 	Y	+= dphi
 	phases	= [0.0*np.pi, 0.2*np.pi]
-	tunnel_scan.abs_scan_and_plot(fig, ax2, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[])
+	tunnel_scan.abs_scan_and_plot(fig, ax2, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas)
 
 	fig.tight_layout()
-	
 	plt.show()
 
 def majorana_leads(tb1, tb2, tb3, tt4, eps12=0, eps23=0, eps34=0):
