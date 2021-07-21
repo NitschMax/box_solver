@@ -4,7 +4,7 @@ import fock_basis_rotation as fbr
 import fock_tunnel_mat as ftm
 
 class majorana_box:
-	def __init__(self, majoranas, overlaps, Vg=0):
+	def __init__(self, majoranas, overlaps, Vg=0, name='Unidentified'):
 		self.majoranas	= majoranas
 		self.overlaps	= overlaps
 		self.Vg		= Vg
@@ -19,6 +19,7 @@ class majorana_box:
 		self.U		= np.matrix(np.zeros((self.elec_num, self.elec_num) ) )
 		self.energies	= np.zeros(2**self.elec_num)
 		self.elec_en	= np.zeros(2**self.elec_num)
+		self.name	= name
 		self.adj_charging(self.Vg)
 		
 	def diagonalize(self):

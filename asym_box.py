@@ -8,6 +8,7 @@ import fock_basis_rotation as fbr
 import box_class as bc
 import bias_scan as bias_sc
 import tunnel_scan
+import data_directory
 
 import multiprocessing
 from joblib import Parallel, delayed
@@ -29,10 +30,11 @@ def main():
 	phase1	= np.exp( +0j/2*np.pi + 1j*dphi )
 	phase3	= np.exp( +0j/2*np.pi + 1j*dphi )
 
-	theta_1	= np.exp( 3j/5*np.pi + 1j*dphi )
-	theta_2	= np.exp( 0j/4*np.pi - 1j*dphi )
-	theta_3	= np.exp( 0j/3*np.pi + 2j*dphi )
-	theta_4	= np.exp( 0j/4*np.pi - 2j*dphi )
+	theta_1	= 0.00*np.pi + dphi
+	theta_2	= 0.37*np.pi - dphi
+	theta_3	= 1.00*np.pi + 2*dphi
+	theta_4	= 1/4*np.pi - 2*dphi
+	factors	= [1.00, 0.75]*1/np.sqrt(1)
 
 	thetas	= np.array([theta_1, theta_2, theta_3, theta_4])
 
@@ -76,7 +78,7 @@ def main():
 	else:
 		maj_op, overlaps, par	= abs_leads(tb1, tb11, tb2, tb21, tb3, tb31, tt4, tt41, eps)
 
-	maj_box		= bc.majorana_box(maj_op, overlaps, Vg)
+	maj_box		= bc.majorana_box(maj_op, overlaps, Vg, 'asymmetric_box')
 	maj_box.diagonalize()
 	Ea		= maj_box.elec_en
 	tunnel		= maj_box.constr_tunnel()
@@ -92,6 +94,9 @@ def main():
 
 	fig, (ax1,ax2)	= plt.subplots(1, 2)
 
+	data_directory.dir([0, np.pi/4], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas)
+	return
+
 	bias_variation	= False
 	if bias_variation:
 		points	= 100
@@ -99,17 +104,16 @@ def main():
 		x	= np.linspace(-m_bias, m_bias, points)
 		y	= x
 		X,Y	= np.meshgrid(x, y)
-		I	= bias_sc.scan_and_plot(fig, ax1, X, Y, maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model, thetas)
+		I	= bias_sc.scan_and_plot(fig, ax1, X, Y, maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model)
 
 	x	= np.linspace(-np.pi/2 -dphi , np.pi/2 + dphi, 10)
 	X,Y	= np.meshgrid(x, x)
-	factors	= [0.9, 1.0]*1/np.sqrt(1)
 	tunnel_scan.phase_scan_and_plot(fig, ax1, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas)
 
 	x	= np.linspace(0, 2, 10)
 	X, Y	= np.meshgrid(x, x)
 	Y	+= dphi
-	phases	= [0.0*np.pi, 0.2*np.pi]
+	phases	= [0.0*np.pi, 0, 0.2*np.pi]
 	tunnel_scan.abs_scan_and_plot(fig, ax2, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas)
 
 	fig.tight_layout()

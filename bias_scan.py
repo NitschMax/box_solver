@@ -2,9 +2,9 @@ import numpy as np
 import qmeq
 from joblib import Parallel, delayed
 
-def scan_and_plot(fig, ax, X, Y, maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model, thetas=[]):
+def scan_and_plot(fig, ax, X, Y, maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model):
 	bias_variation	= False
-	I		= bias_scan(X, Y, maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model, thetas)
+	I		= bias_scan(X, Y, maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model)
 	
 	ax.set_xlabel(r'$V_g$')
 	ax.set_ylabel(r'$V_{bias}$')
@@ -13,7 +13,7 @@ def scan_and_plot(fig, ax, X, Y, maj_box, t, par, tunnel, dband, mu_lst, T_lst, 
 
 	return I
 
-def bias_scan(X, Y, maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model, thetas=[]):
+def bias_scan(X, Y, maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model):
 	I	= np.zeros(X.shape, dtype=np.float64 )
 	max_occ	= []
 	min_occ	= []

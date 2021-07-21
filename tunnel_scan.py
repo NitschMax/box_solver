@@ -93,10 +93,11 @@ def current(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model
 	tt4	= t
 
 	if len(thetas) == 4:
-		tb11	= tb1*thetas[0]
-		tb21	= tb2*thetas[1]
-		tb31	= tb3*thetas[2]
-		tt41	= tt4*thetas[3]
+		theta_phases	= np.exp( 1j*thetas)
+		tb11	= tb1*theta_phases[0]
+		tb21	= tb2*theta_phases[1]
+		tb31	= tb3*theta_phases[2]
+		tt41	= tt4*theta_phases[3]
 
 	if model == 1:
 		maj_op, overlaps, par	= box.majorana_leads(tb1, tb2, tb3, tt4)
