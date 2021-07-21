@@ -34,7 +34,7 @@ def main():
 	theta_2	= 0.37*np.pi - dphi
 	theta_3	= 1.00*np.pi + 2*dphi
 	theta_4	= 1/4*np.pi - 2*dphi
-	factors	= [1.00, 0.75]*1/np.sqrt(1)
+	factors	= [1.00, 1, 0.75, 1]*1/np.sqrt(1)
 
 	thetas	= np.array([theta_1, theta_2, theta_3, theta_4])
 
@@ -69,7 +69,7 @@ def main():
 	method	= 'Lindblad'
 	method	= '1vN'
 
-	model	= 2
+	model	= 1
 	
 	test_run	= False
 
@@ -94,8 +94,6 @@ def main():
 
 	fig, (ax1,ax2)	= plt.subplots(1, 2)
 
-	data_directory.dir([0, np.pi/4], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas)
-	return
 
 	bias_variation	= False
 	if bias_variation:
@@ -108,13 +106,13 @@ def main():
 
 	x	= np.linspace(-np.pi/2 -dphi , np.pi/2 + dphi, 10)
 	X,Y	= np.meshgrid(x, x)
-	tunnel_scan.phase_scan_and_plot(fig, ax1, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas)
+	tunnel_scan.phase_scan_and_plot(fig, ax1, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas, recalculate=False)
 
 	x	= np.linspace(0, 2, 10)
 	X, Y	= np.meshgrid(x, x)
 	Y	+= dphi
-	phases	= [0.0*np.pi, 0, 0.2*np.pi]
-	tunnel_scan.abs_scan_and_plot(fig, ax2, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas)
+	phases	= [0.0*np.pi, 0, 0.2*np.pi, 0]
+	tunnel_scan.abs_scan_and_plot(fig, ax2, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas, recalculate=False)
 
 	fig.tight_layout()
 	plt.show()

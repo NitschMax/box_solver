@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-def dir(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas):
+def dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=[], prefix=''):
 	if model == 1:
 		thetas = []
 	
@@ -10,7 +10,7 @@ def dir(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, th
 		print('Directory not existing!', dirName)
 		return 0
 
-	fileName	= ''
+	fileName	= prefix
 
 	for i,phase in enumerate(phases):
 		fileName	+= 'phase{}={:1.2f}xpi_'.format(i+1, phase/np.pi)
@@ -18,15 +18,10 @@ def dir(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, th
 	for i,factor in enumerate(factors ):
 		fileName	+= 't{}={:1.2f}_'.format(i+1, factor)
 
-	if len(thetas) != 0:
-		print(thetas)
-		for i,theta in enumerate(thetas):
-			fileName	+= 'theta{}={:1.2f}xpi_'.format(i+1, theta/np.pi)
+	for i,theta in enumerate(thetas):
+		fileName	+= 'theta{}={:1.2f}xpi_'.format(i+1, theta/np.pi)
 
 	fileName	= fileName[:-1]
 		
-
-	print(os.getcwd() )
-	print(dirName, fileName)
 	return dirName, fileName
 

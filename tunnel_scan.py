@@ -3,26 +3,42 @@ import scipy.optimize as opt
 import asym_box as box
 import qmeq
 import matplotlib.pyplot as plt
+import data_directory as dd
+import os
 
-def phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[]):
+def phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate):
 	print('Trying to find the roots.')
-	roots	= opt.fmin(current, x0=[np.pi/4, np.pi/4], args=(factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas), full_output=True )
+	current_phases	= lambda phases: current([phases[0], 0, phases[1], 0], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas)
+	roots	= opt.fmin(current_phases, x0=[np.pi/4,np.pi/4], full_output=True )
 	print('Phase-diff with minimal current:', 'pi*'+str(roots[0]/np.pi) )
 	print('Minimal current: ', roots[1] )
 
 	minC	= np.mod(roots[0], np.pi )-np.pi/2 
-	diff	= current(minC, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas) - roots[1]
+	diff	= current_phases(minC) - roots[1]
 	if np.abs(diff) > 1e-16:
 		print('Result for minimum not Pi-periodic! Difference:', diff)
 
-	I	= np.zeros(X.shape, dtype=np.float64 )
+	prefix	= 'phase-scan_'
+	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=factors, thetas=thetas, prefix=prefix)
+	file	= file[0] + file[1] + '.npy'
+	print(file)
 
-	for indices,el in np.ndenumerate(I):
-		I[indices ]	= current([X[indices], Y[indices] ], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas) 
+	if os.path.isfile(file ) and (not recalculate):
+		print('Loading data.')
+		X, Y, I	= np.load(file )
+	else:
+		print('Data not already calculated. Calculation ongoing')
+		I	= np.zeros(X.shape, dtype=np.float64 )
+		for indices,el in np.ndenumerate(I):
+			phases		= [X[indices], 0, Y[indices], 0]
+			I[indices ]	= current(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas) 
+		np.save(file, [X, Y, I] )
+		print('Finished!')
+
 	return I, roots
 
-def phase_scan_and_plot(fig, ax, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[]):
-	I, roots	= phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas)
+def phase_scan_and_plot(fig, ax, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], recalculate=False):
+	I, roots	= phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas, recalculate=recalculate)
 
 	c	= ax.contourf(X, Y, I)
 	cbar	= fig.colorbar(c, ax=ax)
@@ -47,22 +63,34 @@ def phase_scan_and_plot(fig, ax, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T
 
 	return I, roots
 
-def abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[]):
-	I	= np.zeros(X.shape, dtype=np.float64)
-	current_abs_value	= lambda factors: current(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas)
+def abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate):
+	current_abs_value	= lambda factors: current(phases, [factors[0], 1, factors[1], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas)
 	roots	= opt.fmin(current_abs_value, x0=[1,1], full_output=True )
 
 	print('Factors with minimal current:', str(roots[0] ) )
 	print('Minimal current: ', roots[1] )
 
-	for indices,el in np.ndenumerate(I):
-		factors	= [X[indices], Y[indices] ]
-		I[indices]	= current_abs_value(factors)
+	prefix	= 'prefactor-scan_'
+	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=phases, factors=[], thetas=thetas, prefix=prefix)
+	file	= file[0] + file[1] + '.npy'
+	print(file)
+
+	if os.path.isfile(file ) and (not recalculate):
+		print('Loading data.')
+		X, Y, I	= np.load(file )
+	else:
+		print('Data not already calculated. Calculation ongoing')
+		I	= np.zeros(X.shape, dtype=np.float64 )
+		for indices,el in np.ndenumerate(I):
+			factors	= [X[indices], Y[indices]]
+			I[indices]	= current_abs_value(factors)
+		np.save(file, [X, Y, I] )
+		print('Finished!')
 
 	return I, roots
 
-def abs_scan_and_plot(fig, ax, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[]):
-	I, roots	= abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas)
+def abs_scan_and_plot(fig, ax, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], recalculate=False):
+	I, roots	= abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
 	c		= ax.contourf(X, Y, I)
 	cbar		= fig.colorbar(c, ax=ax)
 	fs		= 12
@@ -85,12 +113,12 @@ def abs_scan_and_plot(fig, ax, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_ls
 	return I, roots
 
 def current(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[]):
-	phi_1	= phases[0] + phases[1]
-	phi_3	= phases[0] - phases[1]
+	phi_1	= phases[0] + phases[2]
+	phi_3	= phases[0] - phases[2]
 	tb1	= np.exp(1j*phi_1 )*t*factors[0]
-	tb2	= t
-	tb3	= np.exp(1j*phi_3 )*t*factors[1]
-	tt4	= t
+	tb2	= t*factors[1]
+	tb3	= np.exp(1j*phi_3 )*t*factors[2]
+	tt4	= t*factors[3]
 
 	if len(thetas) == 4:
 		theta_phases	= np.exp( 1j*thetas)
