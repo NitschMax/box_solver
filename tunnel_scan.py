@@ -21,7 +21,6 @@ def phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, mode
 	prefix	= 'phase-scan_'
 	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=factors, thetas=thetas, prefix=prefix)
 	file	= file[0] + file[1] + '.npy'
-	print(file)
 
 	if os.path.isfile(file ) and (not recalculate):
 		print('Loading data.')
@@ -73,7 +72,6 @@ def abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, 
 	prefix	= 'prefactor-scan_'
 	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=phases, factors=[], thetas=thetas, prefix=prefix)
 	file	= file[0] + file[1] + '.npy'
-	print(file)
 
 	if os.path.isfile(file ) and (not recalculate):
 		print('Loading data.')

@@ -6,6 +6,8 @@ import fock_class as fc
 import fock_tunnel_mat as ftm
 import fock_basis_rotation as fbr
 import box_class as bc
+import data_directory as dd
+import tunnel_scan as ts
 
 import multiprocessing
 from joblib import Parallel, delayed
@@ -33,6 +35,15 @@ def main():
 
 	tt4	= t
 
+	theta_1	= 0.60*np.pi + dphi
+	theta_2	= 0.37*np.pi - dphi
+	theta_3	= 0.20*np.pi + 2*dphi
+	theta_4	= 0/4*np.pi - 2*dphi
+
+	thetas	= np.array([theta_1, theta_2, theta_3, theta_4])
+	model	= 1
+
+
 	T1	= 1e1
 	T2 	= T1
 
@@ -50,7 +61,7 @@ def main():
 
 	maj_op, overlaps, par	= majorana_leads(tb1, tb2, tb3, tt4, eps12, eps23, eps34)
 
-	maj_box		= bc.majorana_box(maj_op, overlaps, Vg)
+	maj_box		= bc.majorana_box(maj_op, overlaps, Vg, name='asymmetric_box')
 	maj_box.diagonalize()
 	Ea		= maj_box.elec_en
 	tunnel		= maj_box.constr_tunnel()
@@ -64,51 +75,82 @@ def main():
 	print('Current:', sys.current )
 
 	fig, (ax1,ax2)	= plt.subplots(1,2)
+	points	= 10
 
-	x	= np.linspace(-np.pi/2-dphi, np.pi/2+dphi, 100)
+	x	= np.linspace(-np.pi/2-dphi, np.pi/2+dphi, points)
 	X, Y	= np.meshgrid(x, x)
 	X	+= dphi
 	Y	-= dphi
-	I2	= np.zeros(X.shape, dtype=np.float64)
 
-	for indices, phase1 in np.ndenumerate(X):
-		phase3	= Y[indices]
-		phases	= [phase1, phase3]
-		current_abs_value	= lambda factors: current_2d(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, factors)
-		roots	= opt.fmin(current_abs_value, x0=[1,1], full_output=True, maxiter=200 )
-		print(roots[1] )
-		I2[indices]	= roots[1]
+	recalculate	= True
+	prefix		= 'phase-zero-scan_'
 
+	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=thetas, prefix=prefix)
+	file	= file[0] + file[1] + '.npy'
+
+	if os.path.isfile(file ) and (not recalculate):
+		print('Loading data.')
+		X, Y, I2	= np.load(file )
+	else:
+		print('Data not already calculated. Calculation ongoing')
+		I2	= np.zeros(X.shape, dtype=np.float64)
+
+		for indices, phase1 in np.ndenumerate(X):
+			phase3	= Y[indices]
+			phases	= [phase1, 0, phase3, 0]
+			current_abs_value	= lambda factors: ts.current(phases, [factors[0], 1, factors[1], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas)
+			roots	= opt.fmin(current_abs_value, x0=[1,1], full_output=True, maxiter=200 )
+			print(roots[1] )
+			I2[indices]	= roots[1]
+
+		#np.save(file, [X, Y, I2] )
+		print('Finished!')
 
 	I2	= np.round(I2, 5)
 	I2	= np.ceil(I2)
 
 	c2	= ax2.contourf(X, Y, I2)
 	cbar2	= fig.colorbar(c2, ax=ax2)
-	print('Factors with minimal current:', str(roots[0] ) )
-	print('Minimal current: ', roots[1] )
 
-	x	= np.linspace(1e-5, 1, 100 )
+	x	= np.linspace(1e-5, 1, points )
 	y	= x
 	
 	X,Y	= np.meshgrid(x, y)
 	I	= np.ones(X.shape, dtype=np.float64 )
 
-	for indices, t1 in np.ndenumerate(X):
-		t3	= Y[indices]
-		factors	= [t1, t3]
-		roots	= opt.fmin(current_abs_value, x0=[np.pi/4,np.pi/4], full_output=True, maxiter=200 )
-		print(roots[1] )
-		I[indices]	= roots[1]
+	prefix		= 'prefactor-zero-scan_'
+	recalculate	= True
+
+	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=thetas, prefix=prefix)
+	file	= file[0] + file[1] + '.npy'
+
+	if os.path.isfile(file ) and (not recalculate):
+		print('Loading data.')
+		X, Y, I	= np.load(file )
+	else:
+		print('Data not already calculated. Calculation ongoing')
+		I	= np.zeros(X.shape, dtype=np.float64)
+
+		for indices, t1 in np.ndenumerate(X):
+			t3	= Y[indices]
+			factors	= [t1, 1, t3, 1]
+			current_phase	= lambda phases: ts.current([phases[0], 1, phases[1], 1], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas)
+			roots	= opt.fmin(current_phase, x0=[np.pi/4,np.pi/4], full_output=True, maxiter=200 )
+			print(roots[1] )
+			I[indices]	= roots[1]
+
+		#np.save(file, [X, Y, I] )
+		print('Finished!')
+
+	I	= np.round(I, 5)
+	I	= np.ceil(I)
+
 
 	fs	= 13
 	ax1.set_xlabel(r'$t_1$', fontsize=fs)
 	ax1.set_ylabel(r'$t_3$', fontsize=fs)
 	ax2.set_xlabel(r'$\Phi_{avg}$', fontsize=fs)
 	ax2.set_ylabel(r'$\Phi_{diff}$', fontsize=fs)
-
-	I	= np.round(I, 5)
-	I	= np.ceil(I)
 
 	c1	= ax1.contourf(X, Y, I)
 	cbar1	= fig.colorbar(c1, ax=ax1)
