@@ -10,8 +10,6 @@ import bias_scan as bias_sc
 import tunnel_scan
 import data_directory
 
-import multiprocessing
-from joblib import Parallel, delayed
 from time import perf_counter
 import scipy.optimize as opt
 

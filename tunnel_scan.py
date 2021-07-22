@@ -5,6 +5,7 @@ import qmeq
 import matplotlib.pyplot as plt
 import data_directory as dd
 import os
+from joblib import Parallel, delayed
 
 def phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate):
 	prefix		= 'phase-zero-scan_'
@@ -18,19 +19,24 @@ def phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, t
 	else:
 		print('Data not already calculated. Calculation ongoing')
 		I	= np.zeros(X.shape, dtype=np.float64)
-
-		for indices, phase1 in np.ndenumerate(X):
-			phase3	= Y[indices]
-			phases	= [phase1, 0, phase3, 0]
-			current_abs_value	= lambda factors: current(phases, [factors[0], 1, factors[1], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas)
-			roots	= opt.fmin(current_abs_value, x0=[1,1], full_output=True, maxiter=200 )
-			print(roots[1] )
-			I[indices]	= roots[1]
+		num_cores	= 6
+		unordered_res	= Parallel(n_jobs=num_cores)(delayed(factor_opt_min)(indices, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas) for indices, bias in np.ndenumerate(X) ) 
+		for el in unordered_res:
+			I[el[0] ]	= el[1]
 
 		np.save(file, [X, Y, I] )
 		print('Finished!')
 
 	return X, Y, I
+
+def factor_opt_min(indices, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas):
+	result	= opt.fmin(factor_func, args=([X[indices], 0, Y[indices], 0], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas), \
+			x0=[1,1], full_output=True, maxiter=200 )[1]
+	return [indices, result]
+
+def factor_func(factors, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas):
+	return current(phases, [factors[0], 1, factors[1], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas)
+
 
 def phase_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate):
 	X,Y,I	= phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
@@ -217,7 +223,7 @@ def current(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model
 	tb3	= np.exp(1j*phi_3 )*t*factors[2]
 	tt4	= t*factors[3]
 
-	if len(thetas) == 4:
+	if len(thetas) != 0:
 		theta_phases	= np.exp( 1j*thetas)
 		tb11	= tb1*theta_phases[0]
 		tb21	= tb2*theta_phases[1]

@@ -8,6 +8,7 @@ import fock_basis_rotation as fbr
 import box_class as bc
 import data_directory as dd
 import tunnel_scan as ts
+import asym_box as box
 
 import multiprocessing
 from joblib import Parallel, delayed
@@ -40,8 +41,15 @@ def main():
 	theta_3	= 0.20*np.pi + 2*dphi
 	theta_4	= 0/4*np.pi - 2*dphi
 
-	thetas	= np.array([theta_1, theta_2, theta_3, theta_4])
-	model	= 1
+	thetas		= np.array([theta_1, theta_2, theta_3, theta_4])
+	theta_phases	= np.exp( 1j*thetas)
+
+	tb11	= tb1*theta_phases[0]
+	tb21	= tb2*theta_phases[1]
+	tb31	= tb3*theta_phases[2]
+	tt41	= tt4*theta_phases[3]
+
+	model	= 2
 
 	T1	= 1e1
 	T2 	= T1
@@ -58,8 +66,10 @@ def main():
 	method	= 'Lindblad'
 	method	= '1vN'
 
-	maj_op, overlaps, par	= majorana_leads(tb1, tb2, tb3, tt4, eps12, eps23, eps34)
-
+	if model == 1:
+		maj_op, overlaps, par	= box.majorana_leads(tb1, tb2, tb3, tt4)
+	else:
+		maj_op, overlaps, par	= box.abs_leads(tb1, tb11, tb2, tb21, tb3, tb31, tt4, tt41)
 	maj_box		= bc.majorana_box(maj_op, overlaps, Vg, name='asymmetric_box')
 	maj_box.diagonalize()
 	Ea		= maj_box.elec_en
@@ -74,17 +84,8 @@ def main():
 	print('Current:', sys.current )
 
 	fig, (ax1,ax2)	= plt.subplots(1,2)
-	points	= 10
-	recalculate	= False
-
-	x	= np.linspace(-np.pi/2-dphi, np.pi/2+dphi, points)
-	X, Y	= np.meshgrid(x, x)
-	X	+= dphi
-	Y	-= dphi
-
-	X,Y,I2	= ts.phase_zero_scan_and_plot(fig, ax2, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
-	I2	= np.round(I2, 5)
-	I2	= np.ceil(I2)
+	points		= 4
+	recalculate	= True
 
 	x	= np.linspace(1e-5, 1, points )
 	y	= x
@@ -92,11 +93,15 @@ def main():
 	X,Y	= np.meshgrid(x, y)
 
 	X,Y,I	= ts.abs_zero_scan_and_plot(fig, ax1, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
-	I	= np.round(I, 5)
-	I	= np.ceil(I)
+
+	x	= np.linspace(-np.pi/2-dphi, np.pi/2+dphi, points)
+	X, Y	= np.meshgrid(x, x)
+	X	+= dphi
+	Y	-= dphi
+
+	X,Y,I2	= ts.phase_zero_scan_and_plot(fig, ax2, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
 
 	plt.tight_layout()
-
 	plt.show()
 
 def current(phase, maj_box, t, Ea, dband, mu_lst, T_lst, method):
@@ -146,13 +151,6 @@ def bias_sweep(indices, bias, Vg, I, maj_box, par, tunnel, dband, T_lst, method)
 	occ	= sys.phi0[:Ea.size]
 
 	return [indices, sys.current[0], max(occ), min(occ)]
-
-def majorana_leads(tb1, tb2, tb3, tt4, eps12=0, eps23=0, eps34=0):
-	overlaps	= np.array([[0, eps12, 0, 0], [0, 0, eps23, 0], [0, 0, 0, eps34], [0, 0, 0, 0]] )
-	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tb1]), fc.maj_operator(index=1, lead=[0], coupling=[tb2]), \
-					fc.maj_operator(index=2, lead=[0], coupling=[tb3]), fc.maj_operator(index=3, lead=[1], coupling=[tt4]) ]
-	par		= np.array([0,0,1,1])
-	return maj_op, overlaps, par
 
 def abs_leads(tb10, tb11, tb20, tb21, tm20, tm21, tm30, tm31, tt30, tt31, tt40, tt41, eps=0):
 	overlaps	= np.array([1, 2, 3, 4 ] )*eps
