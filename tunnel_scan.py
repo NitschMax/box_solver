@@ -6,6 +6,105 @@ import matplotlib.pyplot as plt
 import data_directory as dd
 import os
 
+def phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate):
+	prefix		= 'phase-zero-scan_'
+
+	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=thetas, prefix=prefix)
+	file	= file[0] + file[1] + '.npy'
+
+	if os.path.isfile(file ) and (not recalculate):
+		print('Loading data.')
+		X, Y, I	= np.load(file )
+	else:
+		print('Data not already calculated. Calculation ongoing')
+		I	= np.zeros(X.shape, dtype=np.float64)
+
+		for indices, phase1 in np.ndenumerate(X):
+			phase3	= Y[indices]
+			phases	= [phase1, 0, phase3, 0]
+			current_abs_value	= lambda factors: current(phases, [factors[0], 1, factors[1], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas)
+			roots	= opt.fmin(current_abs_value, x0=[1,1], full_output=True, maxiter=200 )
+			print(roots[1] )
+			I[indices]	= roots[1]
+
+		np.save(file, [X, Y, I] )
+		print('Finished!')
+
+	return X, Y, I
+
+def phase_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate):
+	X,Y,I	= phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
+	I	= np.round(I, 8)
+	I	= np.ceil(I)
+
+	c	= ax.contourf(X, Y, I)
+	cbar	= fig.colorbar(c, ax=ax)
+
+	fs	= 13
+	ax.set_xlabel(r'$\Phi_{avg}$', fontsize=fs)
+	ax.set_ylabel(r'$\Phi_{diff}$', fontsize=fs)
+
+	ax.locator_params(axis='both', nbins=5 )
+	cbar.ax.locator_params(axis='y', nbins=7 )
+
+	ax.tick_params(labelsize=fs)
+	cbar.ax.set_title('Minimal current', size=fs)
+	cbar.ax.tick_params(labelsize=fs)
+
+	ax.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
+	ax.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
+	ax.yaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
+	ax.yaxis.set_major_formatter(plt.FuncFormatter(format_func) )
+
+	return X, Y, I
+
+
+def abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate):
+	prefix		= 'prefactor-zero-scan_'
+
+	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=thetas, prefix=prefix)
+	file	= file[0] + file[1] + '.npy'
+
+	if os.path.isfile(file ) and (not recalculate):
+		print('Loading data.')
+		X, Y, I	= np.load(file )
+	else:
+		print('Data not already calculated. Calculation ongoing')
+		I	= np.zeros(X.shape, dtype=np.float64)
+
+		for indices, t1 in np.ndenumerate(X):
+			t3	= Y[indices]
+			factors	= [t1, 1, t3, 1]
+			current_phase	= lambda phases: current([phases[0], 1, phases[1], 1], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas)
+			roots	= opt.fmin(current_phase, x0=[np.pi/4,np.pi/4], full_output=True, maxiter=200 )
+			print(roots[1] )
+			I[indices]	= roots[1]
+
+		np.save(file, [X, Y, I] )
+		print('Finished!')
+
+	return X, Y, I
+
+def abs_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], recalculate=False):
+	X,Y,I	= abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
+	I	= np.round(I, 8)
+	I	= np.ceil(I)
+
+	fs	= 13
+	ax.set_xlabel(r'$t_1$', fontsize=fs)
+	ax.set_ylabel(r'$t_3$', fontsize=fs)
+
+	c	= ax.contourf(X, Y, I)
+	cbar	= fig.colorbar(c, ax=ax)
+	ax.locator_params(axis='both', nbins=5 )
+	cbar.ax.locator_params(axis='y', nbins=7 )
+
+	ax.tick_params(labelsize=fs)
+	cbar.ax.set_title('Minimal current', size=fs)
+	cbar.ax.tick_params(labelsize=fs)
+
+	return X, Y, I
+
 def phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate):
 	print('Trying to find the roots.')
 	current_phases	= lambda phases: current([phases[0], 0, phases[1], 0], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas)

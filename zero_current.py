@@ -43,7 +43,6 @@ def main():
 	thetas	= np.array([theta_1, theta_2, theta_3, theta_4])
 	model	= 1
 
-
 	T1	= 1e1
 	T2 	= T1
 
@@ -76,102 +75,25 @@ def main():
 
 	fig, (ax1,ax2)	= plt.subplots(1,2)
 	points	= 10
+	recalculate	= False
 
 	x	= np.linspace(-np.pi/2-dphi, np.pi/2+dphi, points)
 	X, Y	= np.meshgrid(x, x)
 	X	+= dphi
 	Y	-= dphi
 
-	recalculate	= True
-	prefix		= 'phase-zero-scan_'
-
-	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=thetas, prefix=prefix)
-	file	= file[0] + file[1] + '.npy'
-
-	if os.path.isfile(file ) and (not recalculate):
-		print('Loading data.')
-		X, Y, I2	= np.load(file )
-	else:
-		print('Data not already calculated. Calculation ongoing')
-		I2	= np.zeros(X.shape, dtype=np.float64)
-
-		for indices, phase1 in np.ndenumerate(X):
-			phase3	= Y[indices]
-			phases	= [phase1, 0, phase3, 0]
-			current_abs_value	= lambda factors: ts.current(phases, [factors[0], 1, factors[1], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas)
-			roots	= opt.fmin(current_abs_value, x0=[1,1], full_output=True, maxiter=200 )
-			print(roots[1] )
-			I2[indices]	= roots[1]
-
-		#np.save(file, [X, Y, I2] )
-		print('Finished!')
-
+	X,Y,I2	= ts.phase_zero_scan_and_plot(fig, ax2, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
 	I2	= np.round(I2, 5)
 	I2	= np.ceil(I2)
-
-	c2	= ax2.contourf(X, Y, I2)
-	cbar2	= fig.colorbar(c2, ax=ax2)
 
 	x	= np.linspace(1e-5, 1, points )
 	y	= x
 	
 	X,Y	= np.meshgrid(x, y)
-	I	= np.ones(X.shape, dtype=np.float64 )
 
-	prefix		= 'prefactor-zero-scan_'
-	recalculate	= True
-
-	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=thetas, prefix=prefix)
-	file	= file[0] + file[1] + '.npy'
-
-	if os.path.isfile(file ) and (not recalculate):
-		print('Loading data.')
-		X, Y, I	= np.load(file )
-	else:
-		print('Data not already calculated. Calculation ongoing')
-		I	= np.zeros(X.shape, dtype=np.float64)
-
-		for indices, t1 in np.ndenumerate(X):
-			t3	= Y[indices]
-			factors	= [t1, 1, t3, 1]
-			current_phase	= lambda phases: ts.current([phases[0], 1, phases[1], 1], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas)
-			roots	= opt.fmin(current_phase, x0=[np.pi/4,np.pi/4], full_output=True, maxiter=200 )
-			print(roots[1] )
-			I[indices]	= roots[1]
-
-		#np.save(file, [X, Y, I] )
-		print('Finished!')
-
+	X,Y,I	= ts.abs_zero_scan_and_plot(fig, ax1, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
 	I	= np.round(I, 5)
 	I	= np.ceil(I)
-
-
-	fs	= 13
-	ax1.set_xlabel(r'$t_1$', fontsize=fs)
-	ax1.set_ylabel(r'$t_3$', fontsize=fs)
-	ax2.set_xlabel(r'$\Phi_{avg}$', fontsize=fs)
-	ax2.set_ylabel(r'$\Phi_{diff}$', fontsize=fs)
-
-	c1	= ax1.contourf(X, Y, I)
-	cbar1	= fig.colorbar(c1, ax=ax1)
-
-	ax1.locator_params(axis='both', nbins=5 )
-	ax2.locator_params(axis='both', nbins=5 )
-	cbar1.ax.locator_params(axis='y', nbins=7 )
-	cbar2.ax.locator_params(axis='y', nbins=7 )
-	
-	ax1.tick_params(labelsize=fs)
-	ax2.tick_params(labelsize=fs)
-
-	cbar1.ax.set_title('rounded current', size=fs)
-	cbar1.ax.tick_params(labelsize=fs)
-	cbar2.ax.set_title('current', size=fs)
-	cbar2.ax.tick_params(labelsize=fs)
-
-	ax2.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
-	ax2.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
-	ax2.yaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
-	ax2.yaxis.set_major_formatter(plt.FuncFormatter(format_func) )
 
 	plt.tight_layout()
 
