@@ -8,7 +8,7 @@ import os
 from joblib import Parallel, delayed
 
 def phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate):
-	prefix		= 'phase-zero-scan_x-{:1.0f}-{:1.0f}-{}_y-{:1.0f}-{:1.0f}-{}'.format(X[0,0], X[-1,-1], len(X[0] ), Y[0,0], Y[-1,-1], len(Y[0] ) )
+	prefix		= 'phase-zero-scan/x-{:1.0f}-{:1.0f}-{}_y-{:1.0f}-{:1.0f}-{}'.format(X[0,0], X[-1,-1], len(X[0] ), Y[0,0], Y[-1,-1], len(Y[0] ) )
 
 	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=thetas, prefix=prefix)
 	file	= file[0] + file[1] + '.npy'
@@ -66,7 +66,7 @@ def phase_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst
 
 
 def abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate):
-	prefix		= 'phase-zero-scan_x-{:1.0f}-{:1.0f}-{}_y-{:1.0f}-{:1.0f}-{}'.format(X[0,0], X[-1,-1], len(X[0] ), Y[0,0], Y[-1,-1], len(Y[0] ) )
+	prefix		= 'prefactor-zero-scan/x-{:1.1f}-{:1.1f}-{}_y-{:1.1f}-{:1.1f}-{}'.format(X[0,0], X[-1,-1], len(X[0] ), Y[0,0], Y[-1,-1], len(Y[0] ) )
 
 	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=thetas, prefix=prefix)
 	file	= file[0] + file[1] + '.npy'

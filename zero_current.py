@@ -49,7 +49,7 @@ def main():
 	tb31	= tb3*theta_phases[2]
 	tt41	= tt4*theta_phases[3]
 
-	model	= 2
+	model	= 1
 
 	T1	= 1e1
 	T2 	= T1
@@ -85,10 +85,10 @@ def main():
 	print('Current:', sys.current )
 
 	fig, ax1	= plt.subplots(1,1)
-	points		= 50
+	points		= 100
 
-	recalculate	= False
 	recalculate	= True
+	recalculate	= False
 
 	x	= np.linspace(1e-5, 2, points )
 	y	= x
