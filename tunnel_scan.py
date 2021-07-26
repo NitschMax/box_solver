@@ -128,7 +128,7 @@ def phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, mode
 	if np.abs(diff) > 1e-16:
 		print('Result for minimum not Pi-periodic! Difference:', diff)
 
-	prefix	= 'phase-scan_'
+	prefix	= 'phase-scan/phase-scan_'
 	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=factors, thetas=thetas, prefix=prefix)
 	file	= file[0] + file[1] + '.npy'
 
@@ -179,7 +179,7 @@ def abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, 
 	print('Factors with minimal current:', str(roots[0] ) )
 	print('Minimal current: ', roots[1] )
 
-	prefix	= 'prefactor-scan_'
+	prefix	= 'prefactor-scan/prefactor-scan_'
 	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=phases, factors=[], thetas=thetas, prefix=prefix)
 	file	= file[0] + file[1] + '.npy'
 

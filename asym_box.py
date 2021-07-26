@@ -8,7 +8,6 @@ import fock_basis_rotation as fbr
 import box_class as bc
 import bias_scan as bias_sc
 import tunnel_scan
-import data_directory
 
 from time import perf_counter
 import scipy.optimize as opt
