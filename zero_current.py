@@ -36,10 +36,10 @@ def main():
 
 	tt4	= t
 
-	theta_1	= 0.50*np.pi + dphi
-	theta_2	= 0.00*np.pi - dphi
-	theta_3	= 0.00*np.pi + 2*dphi
-	theta_4	= 0.00*np.pi - 2*dphi
+	theta_1	= 0.00*np.pi + 1*dphi
+	theta_2	= 0.00*np.pi + 2*dphi
+	theta_3	= 0.00*np.pi + 3*dphi
+	theta_4	= 0.00*np.pi + 4*dphi
 
 	thetas		= np.array([theta_1, theta_2, theta_3, theta_4])
 	theta_phases	= np.exp( 1j*thetas)
@@ -49,7 +49,7 @@ def main():
 	tb31	= tb3*theta_phases[2]
 	tt41	= tt4*theta_phases[3]
 
-	model	= 1
+	model	= 2
 
 	T1	= 1e1
 	T2 	= T1

@@ -19,7 +19,7 @@ def dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=
 		fileName	+= 't{}={:1.2f}_'.format(i+1, factor)
 
 	for i,theta in enumerate(thetas):
-		fileName	+= 'theta{}={:1.2f}xpi_'.format(i+1, theta/np.pi)
+		fileName	+= '_theta{}={:1.2f}xpi'.format(i+1, theta/np.pi)
 
 	return dirName, fileName
 
