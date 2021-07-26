@@ -16,11 +16,11 @@ from time import perf_counter
 import scipy.optimize as opt
 
 def main():
-	eps	= 1e-4
+	eps	= 1e-6
 	eps12 	= 0e-6
 	eps34 	= 0e-6
 
-	eps23	= 0e-3
+	eps23	= 0e-6
 
 	dphi	= 1e-6
 	
@@ -36,10 +36,10 @@ def main():
 
 	tt4	= t
 
-	theta_1	= 0.60*np.pi + dphi
-	theta_2	= 0.37*np.pi - dphi
-	theta_3	= 0.20*np.pi + 2*dphi
-	theta_4	= 0/4*np.pi - 2*dphi
+	theta_1	= 0.50*np.pi + dphi
+	theta_2	= 0.00*np.pi - dphi
+	theta_3	= 0.00*np.pi + 2*dphi
+	theta_4	= 0.00*np.pi - 2*dphi
 
 	thetas		= np.array([theta_1, theta_2, theta_3, theta_4])
 	theta_phases	= np.exp( 1j*thetas)
@@ -67,9 +67,10 @@ def main():
 	method	= '1vN'
 
 	if model == 1:
-		maj_op, overlaps, par	= box.majorana_leads(tb1, tb2, tb3, tt4)
+		maj_op, overlaps, par	= box.majorana_leads(tb1, tb2, tb3, tt4, eps12, eps23, eps34)
 	else:
-		maj_op, overlaps, par	= box.abs_leads(tb1, tb11, tb2, tb21, tb3, tb31, tt4, tt41)
+		maj_op, overlaps, par	= box.abs_leads(tb1, tb11, tb2, tb21, tb3, tb31, tt4, tt41, eps)
+
 	maj_box		= bc.majorana_box(maj_op, overlaps, Vg, name='asymmetric_box')
 	maj_box.diagonalize()
 	Ea		= maj_box.elec_en
@@ -83,16 +84,22 @@ def main():
 	print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
 
-	fig, (ax1,ax2)	= plt.subplots(1,2)
-	points		= 4
+	fig, ax1	= plt.subplots(1,1)
+	points		= 50
+
+	recalculate	= False
 	recalculate	= True
 
-	x	= np.linspace(1e-5, 1, points )
+	x	= np.linspace(1e-5, 2, points )
 	y	= x
 	
 	X,Y	= np.meshgrid(x, y)
 
 	X,Y,I	= ts.abs_zero_scan_and_plot(fig, ax1, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
+
+	plt.tight_layout()
+	plt.show()
+	return
 
 	x	= np.linspace(-np.pi/2-dphi, np.pi/2+dphi, points)
 	X, Y	= np.meshgrid(x, x)
@@ -101,8 +108,6 @@ def main():
 
 	X,Y,I2	= ts.phase_zero_scan_and_plot(fig, ax2, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
 
-	plt.tight_layout()
-	plt.show()
 
 def current(phase, maj_box, t, Ea, dband, mu_lst, T_lst, method):
 	phi_1	= phase

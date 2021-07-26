@@ -8,7 +8,7 @@ import os
 from joblib import Parallel, delayed
 
 def phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate):
-	prefix		= 'phase-zero-scan_'
+	prefix		= 'phase-zero-scan_x-{:1.0f}-{:1.0f}-{}_y-{:1.0f}-{:1.0f}-{}'.format(X[0,0], X[-1,-1], len(X[0] ), Y[0,0], Y[-1,-1], len(Y[0] ) )
 
 	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=thetas, prefix=prefix)
 	file	= file[0] + file[1] + '.npy'
@@ -66,7 +66,7 @@ def phase_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst
 
 
 def abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate):
-	prefix		= 'prefactor-zero-scan_'
+	prefix		= 'phase-zero-scan_x-{:1.0f}-{:1.0f}-{}_y-{:1.0f}-{:1.0f}-{}'.format(X[0,0], X[-1,-1], len(X[0] ), Y[0,0], Y[-1,-1], len(Y[0] ) )
 
 	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=thetas, prefix=prefix)
 	file	= file[0] + file[1] + '.npy'
@@ -78,18 +78,23 @@ def abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, the
 		print('Data not already calculated. Calculation ongoing')
 		I	= np.zeros(X.shape, dtype=np.float64)
 
-		for indices, t1 in np.ndenumerate(X):
-			t3	= Y[indices]
-			factors	= [t1, 1, t3, 1]
-			current_phase	= lambda phases: current([phases[0], 1, phases[1], 1], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas)
-			roots	= opt.fmin(current_phase, x0=[np.pi/4,np.pi/4], full_output=True, maxiter=200 )
-			print(roots[1] )
-			I[indices]	= roots[1]
+		num_cores	= 6
+		unordered_res	= Parallel(n_jobs=num_cores)(delayed(phase_opt_min)(indices, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas) for indices, t1 in np.ndenumerate(X) )
+
+		for el in unordered_res:
+			I[el[0] ]	= el[1]
 
 		np.save(file, [X, Y, I] )
 		print('Finished!')
 
 	return X, Y, I
+
+def phase_opt_min(indices, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas):
+	result	= opt.fmin(phase_func, x0=[np.pi/4,np.pi/4], full_output=True, maxiter=200, args=([X[indices], 1, Y[indices], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas) )[1]
+	return [indices, result]
+
+def phase_func(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas):
+	return current([phases[0], 1, phases[1], 1], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas)
 
 def abs_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], recalculate=False):
 	X,Y,I	= abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
