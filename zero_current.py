@@ -38,7 +38,7 @@ def main():
 
 	theta_1	= 0.00*np.pi + 1*dphi
 	theta_2	= 0.00*np.pi + 2*dphi
-	theta_3	= 0.00*np.pi + 3*dphi
+	theta_3	= 0.30*np.pi + 3*dphi
 	theta_4	= 0.00*np.pi + 4*dphi
 
 	thetas		= np.array([theta_1, theta_2, theta_3, theta_4])
@@ -84,29 +84,34 @@ def main():
 	print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
 
-	fig, ax1	= plt.subplots(1,1)
-	points		= 100
+	fig, (ax1,ax2)	= plt.subplots(1,2)
 
 	recalculate	= True
 	recalculate	= False
+
+	points	= 100
+	num_cores	= 3
 
 	x	= np.linspace(1e-5, 2, points )
 	y	= x
 	
 	X,Y	= np.meshgrid(x, y)
 
-	X,Y,I	= ts.abs_zero_scan_and_plot(fig, ax1, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
+	X,Y,I	= ts.abs_zero_scan_and_plot(fig, ax1, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate, num_cores)
 
-	plt.tight_layout()
-	plt.show()
-	return
+
+	points	= 50
 
 	x	= np.linspace(-np.pi/2-dphi, np.pi/2+dphi, points)
 	X, Y	= np.meshgrid(x, x)
 	X	+= dphi
 	Y	-= dphi
 
-	X,Y,I2	= ts.phase_zero_scan_and_plot(fig, ax2, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
+	X,Y,I2	= ts.phase_zero_scan_and_plot(fig, ax2, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate, num_cores)
+
+	plt.tight_layout()
+	plt.show()
+	return
 
 
 def current(phase, maj_box, t, Ea, dband, mu_lst, T_lst, method):

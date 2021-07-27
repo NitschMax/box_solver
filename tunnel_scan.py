@@ -7,8 +7,8 @@ import data_directory as dd
 import os
 from joblib import Parallel, delayed
 
-def phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate):
-	prefix		= 'phase-zero-scan/x-{:1.0f}-{:1.0f}-{}_y-{:1.0f}-{:1.0f}-{}'.format(X[0,0], X[-1,-1], len(X[0] ), Y[0,0], Y[-1,-1], len(Y[0] ) )
+def phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate, num_cores):
+	prefix		= 'phase-zero-scan/x-{:1.2f}xpi-{:1.2f}xpi-{}_y-{:1.2f}xpi-{:1.2f}xpi-{}'.format(X[0,0]/np.pi, X[-1,-1]/np.pi, len(X[0] ), Y[0,0]/np.pi, Y[-1,-1]/np.pi, len(Y[0] ) )
 
 	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=thetas, prefix=prefix)
 	file	= file[0] + file[1] + '.npy'
@@ -19,7 +19,7 @@ def phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, t
 	else:
 		print('Data not already calculated. Calculation ongoing')
 		I	= np.zeros(X.shape, dtype=np.float64)
-		num_cores	= 6
+		
 		unordered_res	= Parallel(n_jobs=num_cores)(delayed(factor_opt_min)(indices, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas) for indices, bias in np.ndenumerate(X) ) 
 		for el in unordered_res:
 			I[el[0] ]	= el[1]
@@ -38,8 +38,8 @@ def factor_func(factors, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, m
 	return current(phases, [factors[0], 1, factors[1], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas)
 
 
-def phase_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate):
-	X,Y,I	= phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
+def phase_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], recalculate=False, num_cores=3):
+	X,Y,I	= phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate, num_cores)
 	I	= np.round(I, 8)
 	I	= np.ceil(I)
 
@@ -65,7 +65,7 @@ def phase_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst
 	return X, Y, I
 
 
-def abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate):
+def abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate, num_cores):
 	prefix		= 'prefactor-zero-scan/x-{:1.1f}-{:1.1f}-{}_y-{:1.1f}-{:1.1f}-{}'.format(X[0,0], X[-1,-1], len(X[0] ), Y[0,0], Y[-1,-1], len(Y[0] ) )
 
 	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=thetas, prefix=prefix)
@@ -78,7 +78,6 @@ def abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, the
 		print('Data not already calculated. Calculation ongoing')
 		I	= np.zeros(X.shape, dtype=np.float64)
 
-		num_cores	= 6
 		unordered_res	= Parallel(n_jobs=num_cores)(delayed(phase_opt_min)(indices, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas) for indices, t1 in np.ndenumerate(X) )
 
 		for el in unordered_res:
@@ -96,8 +95,8 @@ def phase_opt_min(indices, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, m
 def phase_func(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas):
 	return current([phases[0], 1, phases[1], 1], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas)
 
-def abs_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], recalculate=False):
-	X,Y,I	= abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
+def abs_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], recalculate=False, num_cores=3):
+	X,Y,I	= abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate, num_cores)
 	I	= np.round(I, 8)
 	I	= np.ceil(I)
 
