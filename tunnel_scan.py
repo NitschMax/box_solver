@@ -30,6 +30,7 @@ def phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, t
 	return X, Y, I
 
 def factor_opt_min(indices, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas):
+	print('Calculation: ', indices[0]*len(X[0]) +indices[1], '/', X.size )
 	result	= opt.fmin(factor_func, args=([X[indices], 0, Y[indices], 0], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas), \
 			x0=[1,1], full_output=True, maxiter=200 )[1]
 	return [indices, result]

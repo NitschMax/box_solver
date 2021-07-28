@@ -37,8 +37,8 @@ def main():
 	tt4	= t
 
 	theta_1	= 0.00*np.pi + 1*dphi
-	theta_2	= 0.00*np.pi + 2*dphi
-	theta_3	= 0.30*np.pi + 3*dphi
+	theta_2	= 0.30*np.pi + 2*dphi
+	theta_3	= 0.00*np.pi + 3*dphi
 	theta_4	= 0.00*np.pi + 4*dphi
 
 	thetas		= np.array([theta_1, theta_2, theta_3, theta_4])
@@ -90,14 +90,14 @@ def main():
 	recalculate	= False
 
 	points	= 100
-	num_cores	= 3
+	num_cores	= 6
 
 	x	= np.linspace(1e-5, 2, points )
 	y	= x
 	
 	X,Y	= np.meshgrid(x, y)
 
-	X,Y,I	= ts.abs_zero_scan_and_plot(fig, ax1, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate, num_cores)
+	#X,Y,I	= ts.abs_zero_scan_and_plot(fig, ax1, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate, num_cores)
 
 
 	points	= 50
