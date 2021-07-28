@@ -28,9 +28,9 @@ def main():
 	phase3	= np.exp( +0j/2*np.pi + 1j*dphi )
 
 	theta_1	= 0.00*np.pi + dphi
-	theta_2	= 0.37*np.pi - dphi
-	theta_3	= 1.00*np.pi + 2*dphi
-	theta_4	= 1/4*np.pi - 2*dphi
+	theta_2	= 0.00*np.pi - dphi
+	theta_3	= 0.00*np.pi + 2*dphi
+	theta_4	= 0.00*np.pi - 2*dphi
 	factors	= [1.00, 1, 0.75, 1]*1/np.sqrt(1)
 
 	thetas	= np.array([theta_1, theta_2, theta_3, theta_4])
@@ -40,14 +40,15 @@ def main():
 	tb1	= t*phase1
 	tb2     = t
 	tb3     = t*phase3
-
 	tt4	= t
 
-	tb11	= t
-	tb21	= t
-	tb31	= t
+	thetas		= np.array([theta_1, theta_2, theta_3, theta_4])
+	theta_phases	= np.exp( 1j*thetas)
 
-	tt41	= t
+	tb11	= tb1*theta_phases[0]
+	tb21	= tb2*theta_phases[1]
+	tb31	= tb3*theta_phases[2]
+	tt41	= tt4*theta_phases[3]
 
 	T1	= 1e1
 	T2 	= T1
@@ -101,15 +102,17 @@ def main():
 		X,Y	= np.meshgrid(x, y)
 		I	= bias_sc.scan_and_plot(fig, ax1, X, Y, maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model)
 
-	x	= np.linspace(-np.pi/2 -dphi , np.pi/2 + dphi, 10)
+	points	= 10
+	recalculate	= True
+	x	= np.linspace(-np.pi/2 -dphi , np.pi/2 + dphi, points)
 	X,Y	= np.meshgrid(x, x)
-	tunnel_scan.phase_scan_and_plot(fig, ax1, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas, recalculate=False)
+	tunnel_scan.phase_scan_and_plot(fig, ax1, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
 
-	x	= np.linspace(0, 2, 10)
+	x	= np.linspace(0, 2, points)
 	X, Y	= np.meshgrid(x, x)
 	Y	+= dphi
 	phases	= [0.0*np.pi, 0, 0.2*np.pi, 0]
-	tunnel_scan.abs_scan_and_plot(fig, ax2, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas, recalculate=False)
+	tunnel_scan.abs_scan_and_plot(fig, ax2, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
 
 	fig.tight_layout()
 	plt.show()
