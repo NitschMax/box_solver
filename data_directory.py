@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-def dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=[], prefix=''):
+def dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=[], tunnel_mult=[], prefix=''):
 	if model == 1:
 		thetas = []
 	
@@ -20,6 +20,10 @@ def dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=
 
 	for i,theta in enumerate(thetas):
 		fileName	+= '_theta{}={:1.2f}xpi'.format(i+1, theta/np.pi)
+
+	if not tunnel_mult == [1, 1, 1, 1]:
+		for i,tunnel_mult in enumerate(tunnel_mult):
+			fileName	+= '_t2-{}={:1.2f}'.format(i+1, tunnel_mult)
 
 	return dirName, fileName
 

@@ -7,10 +7,10 @@ import data_directory as dd
 import os
 from joblib import Parallel, delayed
 
-def phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate, num_cores):
+def phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result):
 	prefix		= 'phase-zero-scan/x-{:1.2f}xpi-{:1.2f}xpi-{}_y-{:1.2f}xpi-{:1.2f}xpi-{}'.format(X[0,0]/np.pi, X[-1,-1]/np.pi, len(X[0] ), Y[0,0]/np.pi, Y[-1,-1]/np.pi, len(Y[0] ) )
 
-	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=thetas, prefix=prefix)
+	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=thetas, tunnel_mult=tunnel_mult, prefix=prefix)
 	file	= file[0] + file[1] + '.npy'
 
 	if os.path.isfile(file ) and (not recalculate):
@@ -20,29 +20,34 @@ def phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, t
 		print('Data not already calculated. Calculation ongoing')
 		I	= np.zeros(X.shape, dtype=np.float64)
 		
-		unordered_res	= Parallel(n_jobs=num_cores)(delayed(factor_opt_min)(indices, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas) for indices, bias in np.ndenumerate(X) ) 
+		unordered_res	= Parallel(n_jobs=num_cores)(delayed(factor_opt_min)(indices, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult) for indices, bias in np.ndenumerate(X) ) 
 		for el in unordered_res:
 			I[el[0] ]	= el[1]
 
-		np.save(file, [X, Y, I] )
+		if save_result:
+			print('Result is saved in:', file)
+			np.save(file, [X, Y, I] )
+		else:
+			print('Result was not saved!')
 		print('Finished!')
 
 	return X, Y, I
 
-def factor_opt_min(indices, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas):
+def factor_opt_min(indices, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult):
 	print('Calculation: ', indices[0]*len(X[0]) +indices[1], '/', X.size )
-	result	= opt.fmin(factor_func, args=([X[indices], 0, Y[indices], 0], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas), \
+	result	= opt.fmin(factor_func, args=([X[indices], 0, Y[indices], 0], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult), \
 			x0=[1,1], full_output=True, maxiter=200 )[1]
 	return [indices, result]
 
-def factor_func(factors, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas):
-	return current(phases, [factors[0], 1, factors[1], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas)
+def factor_func(factors, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult):
+	return current(phases, [factors[0], 1, factors[1], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult)
 
 
-def phase_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], recalculate=False, num_cores=3):
-	X,Y,I	= phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate, num_cores)
-	I	= np.round(I, 8)
-	I	= np.ceil(I)
+def phase_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], tunnel_mult=[1, 1, 1, 1], recalculate=False, num_cores=3, save_result=True, round=False):
+	X,Y,I	= phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result)
+	if round:
+		I	= np.round(I, 8)
+		I	= np.ceil(I)
 
 	c	= ax.contourf(X, Y, I)
 	cbar	= fig.colorbar(c, ax=ax)
@@ -55,7 +60,10 @@ def phase_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst
 	cbar.ax.locator_params(axis='y', nbins=7 )
 
 	ax.tick_params(labelsize=fs)
-	cbar.ax.set_title('Minimal current', size=fs)
+	if round:
+		cbar.ax.set_title('Rounded mc', size=fs)
+	else:
+		cbar.ax.set_title('mc', size=fs)
 	cbar.ax.tick_params(labelsize=fs)
 
 	ax.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
@@ -66,10 +74,10 @@ def phase_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst
 	return X, Y, I
 
 
-def abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate, num_cores):
+def abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result):
 	prefix		= 'prefactor-zero-scan/x-{:1.1f}-{:1.1f}-{}_y-{:1.1f}-{:1.1f}-{}'.format(X[0,0], X[-1,-1], len(X[0] ), Y[0,0], Y[-1,-1], len(Y[0] ) )
 
-	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=thetas, prefix=prefix)
+	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=thetas, tunnel_mult=tunnel_mult, prefix=prefix)
 	file	= file[0] + file[1] + '.npy'
 
 	if os.path.isfile(file ) and (not recalculate):
@@ -79,32 +87,37 @@ def abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, the
 		print('Data not already calculated. Calculation ongoing')
 		I	= np.zeros(X.shape, dtype=np.float64)
 
-		unordered_res	= Parallel(n_jobs=num_cores)(delayed(phase_opt_min)(indices, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas) for indices, t1 in np.ndenumerate(X) )
+		unordered_res	= Parallel(n_jobs=num_cores)(delayed(phase_opt_min)(indices, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult) for indices, t1 in np.ndenumerate(X) )
 
 		for el in unordered_res:
 			I[el[0] ]	= el[1]
 
-		np.save(file, [X, Y, I] )
+		if save_result:
+			print('Result is saved in:', file)
+			np.save(file, [X, Y, I] )
+		else:
+			print('Result was not saved!')
 		print('Finished!')
 
 	return X, Y, I
 
-def phase_opt_min(indices, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas):
+def phase_opt_min(indices, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult):
 	print('Calculation: ', indices[0]*len(X[0]) +indices[1], '/', X.size )
-	result	= opt.fmin(phase_func, x0=[np.pi/4,np.pi/4], full_output=True, maxiter=200, args=([X[indices], 1, Y[indices], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas) )[1]
+	result	= opt.fmin(phase_func, x0=[np.pi/4,np.pi/4], full_output=True, maxiter=200, args=([X[indices], 1, Y[indices], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult) )[1]
 	return [indices, result]
 
-def phase_func(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas):
-	return current([phases[0], 1, phases[1], 1], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas)
+def phase_func(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult):
+	return current([phases[0], 1, phases[1], 1], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult)
 
-def abs_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], recalculate=False, num_cores=3):
-	X,Y,I	= abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate, num_cores)
-	I	= np.round(I, 8)
-	I	= np.ceil(I)
+def abs_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], tunnel_mult=[1, 1, 1, 1], recalculate=False, num_cores=3, save_result=True, round=False):
+	X,Y,I	= abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result)
+	if round:
+		I	= np.round(I, 8)
+		I	= np.ceil(I)
 
 	fs	= 13
-	ax.set_xlabel(r'$t_1$', fontsize=fs)
-	ax.set_ylabel(r'$t_3$', fontsize=fs)
+	ax.set_xlabel(r'$\frac{t_1}{t}$', fontsize=fs)
+	ax.set_ylabel(r'$\frac{t_3}{t}$', fontsize=fs)
 
 	c	= ax.contourf(X, Y, I)
 	cbar	= fig.colorbar(c, ax=ax)
@@ -112,12 +125,15 @@ def abs_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, 
 	cbar.ax.locator_params(axis='y', nbins=7 )
 
 	ax.tick_params(labelsize=fs)
-	cbar.ax.set_title('Minimal current', size=fs)
+	if round:
+		cbar.ax.set_title('Rounded mc', size=fs)
+	else:
+		cbar.ax.set_title('mc', size=fs)
 	cbar.ax.tick_params(labelsize=fs)
 
 	return X, Y, I
 
-def phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate, num_cores):
+def phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores):
 	print('Trying to find the roots.')
 	current_phases	= lambda phases: current([phases[0], 0, phases[1], 0], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas)
 	roots	= opt.fmin(current_phases, x0=[np.pi/4,np.pi/4], full_output=True )
@@ -130,7 +146,7 @@ def phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, mode
 		print('Result for minimum not Pi-periodic! Difference:', diff)
 
 	prefix	= 'phase-scan/x-{:1.2f}xpi-{:1.2f}xpi-{}_y-{:1.2f}xpi-{:1.2f}xpi-{}_'.format(X[0,0]/np.pi, X[-1,-1]/np.pi, len(X[0] ), Y[0,0]/np.pi, Y[-1,-1]/np.pi, len(Y[0] ) )
-	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=factors, thetas=thetas, prefix=prefix)
+	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=factors, thetas=thetas, tunnel_mult=tunnel_mult, prefix=prefix)
 	file	= file[0] + file[1] + '.npy'
 
 	if os.path.isfile(file ) and (not recalculate):
@@ -150,9 +166,9 @@ def phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, mode
 	return I, roots
 
 def current_with_ind(indices, phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas):
-	return [indices, current(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas) ]
+	return [indices, current(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult) ]
 
-def phase_scan_and_plot(fig, ax, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], recalculate=False, num_cores=6):
+def phase_scan_and_plot(fig, ax, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], tunnel_mult=[1, 1, 1, 1], recalculate=False, num_cores=6):
 	I, roots	= phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate, num_cores)
 
 	c	= ax.contourf(X, Y, I)
@@ -178,7 +194,7 @@ def phase_scan_and_plot(fig, ax, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T
 
 	return I, roots
 
-def abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate, num_cores):
+def abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores):
 	current_abs_value	= lambda factors: current(phases, [factors[0], 1, factors[1], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas)
 	roots	= opt.fmin(current_abs_value, x0=[1,1], full_output=True )
 
@@ -206,7 +222,7 @@ def abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, 
 
 	return I, roots
 
-def abs_scan_and_plot(fig, ax, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], recalculate=False, num_cores=6):
+def abs_scan_and_plot(fig, ax, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], tunnel_mult=[1, 1, 1, 1], recalculate=False, num_cores=6):
 	I, roots	= abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate, num_cores)
 	c		= ax.contourf(X, Y, I)
 	cbar		= fig.colorbar(c, ax=ax)
@@ -218,8 +234,8 @@ def abs_scan_and_plot(fig, ax, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_ls
 		ax.scatter(roots[0][0], roots[0][1], marker='x', color='r')
 	else:
 		print('Minimum result outside considered range!')
-	ax.set_xlabel(r'$t_1$', fontsize=fs)
-	ax.set_ylabel(r'$t_3$', fontsize=fs)
+	ax.set_xlabel(r'$\frac{t_1}{t}$', fontsize=fs)
+	ax.set_ylabel(r'$\frac{t_3}{t}$', fontsize=fs)
 
 	cbar.ax.set_title('current', size=fs)
 	cbar.ax.tick_params(labelsize=fs)
@@ -229,20 +245,24 @@ def abs_scan_and_plot(fig, ax, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_ls
 
 	return I, roots
 
-def current(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[]):
+def current(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], tunnel_mult=[1, 1, 1, 1]):
 	phi_1	= phases[0] + phases[2]
 	phi_3	= phases[0] - phases[2]
-	tb1	= np.exp(1j*phi_1 )*t*factors[0]
+
+	tb1	= t*factors[0]*np.exp(1j*phi_1 )
 	tb2	= t*factors[1]
-	tb3	= np.exp(1j*phi_3 )*t*factors[2]
+	tb3	= t*factors[2]*np.exp(1j*phi_3 )
 	tt4	= t*factors[3]
 
-	if len(thetas) != 0:
-		theta_phases	= np.exp( 1j*thetas)
-		tb11	= tb1*theta_phases[0]
-		tb21	= tb2*theta_phases[1]
-		tb31	= tb3*theta_phases[2]
-		tt41	= tt4*theta_phases[3]
+	if len(thetas) == 0:
+		theta_phases	= np.ones(4)
+	else:
+		theta_phases	= np.exp( 1j*thetas )
+
+	tb11	= tb1*theta_phases[0]*tunnel_mult[0]
+	tb21	= tb2*theta_phases[1]*tunnel_mult[1]
+	tb31	= tb3*theta_phases[2]*tunnel_mult[2]
+	tt41	= tt4*theta_phases[3]*tunnel_mult[3]
 
 	if model == 1:
 		maj_op, overlaps, par	= box.majorana_leads(tb1, tb2, tb3, tt4)

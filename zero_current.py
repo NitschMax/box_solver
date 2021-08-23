@@ -36,18 +36,24 @@ def main():
 
 	tt4	= t
 
-	theta_1	= 0.00*np.pi + 1*dphi
-	theta_2	= 0.00*np.pi + 2*dphi
-	theta_3	= 0.30*np.pi + 3*dphi
-	theta_4	= 0.00*np.pi + 4*dphi
+	theta_1	= 0.30*np.pi + 1*dphi
+	theta_2	= 0.15*np.pi + 2*dphi
+	theta_3	= 0.60*np.pi + 3*dphi
+	theta_4	= 0.75*np.pi + 4*dphi
+
+	tunnel_mult	= [0.5, 1, 1, 1]
+	tunnel_mult	= [0, 1, 1, 1]
+	tunnel_mult	= [1, 1, 1, 1]
+	tunnel_mult	= [1, 0.5, 1, 1]
+	tunnel_mult	= [0.5, 0.6, 0.7, 0.8]
 
 	thetas		= np.array([theta_1, theta_2, theta_3, theta_4])
 	theta_phases	= np.exp( 1j*thetas)
 
-	tb11	= tb1*theta_phases[0]
-	tb21	= tb2*theta_phases[1]
-	tb31	= tb3*theta_phases[2]
-	tt41	= tt4*theta_phases[3]
+	tb11	= tb1*theta_phases[0]*tunnel_mult[0]
+	tb21	= tb2*theta_phases[1]*tunnel_mult[1]
+	tb31	= tb3*theta_phases[2]*tunnel_mult[2]
+	tt41	= tt4*theta_phases[3]*tunnel_mult[3]
 
 	model	= 2
 
@@ -84,12 +90,20 @@ def main():
 	print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
 
-	fig, (ax1,ax2)	= plt.subplots(1,2)
+	#fig, (ax1,ax2)	= plt.subplots(1,2)
+	fig, ax2	= plt.subplots(1,1)
 
 	recalculate	= True
 	recalculate	= False
 
-	points	= 100
+	save_result	= False
+	save_result	= True
+
+	round	= False
+	round	= True
+
+	points	= 50
+	points	= 20
 	num_cores	= 6
 
 	x	= np.linspace(1e-5, 2, points )
@@ -97,9 +111,10 @@ def main():
 	
 	X,Y	= np.meshgrid(x, y)
 
-	X,Y,I	= ts.abs_zero_scan_and_plot(fig, ax1, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate, num_cores)
+	#X,Y,I	= ts.abs_zero_scan_and_plot(fig, ax1, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result, round)
 
 
+	points	= 20
 	points	= 50
 
 	x	= np.linspace(-np.pi/2-dphi, np.pi/2+dphi, points)
@@ -107,7 +122,7 @@ def main():
 	X	+= dphi
 	Y	-= dphi
 
-	#X,Y,I2	= ts.phase_zero_scan_and_plot(fig, ax2, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate, num_cores)
+	X,Y,I2	= ts.phase_zero_scan_and_plot(fig, ax2, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result, round)
 
 	plt.tight_layout()
 	plt.show()

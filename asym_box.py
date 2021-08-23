@@ -24,23 +24,25 @@ def main():
 	gamma 	= 0.1
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
 
-	phase1	= np.exp( +0j/2*np.pi + 1j*dphi )
-	phase3	= np.exp( +0j/2*np.pi + 1j*dphi )
 
-	theta_1	= 0.00*np.pi + dphi
-	theta_2	= 0.00*np.pi - dphi
-	theta_3	= 0.00*np.pi + 2*dphi
-	theta_4	= 0.00*np.pi - 2*dphi
-	factors	= [1.00, 1, 0.75, 1]*1/np.sqrt(1)
+	theta_1	= +0.00*np.pi/2 + dphi
+	theta_2	= +0.00*np.pi/2 - dphi
+	theta_3	= +0.80*np.pi/2 + 2*dphi
+	theta_4	= +0.00*np.pi/2 - 2*dphi
+	factors	= [1.00, 1, 1.00, 1]*1/np.sqrt(1)
+
+	phases	= [0.0*np.pi, 0, 1/3*np.pi, 0]
+	phases	= [0.0*np.pi + theta_2/2 - theta_1/4 - theta_3/4, 0, 1/3*np.pi - theta_1/4 + theta_3/4, 0]
+
 
 	thetas	= np.array([theta_1, theta_2, theta_3, theta_4])
 
 	quasi_zero	= 0e-5
 
-	tb1	= t*phase1
-	tb2     = t
-	tb3     = t*phase3
-	tt4	= t
+	tb1	= t*phases[0]
+	tb2     = t*phases[1]
+	tb3     = t*phases[2]
+	tt4	= t*phases[3]
 
 	thetas		= np.array([theta_1, theta_2, theta_3, theta_4])
 	theta_phases	= np.exp( 1j*thetas)
@@ -67,7 +69,7 @@ def main():
 	method	= 'Lindblad'
 	method	= '1vN'
 
-	model	= 1
+	model	= 2
 	
 	test_run	= False
 
@@ -90,7 +92,8 @@ def main():
 		print('Density matrix:', sys.phi0 )
 		print('Current:', sys.current )
 
-	fig, (ax1,ax2)	= plt.subplots(1, 2)
+	#fig, (ax1,ax2)	= plt.subplots(1, 2)
+	fig, ax2	= plt.subplots(1, 1)
 
 
 	bias_variation	= False
@@ -102,16 +105,16 @@ def main():
 		X,Y	= np.meshgrid(x, y)
 		I	= bias_sc.scan_and_plot(fig, ax1, X, Y, maj_box, t, par, tunnel, dband, mu_lst, T_lst, method, model)
 
-	points	= 10
-	recalculate	= True
+	points	= 50
+	recalculate	= False
 	x	= np.linspace(-np.pi/2 -dphi , np.pi/2 + dphi, points)
 	X,Y	= np.meshgrid(x, x)
-	tunnel_scan.phase_scan_and_plot(fig, ax1, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
+	#tunnel_scan.phase_scan_and_plot(fig, ax1, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
 
-	x	= np.linspace(0, 2, points)
-	X, Y	= np.meshgrid(x, x)
+	x	= np.linspace(0, 3, points)
+	y	= np.linspace(0, 3, points)
+	X, Y	= np.meshgrid(x, y)
 	Y	+= dphi
-	phases	= [0.0*np.pi, 0, 0.2*np.pi, 0]
 	tunnel_scan.abs_scan_and_plot(fig, ax2, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
 
 	fig.tight_layout()
