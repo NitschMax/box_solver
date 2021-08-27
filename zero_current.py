@@ -36,16 +36,16 @@ def main():
 
 	tt4	= t
 
-	theta_1	= 0.30*np.pi + 1*dphi
-	theta_2	= 0.15*np.pi + 2*dphi
-	theta_3	= 0.60*np.pi + 3*dphi
-	theta_4	= 0.75*np.pi + 4*dphi
+	theta_1	= 0.00*np.pi + 1*dphi
+	theta_2	= 0.00*np.pi + 2*dphi
+	theta_3	= 0.00*np.pi + 3*dphi
+	theta_4	= 0.00*np.pi + 4*dphi
 
-	tunnel_mult	= [0.5, 1, 1, 1]
+	tunnel_mult	= [1, 1.0, 0.5, 1]
 	tunnel_mult	= [0, 1, 1, 1]
-	tunnel_mult	= [1, 1, 1, 1]
-	tunnel_mult	= [1, 0.5, 1, 1]
 	tunnel_mult	= [0.5, 0.6, 0.7, 0.8]
+	tunnel_mult	= [0.3, 0.4, 0.2, 0.5]
+	tunnel_mult	= [1, 1, 1, 1]
 
 	thetas		= np.array([theta_1, theta_2, theta_3, theta_4])
 	theta_phases	= np.exp( 1j*thetas)
@@ -69,6 +69,7 @@ def main():
 	
 	T_lst 	= { 0:T1 , 1:T1}
 	mu_lst 	= { 0:mu1 , 1:mu2}
+	method	= 'Pauli'
 	method	= 'Lindblad'
 	method	= '1vN'
 
@@ -90,8 +91,8 @@ def main():
 	print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
 
+	fig, ax1	= plt.subplots(1,1)
 	#fig, (ax1,ax2)	= plt.subplots(1,2)
-	fig, ax2	= plt.subplots(1,1)
 
 	recalculate	= True
 	recalculate	= False
@@ -102,17 +103,26 @@ def main():
 	round	= False
 	round	= True
 
-	points	= 50
 	points	= 20
+	points	= 200
 	num_cores	= 6
 
 	x	= np.linspace(1e-5, 2, points )
 	y	= x
 	
 	X,Y	= np.meshgrid(x, y)
+	Y	= np.ones((1, x.size) )*0.7
+	X	= np.array([x] )
+	Y	= X
 
 	#X,Y,I	= ts.abs_zero_scan_and_plot(fig, ax1, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result, round)
 
+	X,Y,I	= ts.abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result)
+	ax1.plot(X[0], I[0] )
+	ax1.grid(True)
+	ax1.set_yscale('log')
+	plt.show()
+	return
 
 	points	= 20
 	points	= 50
