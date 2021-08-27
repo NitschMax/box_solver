@@ -36,16 +36,16 @@ def main():
 
 	tt4	= t
 
-	theta_1	= 0.00*np.pi + 1*dphi
-	theta_2	= 0.00*np.pi + 2*dphi
-	theta_3	= 0.00*np.pi + 3*dphi
-	theta_4	= 0.00*np.pi + 4*dphi
+	theta_1	= 0.30*np.pi + 1*dphi
+	theta_2	= 0.15*np.pi + 2*dphi
+	theta_3	= 0.60*np.pi + 3*dphi
+	theta_4	= 0.75*np.pi + 4*dphi
 
-	tunnel_mult	= [1, 1.0, 0.5, 1]
 	tunnel_mult	= [0, 1, 1, 1]
 	tunnel_mult	= [0.5, 0.6, 0.7, 0.8]
-	tunnel_mult	= [0.3, 0.4, 0.2, 0.5]
 	tunnel_mult	= [1, 1, 1, 1]
+	tunnel_mult	= [0.5, 1.0, 1.0, 1]
+	tunnel_mult	= [0.3, 0.4, 0.2, 0.5]
 
 	thetas		= np.array([theta_1, theta_2, theta_3, theta_4])
 	theta_phases	= np.exp( 1j*thetas)
@@ -91,8 +91,8 @@ def main():
 	print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
 
-	fig, ax1	= plt.subplots(1,1)
-	#fig, (ax1,ax2)	= plt.subplots(1,2)
+	#fig, ax1	= plt.subplots(1,1)
+	fig, (ax1,ax2)	= plt.subplots(1,2)
 
 	recalculate	= True
 	recalculate	= False
@@ -100,29 +100,19 @@ def main():
 	save_result	= False
 	save_result	= True
 
-	round	= False
-	round	= True
+	logscale	= False
+	logscale	= True
 
-	points	= 20
-	points	= 200
+	points	= 100
+	points	= 50
 	num_cores	= 6
 
 	x	= np.linspace(1e-5, 2, points )
 	y	= x
 	
 	X,Y	= np.meshgrid(x, y)
-	Y	= np.ones((1, x.size) )*0.7
-	X	= np.array([x] )
-	Y	= X
 
-	#X,Y,I	= ts.abs_zero_scan_and_plot(fig, ax1, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result, round)
-
-	X,Y,I	= ts.abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result)
-	ax1.plot(X[0], I[0] )
-	ax1.grid(True)
-	ax1.set_yscale('log')
-	plt.show()
-	return
+	X,Y,I	= ts.abs_zero_scan_and_plot(fig, ax1, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result, logscale)
 
 	points	= 20
 	points	= 50
@@ -132,11 +122,34 @@ def main():
 	X	+= dphi
 	Y	-= dphi
 
-	X,Y,I2	= ts.phase_zero_scan_and_plot(fig, ax2, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result, round)
+	X,Y,I2	= ts.phase_zero_scan_and_plot(fig, ax2, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result, logscale)
 
 	plt.tight_layout()
 	plt.show()
 	return
+
+	#### Implementation of 1-d cuts ###
+	points	= 200
+	x	= np.linspace(1e-5, 2, points )
+	Y	= np.ones((1, x.size) )*0.7
+	X	= np.array([x] )
+	X,Y,I	= ts.abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result)
+	ax1.plot(X[0], I[0] )
+	ax1.grid(True)
+	ax1.set_yscale('log')
+	ax1.set_xlabel(r'$\frac{t_1}{t}$')
+	ax1.set_ylabel('minimal current')
+
+	x	= np.linspace(-np.pi/2-dphi, np.pi/2+dphi, points)
+	Y	= np.ones((1, x.size) )*np.pi/3
+	X	= np.array([x] )
+	X,Y,I	= ts.phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result)
+	ax2.plot(X[0], I[0] )
+	ax2.grid(True)
+	ax2.set_yscale('log')
+	ax2.set_xlabel(r'$\Phi_{avg}$')
+	ax2.set_ylabel('minimal current')
+
 
 
 def current(phase, maj_box, t, Ea, dband, mu_lst, T_lst, method):

@@ -7,6 +7,8 @@ import data_directory as dd
 import os
 from joblib import Parallel, delayed
 
+from matplotlib import ticker, cm
+
 def phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result):
 	prefix		= 'phase-zero-scan/x-{:1.2f}xpi-{:1.2f}xpi-{}_y-{:1.2f}xpi-{:1.2f}xpi-{}'.format(X[0,0]/np.pi, X[-1,-1]/np.pi, len(X[0] ), Y[0,0]/np.pi, Y[-1,-1]/np.pi, len(Y[:,0] ) )
 
@@ -43,13 +45,14 @@ def factor_func(factors, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, m
 	return current(phases, [factors[0], 1, factors[1], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult)
 
 
-def phase_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], tunnel_mult=[1, 1, 1, 1], recalculate=False, num_cores=3, save_result=True, round=False):
+def phase_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], tunnel_mult=[1, 1, 1, 1], recalculate=False, num_cores=3, save_result=True, logscale=False):
 	X,Y,I	= phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result)
-	if round:
-		I	= np.round(I, 8)
-		I	= np.ceil(I)
 
-	c	= ax.contourf(X, Y, I)
+	if logscale:
+		c	= ax.contourf(X, Y, I, locator=ticker.LogLocator() )
+	else:
+		c	= ax.contourf(X, Y, I )
+
 	cbar	= fig.colorbar(c, ax=ax)
 
 	fs	= 13
@@ -60,10 +63,7 @@ def phase_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst
 	cbar.ax.locator_params(axis='y', nbins=7 )
 
 	ax.tick_params(labelsize=fs)
-	if round:
-		cbar.ax.set_title('Rounded mc', size=fs)
-	else:
-		cbar.ax.set_title('mc', size=fs)
+	cbar.ax.set_title('mc', size=fs)
 	cbar.ax.tick_params(labelsize=fs)
 
 	ax.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
@@ -79,6 +79,7 @@ def abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, the
 
 	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=thetas, tunnel_mult=tunnel_mult, prefix=prefix)
 	file	= file[0] + file[1] + '.npy'
+	print(file)
 
 	if os.path.isfile(file ) and (not recalculate):
 		print('Loading data.')
@@ -109,26 +110,24 @@ def phase_opt_min(indices, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, m
 def phase_func(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult):
 	return current([phases[0], 1, phases[1], 1], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult)
 
-def abs_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], tunnel_mult=[1, 1, 1, 1], recalculate=False, num_cores=3, save_result=True, round=False):
+def abs_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], tunnel_mult=[1, 1, 1, 1], recalculate=False, num_cores=3, save_result=True, logscale=False):
 	X,Y,I	= abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result)
-	if round:
-		I	= np.round(I, 8)
-		I	= np.ceil(I)
 
 	fs	= 13
 	ax.set_xlabel(r'$\frac{t_1}{t}$', fontsize=fs)
 	ax.set_ylabel(r'$\frac{t_3}{t}$', fontsize=fs)
 
-	c	= ax.contourf(X, Y, I)
+	if logscale:
+		c	= ax.contourf(X, Y, I, locator=ticker.LogLocator() )
+	else:
+		c	= ax.contourf(X, Y, I )
+
 	cbar	= fig.colorbar(c, ax=ax)
 	ax.locator_params(axis='both', nbins=5 )
 	cbar.ax.locator_params(axis='y', nbins=7 )
 
 	ax.tick_params(labelsize=fs)
-	if round:
-		cbar.ax.set_title('Rounded mc', size=fs)
-	else:
-		cbar.ax.set_title('mc', size=fs)
+	cbar.ax.set_title('mc', size=fs)
 	cbar.ax.tick_params(labelsize=fs)
 
 	return X, Y, I
