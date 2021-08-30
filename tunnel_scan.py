@@ -134,7 +134,7 @@ def abs_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, 
 
 def phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores):
 	print('Trying to find the roots.')
-	current_phases	= lambda phases: current([phases[0], 0, phases[1], 0], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas)
+	current_phases	= lambda phases: current([phases[0], 0, phases[1], 0], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas, tunnel_mult=tunnel_mult)
 	roots	= opt.fmin(current_phases, x0=[np.pi/4,np.pi/4], full_output=True )
 	print('Phase-diff with minimal current:', 'pi*'+str(roots[0]/np.pi) )
 	print('Minimal current: ', roots[1] )
@@ -155,7 +155,7 @@ def phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, mode
 		print('Data not already calculated. Calculation ongoing')
 		I	= np.zeros(X.shape, dtype=np.float64 )
 
-		unordered_res	= Parallel(n_jobs=num_cores)(delayed(current_with_ind)(indices, [X[indices], 0, Y[indices], 0], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas) for indices, var in np.ndenumerate(X) )
+		unordered_res	= Parallel(n_jobs=num_cores)(delayed(current_with_ind)(indices, [X[indices], 0, Y[indices], 0], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult) for indices, var in np.ndenumerate(X) )
 		for el in unordered_res:
 			I[el[0] ]	= el[1]
 
@@ -164,11 +164,11 @@ def phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, mode
 
 	return I, roots
 
-def current_with_ind(indices, phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas):
+def current_with_ind(indices, phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult):
 	return [indices, current(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult) ]
 
 def phase_scan_and_plot(fig, ax, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], tunnel_mult=[1, 1, 1, 1], recalculate=False, num_cores=6):
-	I, roots	= phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate, num_cores)
+	I, roots	= phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores)
 
 	c	= ax.contourf(X, Y, I)
 	cbar	= fig.colorbar(c, ax=ax)
@@ -194,7 +194,7 @@ def phase_scan_and_plot(fig, ax, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T
 	return I, roots
 
 def abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores):
-	current_abs_value	= lambda factors: current(phases, [factors[0], 1, factors[1], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas)
+	current_abs_value	= lambda factors: current(phases, [factors[0], 1, factors[1], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=thetas, tunnel_mult=tunnel_mult)
 	roots	= opt.fmin(current_abs_value, x0=[1,1], full_output=True )
 
 	print('Factors with minimal current:', str(roots[0] ) )

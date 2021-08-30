@@ -41,21 +41,28 @@ def main():
 	theta_3	= 0.60*np.pi + 3*dphi
 	theta_4	= 0.75*np.pi + 4*dphi
 
+	thetas	= np.array([theta_1, theta_2, theta_3, theta_4])
+
+	th	= [0.30, 0.00, 0.00, 0.00]
+	th	= [0.30, 0.15, 0.60, 0.75]
+
+	thetas	= np.array(th )*np.pi + np.array([1, 2, 3, 4] )*dphi
+
+	theta_phases	= np.exp( 1j*thetas)
+
 	tunnel_mult	= [0, 1, 1, 1]
 	tunnel_mult	= [0.5, 0.6, 0.7, 0.8]
 	tunnel_mult	= [1, 1, 1, 1]
 	tunnel_mult	= [0.5, 1.0, 1.0, 1]
 	tunnel_mult	= [0.3, 0.4, 0.2, 0.5]
 
-	thetas		= np.array([theta_1, theta_2, theta_3, theta_4])
-	theta_phases	= np.exp( 1j*thetas)
 
 	tb11	= tb1*theta_phases[0]*tunnel_mult[0]
 	tb21	= tb2*theta_phases[1]*tunnel_mult[1]
 	tb31	= tb3*theta_phases[2]*tunnel_mult[2]
 	tt41	= tt4*theta_phases[3]*tunnel_mult[3]
 
-	model	= 2
+	model	= 1
 
 	T1	= 1e1
 	T2 	= T1
@@ -91,8 +98,8 @@ def main():
 	print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
 
-	#fig, ax1	= plt.subplots(1,1)
-	fig, (ax1,ax2)	= plt.subplots(1,2)
+	#fig, (ax1,ax2)	= plt.subplots(1,2)
+	fig, ax1	= plt.subplots(1,1)
 
 	recalculate	= True
 	recalculate	= False
@@ -103,8 +110,8 @@ def main():
 	logscale	= False
 	logscale	= True
 
-	points	= 100
 	points	= 50
+	points	= 100
 	num_cores	= 6
 
 	x	= np.linspace(1e-5, 2, points )
@@ -122,7 +129,7 @@ def main():
 	X	+= dphi
 	Y	-= dphi
 
-	X,Y,I2	= ts.phase_zero_scan_and_plot(fig, ax2, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result, logscale)
+	#X,Y,I2	= ts.phase_zero_scan_and_plot(fig, ax2, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result, logscale)
 
 	plt.tight_layout()
 	plt.show()

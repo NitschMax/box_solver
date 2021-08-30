@@ -36,13 +36,14 @@ def main():
 
 
 	thetas	= np.array([theta_1, theta_2, theta_3, theta_4])
+	tunnel_mult	= [1, 1, 1, 1]
 
 	quasi_zero	= 0e-5
 
-	tb1	= t*phases[0]
-	tb2     = t*phases[1]
-	tb3     = t*phases[2]
-	tt4	= t*phases[3]
+	tb1	= t*phases[0]*tunnel_mult[0]
+	tb2     = t*phases[1]*tunnel_mult[1]
+	tb3     = t*phases[2]*tunnel_mult[2]
+	tt4	= t*phases[3]*tunnel_mult[3]
 
 	thetas		= np.array([theta_1, theta_2, theta_3, theta_4])
 	theta_phases	= np.exp( 1j*thetas)
@@ -69,7 +70,7 @@ def main():
 	method	= 'Lindblad'
 	method	= '1vN'
 
-	model	= 2
+	model	= 1
 	
 	test_run	= False
 
@@ -93,7 +94,8 @@ def main():
 		print('Current:', sys.current )
 
 	#fig, (ax1,ax2)	= plt.subplots(1, 2)
-	fig, ax2	= plt.subplots(1, 1)
+	fig, ax1	= plt.subplots(1, 1)
+	num_cores	= 6
 
 
 	bias_variation	= False
@@ -109,13 +111,13 @@ def main():
 	recalculate	= False
 	x	= np.linspace(-np.pi/2 -dphi , np.pi/2 + dphi, points)
 	X,Y	= np.meshgrid(x, x)
-	#tunnel_scan.phase_scan_and_plot(fig, ax1, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
+	tunnel_scan.phase_scan_and_plot(fig, ax1, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores)
 
 	x	= np.linspace(0, 3, points)
 	y	= np.linspace(0, 3, points)
 	X, Y	= np.meshgrid(x, y)
 	Y	+= dphi
-	tunnel_scan.abs_scan_and_plot(fig, ax2, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
+	#tunnel_scan.abs_scan_and_plot(fig, ax2, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
 
 	fig.tight_layout()
 	plt.show()

@@ -3,7 +3,8 @@ import numpy as np
 
 def dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=[], thetas=[], tunnel_mult=[], prefix=''):
 	if model == 1:
-		thetas = []
+		thetas		= []
+		tunnel_mult	= []
 	
 	dirName		= '/Users/ma0274ni/Documents/projects/majorana_box/data/' + maj_box.name + '/'
 	if not os.path.isdir(dirName ):
