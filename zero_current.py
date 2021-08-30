@@ -99,7 +99,7 @@ def main():
 	print('Current:', sys.current )
 
 	#fig, (ax1,ax2)	= plt.subplots(1,2)
-	fig, ax1	= plt.subplots(1,1)
+	fig, ax2	= plt.subplots(1,1)
 
 	recalculate	= True
 	recalculate	= False
@@ -107,8 +107,8 @@ def main():
 	save_result	= False
 	save_result	= True
 
-	logscale	= False
 	logscale	= True
+	logscale	= False
 
 	points	= 50
 	points	= 100

@@ -55,10 +55,11 @@ def phase_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst
 
 	cbar	= fig.colorbar(c, ax=ax)
 
-	fs	= 13
+	fs	= 15
 	ax.set_xlabel(r'$\Phi_{avg}$', fontsize=fs)
 	ax.set_ylabel(r'$\Phi_{diff}$', fontsize=fs)
 
+	fs	= 13
 	ax.locator_params(axis='both', nbins=5 )
 	cbar.ax.locator_params(axis='y', nbins=5 )
 
@@ -113,10 +114,11 @@ def phase_func(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, mo
 def abs_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], tunnel_mult=[1, 1, 1, 1], recalculate=False, num_cores=3, save_result=True, logscale=False):
 	X,Y,I	= abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result)
 
-	fs	= 13
-	ax.set_xlabel(r'$\frac{t_1}{t}$', fontsize=fs)
-	ax.set_ylabel(r'$\frac{t_3}{t}$', fontsize=fs)
+	fs	= 15
+	ax.set_xlabel(r'$t_1 \, [t]$', fontsize=fs)
+	ax.set_ylabel(r'$t_3 \, [t]$', fontsize=fs)
 
+	fs	= 13
 	if logscale:
 		c	= ax.contourf(X, Y, I, locator=ticker.LogLocator() )
 	else:
@@ -176,7 +178,11 @@ def phase_scan_and_plot(fig, ax, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T
 	minC	= np.mod(roots[0], np.pi )-np.pi/2 
 	ax.scatter(minC[0], minC[1], marker='x', color='r')
 
-	fs	= 12
+	fs	= 15
+	ax.set_xlabel(r'$\Phi_{avg}$', fontsize=fs)
+	ax.set_ylabel(r'$\Phi_{diff}$', fontsize=fs)
+
+	fs	= 13
 	ax.locator_params(axis='both', nbins=5 )
 	cbar.ax.locator_params(axis='y', nbins=7 )
 	
@@ -188,8 +194,6 @@ def phase_scan_and_plot(fig, ax, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T
 	ax.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
 	ax.yaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
 	ax.yaxis.set_major_formatter(plt.FuncFormatter(format_func) )
-	ax.set_xlabel(r'$\Phi_{avg}$', fontsize=fs)
-	ax.set_ylabel(r'$\Phi_{diff}$', fontsize=fs)
 
 	return I, roots
 
@@ -225,7 +229,6 @@ def abs_scan_and_plot(fig, ax, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_ls
 	I, roots	= abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores)
 	c		= ax.contourf(X, Y, I)
 	cbar		= fig.colorbar(c, ax=ax)
-	fs		= 12
 
 	xmin	= roots[0][0]
 	ymin	= roots[0][1]
@@ -233,9 +236,11 @@ def abs_scan_and_plot(fig, ax, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_ls
 		ax.scatter(roots[0][0], roots[0][1], marker='x', color='r')
 	else:
 		print('Minimum result outside considered range!')
+	fs	= 15
 	ax.set_xlabel(r'$\frac{t_1}{t}$', fontsize=fs)
 	ax.set_ylabel(r'$\frac{t_3}{t}$', fontsize=fs)
 
+	fs		= 13
 	cbar.ax.set_title('current', size=fs)
 	cbar.ax.tick_params(labelsize=fs)
 	ax.locator_params(axis='both', nbins=5 )
