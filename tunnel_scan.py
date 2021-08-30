@@ -60,7 +60,7 @@ def phase_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst
 	ax.set_ylabel(r'$\Phi_{diff}$', fontsize=fs)
 
 	ax.locator_params(axis='both', nbins=5 )
-	cbar.ax.locator_params(axis='y', nbins=7 )
+	cbar.ax.locator_params(axis='y', nbins=5 )
 
 	ax.tick_params(labelsize=fs)
 	cbar.ax.set_title('mc', size=fs)
@@ -124,7 +124,7 @@ def abs_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, 
 
 	cbar	= fig.colorbar(c, ax=ax)
 	ax.locator_params(axis='both', nbins=5 )
-	cbar.ax.locator_params(axis='y', nbins=7 )
+	cbar.ax.locator_params(axis='y', nbins=5 )
 
 	ax.tick_params(labelsize=fs)
 	cbar.ax.set_title('mc', size=fs)
