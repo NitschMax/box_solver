@@ -202,7 +202,7 @@ def abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, 
 
 	prefix	= 'prefactor-scan/x-{:1.1f}-{:1.1f}-{}_y-{:1.1f}-{:1.1f}-{}_'.format(X[0,0]/np.pi, X[-1,-1]/np.pi, len(X[0] ), Y[0,0]/np.pi, Y[-1,-1]/np.pi, len(Y[:,0] ) )
 
-	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=phases, factors=[], thetas=thetas, prefix=prefix)
+	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=phases, factors=[], thetas=thetas, tunnel_mult=tunnel_mult, prefix=prefix)
 	file	= file[0] + file[1] + '.npy'
 
 	if os.path.isfile(file ) and (not recalculate):
@@ -212,7 +212,7 @@ def abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, 
 		print('Data not already calculated. Calculation ongoing')
 		I	= np.zeros(X.shape, dtype=np.float64 )
 
-		unordered_res	= Parallel(n_jobs=num_cores)(delayed(current_with_ind)(indices, phases, [X[indices], 1, Y[indices], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas) for indices, var in np.ndenumerate(X) )
+		unordered_res	= Parallel(n_jobs=num_cores)(delayed(current_with_ind)(indices, phases, [X[indices], 1, Y[indices], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult) for indices, var in np.ndenumerate(X) )
 		for el in unordered_res:
 			I[el[0] ]	= el[1]
 
@@ -222,7 +222,7 @@ def abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, 
 	return I, roots
 
 def abs_scan_and_plot(fig, ax, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], tunnel_mult=[1, 1, 1, 1], recalculate=False, num_cores=6):
-	I, roots	= abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate, num_cores)
+	I, roots	= abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores)
 	c		= ax.contourf(X, Y, I)
 	cbar		= fig.colorbar(c, ax=ax)
 	fs		= 12

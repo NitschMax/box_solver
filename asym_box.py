@@ -31,8 +31,8 @@ def main():
 	theta_4	= +0.00*np.pi/2 - 2*dphi
 	factors	= [1.00, 1, 1.00, 1]*1/np.sqrt(1)
 
-	phases	= [0.0*np.pi, 0, 1/3*np.pi, 0]
 	phases	= [0.0*np.pi + theta_2/2 - theta_1/4 - theta_3/4, 0, 1/3*np.pi - theta_1/4 + theta_3/4, 0]
+	phases	= [0.0*np.pi, 0, 1/3*np.pi, 0]
 
 
 	thetas	= np.array([theta_1, theta_2, theta_3, theta_4])
@@ -94,7 +94,7 @@ def main():
 		print('Current:', sys.current )
 
 	#fig, (ax1,ax2)	= plt.subplots(1, 2)
-	fig, ax1	= plt.subplots(1, 1)
+	fig, ax2	= plt.subplots(1, 1)
 	num_cores	= 6
 
 
@@ -111,13 +111,13 @@ def main():
 	recalculate	= False
 	x	= np.linspace(-np.pi/2 -dphi , np.pi/2 + dphi, points)
 	X,Y	= np.meshgrid(x, x)
-	tunnel_scan.phase_scan_and_plot(fig, ax1, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores)
+	#tunnel_scan.phase_scan_and_plot(fig, ax1, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores)
 
 	x	= np.linspace(0, 3, points)
 	y	= np.linspace(0, 3, points)
 	X, Y	= np.meshgrid(x, y)
 	Y	+= dphi
-	#tunnel_scan.abs_scan_and_plot(fig, ax2, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, recalculate)
+	tunnel_scan.abs_scan_and_plot(fig, ax2, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores)
 
 	fig.tight_layout()
 	plt.show()
