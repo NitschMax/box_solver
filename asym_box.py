@@ -25,9 +25,9 @@ def main():
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
 
 
-	theta_1	= +0.00*np.pi/2 + dphi
+	theta_1	= +0.30*np.pi/2 + dphi
 	theta_2	= +0.00*np.pi/2 - dphi
-	theta_3	= +0.80*np.pi/2 + 2*dphi
+	theta_3	= +0.00*np.pi/2 + 2*dphi
 	theta_4	= +0.00*np.pi/2 - 2*dphi
 	factors	= [1.00, 1, 1.00, 1]*1/np.sqrt(1)
 
@@ -40,18 +40,18 @@ def main():
 
 	quasi_zero	= 0e-5
 
-	tb1	= t*phases[0]*tunnel_mult[0]
-	tb2     = t*phases[1]*tunnel_mult[1]
-	tb3     = t*phases[2]*tunnel_mult[2]
-	tt4	= t*phases[3]*tunnel_mult[3]
+	tb1	= t*phases[0]
+	tb2     = t*phases[1]
+	tb3     = t*phases[2]
+	tt4	= t*phases[3]
 
 	thetas		= np.array([theta_1, theta_2, theta_3, theta_4])
 	theta_phases	= np.exp( 1j*thetas)
 
-	tb11	= tb1*theta_phases[0]
-	tb21	= tb2*theta_phases[1]
-	tb31	= tb3*theta_phases[2]
-	tt41	= tt4*theta_phases[3]
+	tb11	= tb1*theta_phases[0]*tunnel_mult[0]
+	tb21	= tb2*theta_phases[1]*tunnel_mult[1]
+	tb31	= tb3*theta_phases[2]*tunnel_mult[2]
+	tt41	= tt4*theta_phases[3]*tunnel_mult[3]
 
 	T1	= 1e1
 	T2 	= T1
