@@ -16,11 +16,11 @@ from time import perf_counter
 import scipy.optimize as opt
 
 def main():
-	eps	= 1e-6
-	eps12 	= 0e-6
-	eps34 	= 0e-6
+	eps	= 1e-7
+	eps12 	= 1*eps
+	eps34 	= 2*eps
 
-	eps23	= 0e-6
+	eps23	= 3*eps
 
 	dphi	= 1e-6
 	
@@ -104,11 +104,11 @@ def main():
 	recalculate	= True
 	recalculate	= False
 
-	save_result	= False
 	save_result	= True
+	save_result	= False
 
-	logscale	= True
 	logscale	= False
+	logscale	= True
 
 	points	= 50
 	points	= 100
@@ -136,26 +136,34 @@ def main():
 	return
 
 	#### Implementation of 1-d cuts ###
-	points	= 200
+	points	= 400
 	x	= np.linspace(1e-5, 2, points )
+	delta	= x[1]-x[0]
+	print(delta)
 	Y	= np.ones((1, x.size) )*0.7
 	X	= np.array([x] )
 	X,Y,I	= ts.abs_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result)
-	ax1.plot(X[0], I[0] )
+	ax1.plot(X[0,1:-1], np.diff(I[0], n=2 )/delta**2 )
+	#ax1.plot(X[0,1:], np.diff(I[0], n=1 )/delta**1 )
 	ax1.grid(True)
-	ax1.set_yscale('log')
+	#ax1.set_yscale('log')
 	ax1.set_xlabel(r'$\frac{t_1}{t}$')
-	ax1.set_ylabel('minimal current')
+	ax1.set_ylabel(r'$\frac{d^2}{dt_1^2} \, I_{min}$')
 
 	x	= np.linspace(-np.pi/2-dphi, np.pi/2+dphi, points)
+	delta	= x[1]-x[0]
 	Y	= np.ones((1, x.size) )*np.pi/3
 	X	= np.array([x] )
 	X,Y,I	= ts.phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result)
-	ax2.plot(X[0], I[0] )
+	ax2.plot(X[0,1:-1], np.diff(I[0], n=2 )/delta**2 )
+	#ax2.plot(X[0,1:], np.diff(I[0], n=1 )/delta**1 )
 	ax2.grid(True)
-	ax2.set_yscale('log')
+	#ax2.set_yscale('log')
 	ax2.set_xlabel(r'$\Phi_{avg}$')
-	ax2.set_ylabel('minimal current')
+	ax2.set_ylabel(r'$\frac{d^2}{d \phi_{avg}^2 } \, I_{min}$')
+
+	plt.tight_layout()
+	plt.show()
 
 
 
