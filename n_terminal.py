@@ -12,18 +12,18 @@ from joblib import Parallel, delayed
 from time import perf_counter
 
 def main():
-	eps	= 1e-4
-	eps12 	= 1e-3
-	eps34 	= 1e-3
+	eps	= 0e-4
+	eps12 	= 0e-3
+	eps34 	= 0e-3
 
 	eps23	= 0e-3
 
-	dphi	= 1e-5
+	dphi	= 1e-8
 	
 	gamma 	= 0.1
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
 
-	phase	= np.exp( 1j/3*np.pi + 1j*dphi )
+	phase	= np.exp( 0j/3*np.pi + 1j*dphi )
 
 	theta_1	= np.exp( 0j/4*np.pi + 1j*dphi )
 	theta_2	= np.exp( 0j/4*np.pi - 1j*dphi )
@@ -83,7 +83,8 @@ def main():
 	print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
 
-	fig, (ax1,ax2)	= plt.subplots(1, 2)
+	#fig, (ax1,ax2)	= plt.subplots(1, 2)
+	fig, ax1	= plt.subplots(1, 1)
 
 	points	= 100
 	m_bias	= 1e2
@@ -110,6 +111,22 @@ def main():
 	c	= ax1.pcolor(X, Y, I, shading='auto')
 	cbar	= fig.colorbar(c, ax=ax1)
 
+	fs	= 16
+
+	ax1.locator_params(axis='both', nbins=5 )
+	ax1.tick_params(labelsize=fs)
+	ax1.set_xlabel(r'$V_g$', fontsize=fs)
+	ax1.set_ylabel(r'$V_{bias}$', fontsize=fs)
+	cbar.ax.locator_params(axis='y', nbins=7 )
+	cbar.ax.yaxis.set_major_locator(plt.MultipleLocator(0.05))
+	cbar.ax.set_title('current', size=fs)
+	cbar.ax.tick_params(labelsize=fs)
+	fig.tight_layout()
+
+	#plt.show()
+	plt.clf()
+
+	fig, ax2	= plt.subplots(1, 1)
 	angles	= np.linspace(0, 2*np.pi, 1000) + dphi
 	Vg	= 0e1
 	maj_box.adj_charging(Vg)
@@ -138,13 +155,10 @@ def main():
 
 	ax2.plot(angles, I, label=method)
 
-	fs	= 12
 
-	ax1.locator_params(axis='both', nbins=5 )
 	ax2.locator_params(axis='both', nbins=5 )
 	cbar.ax.locator_params(axis='y', nbins=7 )
 	
-	ax1.tick_params(labelsize=fs)
 	ax2.tick_params(labelsize=fs)
 
 	cbar.ax.set_title('current', size=fs)
@@ -153,13 +167,10 @@ def main():
 	ax2.grid(True)
 	ax2.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
 	ax2.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
-	ax2.set_xlabel(r'$\exp( i \Phi )$', fontsize=fs)
+	ax2.set_xlabel(r'$\Phi$', fontsize=fs)
 	ax2.set_ylabel('current', fontsize=fs)
-	ax1.set_xlabel(r'$V_g$', fontsize=fs)
-	ax1.set_ylabel(r'$V_{bias}$', fontsize=fs)
 	ax2.set_ylim(bottom=0)
 
-	fig.tight_layout()
 	
 	plt.show()
 

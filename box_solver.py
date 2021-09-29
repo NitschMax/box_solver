@@ -18,15 +18,15 @@ def main():
 	epsL = 0e-6
 	epsR = 0e-6
 
-	epsLu	= 2e-3
-	epsLd	= 1e-3
-	epsRu	= 2e-3
-	epsRd	= 1e-3
+	epsLu	= 0e-3
+	epsLd	= 0e-3
+	epsRu	= 0e-3
+	epsRd	= 0e-3
 
 	epsMu	= 0e-9
 	epsMd	= 0e-9
 
-	model	= 2
+	model	= 1
 	
 	dphi	= 1e-6
 	
@@ -37,7 +37,7 @@ def main():
 	theta_d	= np.exp( 0j/5*np.pi + 1j*dphi )
 	faktorU	= 1e-0
 	faktorD	= 1e-0
-	faktorR	= 1e-1
+	faktorR	= 1e-0
 
 	tLu	= t*phase
 	tLd	= t
@@ -57,7 +57,7 @@ def main():
 	mu2	= -mu1
 
 	dband	= 1e5
-	Vg	= +1e1
+	Vg	= +0e1
 	
 	T_lst 	= { 0:T1 , 1:T1}
 	mu_lst 	= { 0:mu1 , 1:mu2}
@@ -85,76 +85,81 @@ def main():
 	print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
 
-	fig, (ax1,ax2)	= plt.subplots(1, 2)
 
-	points	= 100
-	m_bias	= 1e2
-	x	= np.linspace(-m_bias, m_bias, points)
-	y	= x
-	
-	X,Y	= np.meshgrid(x, y)
-	I	= np.zeros(X.shape, dtype=np.float64 )
+	bias_plot	= True
+	if bias_plot:
+		fig, ax1	= plt.subplots(1, 1)
 
-	num_cores	= 4
-	unordered_res	= Parallel(n_jobs=num_cores)(delayed(bias_sweep)(indices, bias, X[indices], I, maj_box, par, tunnel, dband, T_lst, method) for indices, bias in np.ndenumerate(Y) ) 
-	for el in unordered_res:
-		I[el[0] ]	= el[1]
-	
-	c	= ax1.pcolor(X, Y, I, shading='auto')
-	cbar	= fig.colorbar(c, ax=ax1)
+		points	= 100
+		m_bias	= 2e2
+		x	= np.linspace(-m_bias, m_bias, points)
+		y	= x
+		
+		X,Y	= np.meshgrid(x, y)
+		I	= np.zeros(X.shape, dtype=np.float64 )
 
-	angles	= np.linspace(dphi, 2*np.pi+dphi, 1000)
-	Vg	= 0e1
-	maj_box.adj_charging(Vg)
-	mu_lst	= { 0:mu1, 1:mu2}
+		num_cores	= 4
+		unordered_res	= Parallel(n_jobs=num_cores)(delayed(bias_sweep)(indices, bias, X[indices], I, maj_box, par, tunnel, dband, T_lst, method) for indices, bias in np.ndenumerate(Y) ) 
+		for el in unordered_res:
+			I[el[0] ]	= el[1]
+		
+		fs	= 16
 
-	I	= []
-	for phi in angles:
-		tLu	= np.exp(1j*phi)*t
-		tLu2	= tLu*theta_u*faktorU
+		c	= ax1.pcolor(X, Y, I, shading='auto')
+		cbar	= fig.colorbar(c, ax=ax1)
+		ax1.locator_params(axis='both', nbins=5 )
+		ax1.set_xlabel(r'$V_g$', fontsize=fs)
+		ax1.set_ylabel(r'$V_{bias}$', fontsize=fs)
+		ax1.tick_params(labelsize=fs)
+		cbar.ax.locator_params(axis='y', nbins=7 )
+		cbar.ax.set_title('I', size=fs)
+		cbar.ax.tick_params(labelsize=fs)
+		plt.tight_layout()
+		plt.show()
+		plt.clf()
 
-		if model == 1:
-			maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
-		elif model == 2:
-			maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
-		else:
-			maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
+	phase_plot	= False
+	if phase_plot:
+		fig, ax2	= plt.subplots(1, 1)
+		angles	= np.linspace(dphi, 2*np.pi+dphi, 1000)
+		Vg	= 0e1
+		maj_box.adj_charging(Vg)
+		mu_lst	= { 0:mu1, 1:mu2}
 
-		maj_box.change(majoranas = maj_op)
-		tunnel		= maj_box.constr_tunnel()
+		I	= []
+		for phi in angles:
+			tLu	= np.exp(1j*phi)*t
+			tLu2	= tLu*theta_u*faktorU
 
-		sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
-		sys.solve(qdq=False, rotateq=False)
-		I.append(sys.current[0])
+			if model == 1:
+				maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
+			elif model == 2:
+				maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
+			else:
+				maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
 
-	ax2.plot(angles, I, label=method)
+			maj_box.change(majoranas = maj_op)
+			tunnel		= maj_box.constr_tunnel()
 
-	fs	= 12
+			sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
+			sys.solve(qdq=False, rotateq=False)
+			I.append(sys.current[0])
 
-	ax2.grid(True)
+		fs	= 16
 
-	ax1.locator_params(axis='both', nbins=5 )
-	ax2.locator_params(axis='both', nbins=5 )
-	cbar.ax.locator_params(axis='y', nbins=7 )
-	
-	ax1.tick_params(labelsize=fs)
-	ax2.tick_params(labelsize=fs)
+		ax2.plot(angles, I, label=method)
+		ax2.grid(True)
+		ax2.locator_params(axis='both', nbins=5 )
+		ax2.tick_params(labelsize=fs)
 
-	cbar.ax.set_title('current', size=fs)
-	cbar.ax.tick_params(labelsize=fs)
+		ax2.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
+		ax2.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
+		ax2.set_xlabel(r'$\Phi$', fontsize=fs)
+		ax2.set_ylabel('I', fontsize=fs)
+		ax2.set_ylim(bottom=0)
 
-	ax2.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
-	ax2.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
-	ax2.set_xlabel(r'$\Phi$', fontsize=fs)
-	ax2.set_ylabel('current', fontsize=fs)
-	ax1.set_xlabel(r'$V_g$', fontsize=fs)
-	ax1.set_ylabel(r'$V_{bias}$', fontsize=fs)
-	ax2.set_ylim(bottom=0)
-
-
-	fig.tight_layout()
-	
-	plt.show()
+		fig.tight_layout()
+		plt.show()
 
 def bias_sweep(indices, bias, Vg, I, maj_box, par, tunnel, dband, T_lst, method):
 	mu_r	= -bias/2
