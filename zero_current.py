@@ -104,11 +104,11 @@ def main():
 	recalculate	= True
 	recalculate	= False
 
-	save_result	= True
 	save_result	= False
+	save_result	= True
 
-	logscale	= False
 	logscale	= True
+	logscale	= False
 
 	points	= 50
 	points	= 100
@@ -129,7 +129,7 @@ def main():
 	X	+= dphi
 	Y	-= dphi
 
-	X,Y,I2	= ts.phase_zero_scan_and_plot(fig, ax2, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result, logscale)
+	X,Y,I2,den_mat	= ts.phase_zero_scan_and_plot(fig, ax2, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result, logscale)
 
 	plt.tight_layout()
 	plt.show()

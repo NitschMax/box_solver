@@ -31,10 +31,8 @@ def main():
 	theta_4	= +0.00*np.pi/2 - 2*dphi
 	factors	= [1.00, 1, 1.00, 1]*1/np.sqrt(1)
 
-	phases	= [1/3*np.pi, 0, 1/3*np.pi, 0]
-	phases	= [0.5*np.pi + theta_2/2 - theta_1/4 - theta_3/4, 0, 1/3*np.pi - theta_1/4 + theta_3/4, 0]
-	print(1/(np.cos(theta_1) ) )
-
+	#phases	= [0.5*np.pi + theta_2/2 - theta_1/4 - theta_3/4, 0, 1/3*np.pi - theta_1/4 + theta_3/4, 0]
+	phases	= [+0/3*np.pi, 0, +1/3*np.pi, 0]
 
 	thetas	= np.array([theta_1, theta_2, theta_3, theta_4])
 	tunnel_mult	= [1, 1, 1, 1]

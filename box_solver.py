@@ -18,15 +18,15 @@ def main():
 	epsL = 0e-6
 	epsR = 0e-6
 
-	epsLu	= 0e-3
-	epsLd	= 0e-3
-	epsRu	= 0e-3
-	epsRd	= 0e-3
+	epsLu	= 1e-2
+	epsLd	= 2e-2
+	epsRu	= 2e-2
+	epsRd	= 1e-2
 
-	epsMu	= 0e-9
-	epsMd	= 0e-9
+	epsMu	= 5e-9
+	epsMd	= 5e-9
 
-	model	= 1
+	model	= 3
 	
 	dphi	= 1e-6
 	
@@ -86,7 +86,7 @@ def main():
 	print('Current:', sys.current )
 
 
-	bias_plot	= True
+	bias_plot	= False
 	if bias_plot:
 		fig, ax1	= plt.subplots(1, 1)
 
@@ -155,6 +155,58 @@ def main():
 		ax2.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
 		ax2.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
 		ax2.set_xlabel(r'$\Phi$', fontsize=fs)
+		ax2.set_ylabel('I', fontsize=fs)
+		ax2.set_ylim(bottom=0)
+
+		fig.tight_layout()
+		plt.show()
+
+	energy_plot	= True
+	if energy_plot:
+		fig, ax2	= plt.subplots(1, 1)
+		energy_range	= np.linspace(0, 1e-1, 100)
+		Vg	= 0e1
+		maj_box.adj_charging(Vg)
+		mu_lst	= { 0:mu1, 1:mu2}
+
+		phi	= np.pi/2
+		tLu	= np.exp(1j*phi)*t
+		tLu2	= tLu*theta_u*faktorU
+
+		I	= []
+		for eps in energy_range:
+			epsLu	= 1e-4
+			epsLd	= 2e-4
+			epsRu	= 2e-4
+			epsRd	= 1e-4
+
+			epsMu	= eps
+			epsMd	= eps
+
+			if model == 1:
+				maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
+			elif model == 2:
+				maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
+			else:
+				maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
+
+			maj_box.change(majoranas = maj_op, overlaps=overlaps)
+			maj_box.diagonalize()
+			tunnel		= maj_box.constr_tunnel()
+			Ea		= maj_box.elec_en
+
+			sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
+			sys.solve(qdq=False, rotateq=False)
+			I.append(sys.current[0])
+
+		fs	= 16
+
+		ax2.plot(energy_range, I, label=method)
+		ax2.grid(True)
+		ax2.locator_params(axis='both', nbins=5 )
+		ax2.tick_params(labelsize=fs)
+
+		ax2.set_xlabel(r'$\epsilon$', fontsize=fs)
 		ax2.set_ylabel('I', fontsize=fs)
 		ax2.set_ylim(bottom=0)
 
