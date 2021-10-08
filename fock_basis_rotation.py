@@ -36,8 +36,8 @@ def default_overlaps(N, eps=[]):
 	return overlaps
 
 def rotated_system(N, overlaps):
-	overlaps	-= np.transpose(overlaps)
-	overlaps	/= 2
+	#overlaps	-= np.transpose(overlaps)
+	#overlaps	/= 2
 	fock_states	= fc.set_of_fock_states(N)
 	number_states	= fock_states.len
 	half_number	= int(number_states/2)

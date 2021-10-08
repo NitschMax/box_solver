@@ -26,7 +26,7 @@ def main():
 	epsMu	= 5e-9
 	epsMd	= 5e-9
 
-	model	= 3
+	model	= 1
 	
 	dphi	= 1e-6
 	
@@ -103,22 +103,24 @@ def main():
 		for el in unordered_res:
 			I[el[0] ]	= el[1]
 		
-		fs	= 16
+		fs	= 20
 
-		c	= ax1.pcolor(X, Y, I, shading='auto')
-		cbar	= fig.colorbar(c, ax=ax1)
+		c	= ax1.pcolor(X/T1, Y/T1, I/gamma, shading='auto')
+		cticks	= [-1, 0, 1]
+		cbar	= fig.colorbar(c, ax=ax1, ticks=cticks)
 		ax1.locator_params(axis='both', nbins=5 )
-		ax1.set_xlabel(r'$V_g$', fontsize=fs)
-		ax1.set_ylabel(r'$V_{bias}$', fontsize=fs)
+		ax1.set_xlabel(r'$\frac{V_g}{T}$', fontsize=fs)
+		ax1.set_ylabel(r'$\frac{V_{bias}}{T}$', fontsize=fs)
 		ax1.tick_params(labelsize=fs)
+		cbar.ax.set_ylim(-1, 1 )
 		cbar.ax.locator_params(axis='y', nbins=7 )
-		cbar.ax.set_title('I', size=fs)
+		cbar.ax.set_title(r'$\frac{I}{e \Gamma}$', size=fs)
 		cbar.ax.tick_params(labelsize=fs)
 		plt.tight_layout()
 		plt.show()
 		plt.clf()
 
-	phase_plot	= False
+	phase_plot	= True
 	if phase_plot:
 		fig, ax2	= plt.subplots(1, 1)
 		angles	= np.linspace(dphi, 2*np.pi+dphi, 1000)
@@ -126,10 +128,14 @@ def main():
 		maj_box.adj_charging(Vg)
 		mu_lst	= { 0:mu1, 1:mu2}
 
-		I	= []
-		for phi in angles:
-			tLu	= np.exp(1j*phi)*t
-			tLu2	= tLu*theta_u*faktorU
+		overlaps	= [0, gamma/5]
+		beschrift	= [r'$ \epsilon = 0$', r'$ \epsilon = \frac{\Gamma}{5}$']
+		linestyles	= ['-', '--']
+		for i,eps in enumerate(overlaps):
+			epsU	= eps
+			epsD	= eps
+			epsL	= 0
+			epsR	= 0
 
 			if model == 1:
 				maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
@@ -137,17 +143,33 @@ def main():
 				maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
 			else:
 				maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
+			maj_box.change(overlaps=overlaps )
+			maj_box.diagonalize()
+			Ea	= maj_box.elec_en
 
-			maj_box.change(majoranas = maj_op)
-			tunnel		= maj_box.constr_tunnel()
+			I	= []
+			for phi in angles:
+				tLu	= np.exp(1j*phi)*t
+				tLu2	= tLu*theta_u*faktorU
 
-			sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
-			sys.solve(qdq=False, rotateq=False)
-			I.append(sys.current[0])
+				if model == 1:
+					maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
+				elif model == 2:
+					maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
+				else:
+					maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
 
-		fs	= 16
+				maj_box.change(majoranas = maj_op)
+				tunnel		= maj_box.constr_tunnel()
 
-		ax2.plot(angles, I, label=method)
+				sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
+				sys.solve(qdq=False, rotateq=False)
+				I.append(sys.current[0])
+			I	= np.array(I)
+			ax2.plot(angles, I/gamma, linestyles[i], label=beschrift[i], linewidth=4)
+
+		fs	= 20
+
 		ax2.grid(True)
 		ax2.locator_params(axis='both', nbins=5 )
 		ax2.tick_params(labelsize=fs)
@@ -155,16 +177,19 @@ def main():
 		ax2.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
 		ax2.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
 		ax2.set_xlabel(r'$\Phi$', fontsize=fs)
-		ax2.set_ylabel('I', fontsize=fs)
+		ax2.set_ylabel(r'$\frac{I}{e \Gamma}$', fontsize=fs)
 		ax2.set_ylim(bottom=0)
+		fig.legend(fontsize=fs)
 
 		fig.tight_layout()
 		plt.show()
 
-	energy_plot	= True
+	energy_plot	= False
 	if energy_plot:
 		fig, ax2	= plt.subplots(1, 1)
-		energy_range	= np.linspace(0, 1e-1, 100)
+
+		energy_range	= np.linspace(0, 2e-3, 100)
+
 		Vg	= 0e1
 		maj_box.adj_charging(Vg)
 		mu_lst	= { 0:mu1, 1:mu2}
@@ -180,8 +205,8 @@ def main():
 			epsRu	= 2e-4
 			epsRd	= 1e-4
 
-			epsMu	= eps
-			epsMd	= eps
+			epsU	= eps
+			epsD	= eps
 
 			if model == 1:
 				maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)

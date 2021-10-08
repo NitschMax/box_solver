@@ -67,9 +67,10 @@ def phase_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst
 	#I	= den_mat[:,:,1] + den_mat[:,:,0]
 	#I	= den_mat[:,:,6]
 
-	block_state	= np.array([0, 1, 0, 0, 0, 0, 0, 0])
-	block_state	= np.array([1, 1, 0, 0, +1, 0, -0, 0])*1/2
+
 	block_state	= np.array([1, 0, 0, 0, 0, 0, 0, 0])
+	block_state	= np.array([0, 1, 0, 0, 0, 0, 0, 0])		# [00, 11, 01, 10, Re(00/11), Re(01,10), Im(00,11), Im(01,10)]
+	block_state	= np.array([1, 1, 0, 0, +0, 0, +1, 0])*1/2
 
 	mat_diff	= np.sqrt(np.sum((block_state - den_mat)**2, axis=2) )
 	I		= mat_diff
