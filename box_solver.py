@@ -12,27 +12,27 @@ from joblib import Parallel, delayed
 from time import perf_counter
 
 def main():
-	epsU = 0e-1
+	epsU = 1e-3
 	epsD = 0e-1
 
 	epsL = 0e-6
 	epsR = 0e-6
 
-	epsLu	= 1e-2
-	epsLd	= 2e-2
-	epsRu	= 2e-2
-	epsRd	= 1e-2
+	epsLu	= 1e-3
+	epsLd	= 0e-2
+	epsRu	= 0e-2
+	epsRd	= 0e-2
 
-	epsMu	= 5e-9
-	epsMd	= 5e-9
+	epsMu	= 1e-6
+	epsMd	= 0e-3
 
 	model	= 1
 	
-	dphi	= 1e-6
+	dphi	= 0e-6
 	
 	gamma 	= 0.1
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
-	phase	= np.exp( -0j/2*np.pi + 1j*dphi )
+	phase	= np.exp( +1j/2*np.pi + 1j*dphi )
 	theta_u	= np.exp( 1j/5*np.pi + 1j*dphi )
 	theta_d	= np.exp( 0j/5*np.pi + 1j*dphi )
 	faktorU	= 1e-0
@@ -62,9 +62,9 @@ def main():
 	T_lst 	= { 0:T1 , 1:T1}
 	mu_lst 	= { 0:mu1 , 1:mu2}
 	method	= 'Redfield'
+	method	= 'Lindblad'
 	method	= 'Pauli'
 	method	= '1vN'
-	method	= 'Lindblad'
 
 	if model == 1:
 		maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
@@ -81,6 +81,8 @@ def main():
 	sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
 
 	sys.solve(qdq=False, rotateq=False)
+	kernel	= sys.kern
+	print(np.linalg.eigvals(kernel) )
 	print('Eigenenergies:', sys.Ea)
 	print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
@@ -120,7 +122,7 @@ def main():
 		plt.show()
 		plt.clf()
 
-	phase_plot	= True
+	phase_plot	= False
 	if phase_plot:
 		fig, ax2	= plt.subplots(1, 1)
 		angles	= np.linspace(dphi, 2*np.pi+dphi, 1000)
@@ -128,14 +130,19 @@ def main():
 		maj_box.adj_charging(Vg)
 		mu_lst	= { 0:mu1, 1:mu2}
 
-		overlaps	= [0, gamma/5]
-		beschrift	= [r'$ \epsilon = 0$', r'$ \epsilon = \frac{\Gamma}{5}$']
-		linestyles	= ['-', '--']
-		for i,eps in enumerate(overlaps):
-			epsU	= eps
-			epsD	= eps
-			epsL	= 0
-			epsR	= 0
+		energy_ov	= [[1e-6, gamma/4], [gamma/4, 1e-6]]
+		beschrift	= [r'$ \Omega = \frac{\Gamma}{4}, \epsilon \ll \Omega$', r'$ \epsilon = \frac{\Gamma}{4}, \Omega \ll \epsilon$']
+		linestyles	= ['-', '-']
+		for i,eps in enumerate(energy_ov):
+			if i == 1:
+				continue
+			epsLu	= 1*eps[0]
+			epsLd	= 2*eps[0]
+			epsRu	= 2*eps[0]
+			epsRd	= 1*eps[0]
+
+			epsMu	= eps[1]
+			epsMd	= eps[1]
 
 			if model == 1:
 				maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
@@ -166,7 +173,7 @@ def main():
 				sys.solve(qdq=False, rotateq=False)
 				I.append(sys.current[0])
 			I	= np.array(I)
-			ax2.plot(angles, I/gamma, linestyles[i], label=beschrift[i], linewidth=4)
+			ax2.plot(angles, I/gamma, linestyles[i], label=beschrift[i], linewidth=3)
 
 		fs	= 20
 
@@ -179,7 +186,7 @@ def main():
 		ax2.set_xlabel(r'$\Phi$', fontsize=fs)
 		ax2.set_ylabel(r'$\frac{I}{e \Gamma}$', fontsize=fs)
 		ax2.set_ylim(bottom=0)
-		fig.legend(fontsize=fs)
+		#fig.legend(fontsize=fs)
 
 		fig.tight_layout()
 		plt.show()
@@ -188,7 +195,7 @@ def main():
 	if energy_plot:
 		fig, ax2	= plt.subplots(1, 1)
 
-		energy_range	= np.linspace(0, 2e-3, 100)
+		energy_range	= np.linspace(0, 1e-3, 100)
 
 		Vg	= 0e1
 		maj_box.adj_charging(Vg)
@@ -200,10 +207,13 @@ def main():
 
 		I	= []
 		for eps in energy_range:
-			epsLu	= 1e-4
-			epsLd	= 2e-4
-			epsRu	= 2e-4
-			epsRd	= 1e-4
+			epsLu	= 1*eps
+			epsLd	= 2*eps
+			epsRu	= 2*eps
+			epsRd	= 1*eps
+
+			epsMu	= 1e-2
+			epsMd	= 1e-2
 
 			epsU	= eps
 			epsD	= eps
@@ -224,19 +234,72 @@ def main():
 			sys.solve(qdq=False, rotateq=False)
 			I.append(sys.current[0])
 
-		fs	= 16
+		I	= np.array(I)
+		fs	= 20
 
-		ax2.plot(energy_range, I, label=method)
+		ax2.plot((energy_range/gamma)**2, I/gamma, label=method)
 		ax2.grid(True)
 		ax2.locator_params(axis='both', nbins=5 )
 		ax2.tick_params(labelsize=fs)
 
-		ax2.set_xlabel(r'$\epsilon$', fontsize=fs)
-		ax2.set_ylabel('I', fontsize=fs)
+		ax2.set_xlabel(r'$\left( \frac{\epsilon}{\Gamma} \right)^2$', fontsize=fs)
+		ax2.set_ylabel(r'$\frac{I}{e \Gamma}$', fontsize=fs)
 		ax2.set_ylim(bottom=0)
 
 		fig.tight_layout()
 		plt.show()
+
+	rate_plot	= True
+	if rate_plot:
+		fig, ax2	= plt.subplots(1, 1)
+
+		rate_range	= np.linspace(0e-9, 1e-2, 1000)
+		Vg	= 0e1
+		maj_box.adj_charging(Vg)
+		mu_lst	= { 0:mu1, 1:mu2}
+
+
+		I	= []
+		for rate in rate_range:
+			t 	= np.sqrt(rate/(2*np.pi))+0.j
+			
+			phi	= np.pi/2
+			tLu	= np.exp(1j*phi)*t
+			tLd	= t
+			tRu	= t
+			tRd	= t
+
+			if model == 1:
+				maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
+			elif model == 2:
+				maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
+			else:
+				maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
+
+			maj_box.change(majoranas = maj_op)
+			tunnel		= maj_box.constr_tunnel()
+			Ea		= maj_box.elec_en
+
+			sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
+			sys.solve(qdq=False, rotateq=False)
+			I.append(sys.current[0])
+
+		I	= np.array(I)
+		fs	= 20
+
+		ax2.plot(rate_range, I, label=r'$\epsilon = 1e-3, \Omega \ll \epsilon$')
+		ax2.grid(True)
+		ax2.locator_params(axis='both', nbins=5 )
+		ax2.tick_params(labelsize=fs)
+
+		ax2.set_xlabel(r'$\Gamma$', fontsize=fs)
+		ax2.set_ylabel(r'$I_{rem}/e$', fontsize=fs)
+		ax2.set_ylim(bottom=0)
+
+		plt.legend(fontsize=fs)
+		fig.tight_layout()
+		plt.show()
+	
 
 def bias_sweep(indices, bias, Vg, I, maj_box, par, tunnel, dband, T_lst, method):
 	mu_r	= -bias/2
