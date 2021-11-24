@@ -12,27 +12,27 @@ from joblib import Parallel, delayed
 from time import perf_counter
 
 def main():
-	epsU = 1e-3
-	epsD = 0e-1
+	epsU = 1e-2
+	epsD = 1e-2
 
-	epsL = 0e-6
-	epsR = 0e-6
+	epsL = 0e-3
+	epsR = 0e-3
 
-	epsLu	= 1e-3
+	epsLu	= 1e-1
 	epsLd	= 0e-2
-	epsRu	= 0e-2
-	epsRd	= 0e-2
+	epsRu	= 2e-5
+	epsRd	= 1e-5
 
-	epsMu	= 1e-6
-	epsMd	= 0e-3
+	epsMu	= 2e-6
+	epsMd	= 1e-6
 
 	model	= 1
 	
 	dphi	= 0e-6
 	
-	gamma 	= 0.1
+	gamma 	= 1.0
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
-	phase	= np.exp( +1j/2*np.pi + 1j*dphi )
+	phase	= np.exp( +0j/2*np.pi + 1j*dphi )
 	theta_u	= np.exp( 1j/5*np.pi + 1j*dphi )
 	theta_d	= np.exp( 0j/5*np.pi + 1j*dphi )
 	faktorU	= 1e-0
@@ -49,10 +49,10 @@ def main():
 	tRu2	= tRu*theta_u
 	tRd2	= tRd*theta_d
 
-	T1	= 1e1
+	T1	= 1e2
 	T2 	= T1
 
-	bias	= 2e2
+	bias	= 2e3
 	mu1	= +bias/2
 	mu2	= -mu1
 
@@ -62,16 +62,18 @@ def main():
 	T_lst 	= { 0:T1 , 1:T1}
 	mu_lst 	= { 0:mu1 , 1:mu2}
 	method	= 'Redfield'
-	method	= 'Lindblad'
 	method	= 'Pauli'
 	method	= '1vN'
+	method	= 'Lindblad'
 
 	if model == 1:
 		maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
 	elif model == 2:
 		maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
-	else:
-		maj_op, overlaps, par	= eight_box(tLu, tLd, tRu, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
+	elif model == 3:
+		maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
+	elif model == 4:
+		maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD)
 
 	maj_box		= bc.majorana_box(maj_op, overlaps, Vg)
 	maj_box.diagonalize()
@@ -81,8 +83,6 @@ def main():
 	sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
 
 	sys.solve(qdq=False, rotateq=False)
-	kernel	= sys.kern
-	print(np.linalg.eigvals(kernel) )
 	print('Eigenenergies:', sys.Ea)
 	print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
@@ -105,18 +105,18 @@ def main():
 		for el in unordered_res:
 			I[el[0] ]	= el[1]
 		
-		fs	= 20
+		fs	= 24
 
-		c	= ax1.pcolor(X/T1, Y/T1, I/gamma, shading='auto')
+		c	= ax1.pcolormesh(X/T1, Y/T1, I/gamma, shading='auto', rasterized=True)
 		cticks	= [-1, 0, 1]
 		cbar	= fig.colorbar(c, ax=ax1, ticks=cticks)
 		ax1.locator_params(axis='both', nbins=5 )
-		ax1.set_xlabel(r'$\frac{V_g}{T}$', fontsize=fs)
-		ax1.set_ylabel(r'$\frac{V_{bias}}{T}$', fontsize=fs)
+		ax1.set_xlabel(r'$V_g/T$', fontsize=fs)
+		ax1.set_ylabel(r'$V_{bias}/T$', fontsize=fs)
 		ax1.tick_params(labelsize=fs)
 		cbar.ax.set_ylim(-1, 1 )
 		cbar.ax.locator_params(axis='y', nbins=7 )
-		cbar.ax.set_title(r'$\frac{I}{e \Gamma}$', size=fs)
+		cbar.ax.set_title(r'$I/e \Gamma$', size=fs)
 		cbar.ax.tick_params(labelsize=fs)
 		plt.tight_layout()
 		plt.show()
@@ -130,68 +130,47 @@ def main():
 		maj_box.adj_charging(Vg)
 		mu_lst	= { 0:mu1, 1:mu2}
 
-		energy_ov	= [[1e-6, gamma/4], [gamma/4, 1e-6]]
-		beschrift	= [r'$ \Omega = \frac{\Gamma}{4}, \epsilon \ll \Omega$', r'$ \epsilon = \frac{\Gamma}{4}, \Omega \ll \epsilon$']
-		linestyles	= ['-', '-']
-		for i,eps in enumerate(energy_ov):
-			if i == 1:
-				continue
-			epsLu	= 1*eps[0]
-			epsLd	= 2*eps[0]
-			epsRu	= 2*eps[0]
-			epsRd	= 1*eps[0]
-
-			epsMu	= eps[1]
-			epsMd	= eps[1]
+		I	= []
+		for phi in angles:
+			tLu	= np.exp(1j*phi)*t
+			tLu2	= tLu*theta_u*faktorU
 
 			if model == 1:
 				maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
 			elif model == 2:
 				maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
-			else:
+			elif model == 3:
 				maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
-			maj_box.change(overlaps=overlaps )
-			maj_box.diagonalize()
-			Ea	= maj_box.elec_en
+			elif model == 4:
+				maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD)
 
-			I	= []
-			for phi in angles:
-				tLu	= np.exp(1j*phi)*t
-				tLu2	= tLu*theta_u*faktorU
+			maj_box.change(majoranas = maj_op)
+			tunnel		= maj_box.constr_tunnel()
 
-				if model == 1:
-					maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
-				elif model == 2:
-					maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
-				else:
-					maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
+			sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
+			sys.solve(qdq=False, rotateq=False)
+			I.append(sys.current[0])
+		I	= np.array(I)
+		ax2.plot(angles, I/gamma, label=r'$\epsilon_{Lu} \lesssim \Gamma$', linewidth=3)
 
-				maj_box.change(majoranas = maj_op)
-				tunnel		= maj_box.constr_tunnel()
-
-				sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
-				sys.solve(qdq=False, rotateq=False)
-				I.append(sys.current[0])
-			I	= np.array(I)
-			ax2.plot(angles, I/gamma, linestyles[i], label=beschrift[i], linewidth=3)
-
-		fs	= 20
+		fs	= 24
 
 		ax2.grid(True)
-		ax2.locator_params(axis='both', nbins=5 )
+		ax2.locator_params(axis='x', nbins=5 )
+		ax2.locator_params(axis='y', nbins=3 )
 		ax2.tick_params(labelsize=fs)
 
 		ax2.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
 		ax2.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
 		ax2.set_xlabel(r'$\Phi$', fontsize=fs)
-		ax2.set_ylabel(r'$\frac{I}{e \Gamma}$', fontsize=fs)
+		ax2.set_ylabel(r'$I/e \Gamma$', fontsize=fs)
 		ax2.set_ylim(bottom=0)
-		#fig.legend(fontsize=fs)
+		fig.legend(fontsize=fs)
 
 		fig.tight_layout()
 		plt.show()
 
-	energy_plot	= False
+	energy_plot	= True
 	if energy_plot:
 		fig, ax2	= plt.subplots(1, 1)
 
@@ -216,14 +195,16 @@ def main():
 			epsMd	= 1e-2
 
 			epsU	= eps
-			epsD	= eps
+			epsD	= 0
 
 			if model == 1:
 				maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
 			elif model == 2:
 				maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
-			else:
+			elif model == 3:
 				maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
+			elif model == 4:
+				maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD)
 
 			maj_box.change(majoranas = maj_op, overlaps=overlaps)
 			maj_box.diagonalize()
@@ -238,6 +219,7 @@ def main():
 		fs	= 20
 
 		ax2.plot((energy_range/gamma)**2, I/gamma, label=method)
+		ax2.plot((energy_range/gamma)**2, (energy_range/2/gamma)**2, label=method)
 		ax2.grid(True)
 		ax2.locator_params(axis='both', nbins=5 )
 		ax2.tick_params(labelsize=fs)
@@ -249,11 +231,11 @@ def main():
 		fig.tight_layout()
 		plt.show()
 
-	rate_plot	= True
+	rate_plot	= False
 	if rate_plot:
 		fig, ax2	= plt.subplots(1, 1)
 
-		rate_range	= np.linspace(0e-9, 1e-2, 1000)
+		rate_range	= np.linspace(1e-7, 1e-0, 1000)
 		Vg	= 0e1
 		maj_box.adj_charging(Vg)
 		mu_lst	= { 0:mu1, 1:mu2}
@@ -273,8 +255,10 @@ def main():
 				maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
 			elif model == 2:
 				maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
-			else:
+			elif model == 3:
 				maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
+			elif model == 4:
+				maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD)
 
 			maj_box.change(majoranas = maj_op)
 			tunnel		= maj_box.constr_tunnel()
@@ -285,11 +269,12 @@ def main():
 			I.append(sys.current[0])
 
 		I	= np.array(I)
-		fs	= 20
+		fs	= 24
 
-		ax2.plot(rate_range, I, label=r'$\epsilon = 1e-3, \Omega \ll \epsilon$')
+		ax2.plot(rate_range, I, linewidth=3, label=r'$\epsilon_{Lu} = 0.1$')
 		ax2.grid(True)
-		ax2.locator_params(axis='both', nbins=5 )
+		ax2.locator_params(axis='x', nbins=3 )
+		ax2.locator_params(axis='y', nbins=4 )
 		ax2.tick_params(labelsize=fs)
 
 		ax2.set_xlabel(r'$\Gamma$', fontsize=fs)
@@ -340,6 +325,19 @@ def eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd):
 	overlaps	= np.matrix( np.block( [[overlapsU, nullen], [nullen, overlapsD]] ) )
 
 	par		= np.array([0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1])
+	return maj_op, overlaps, par
+
+def six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD):
+	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tLu]), fc.maj_operator(index=1, lead=[], coupling=[]), \
+				fc.maj_operator(index=2, lead=[], coupling=[]), fc.maj_operator(index=3, lead=[1], coupling=[tRu]), \
+				fc.maj_operator(index=4, lead=[0], coupling=[tLd]), fc.maj_operator(index=7, lead=[1], coupling=[tRd]) ]
+	N		= len(maj_op )
+	nullen		= np.zeros((4, 4) )
+	overlapsU	= np.diag([epsLu, epsMu, epsRu], k=1 )
+	overlapsD	= np.diag([epsD], k=1 )
+	overlaps	= np.matrix( np.block( [[overlapsU, np.zeros((4, 2) )], [np.zeros((2, 4) ), overlapsD]] ) )
+
+	par		= np.array([0,0,0,0,1,1,1,1])
 	return maj_op, overlaps, par
 
 def format_func(value, tick_number):
