@@ -17,9 +17,6 @@ def main():
 
 def constr_tunnel_mat(N, maj_op):
 	fock_states	= fc.set_of_fock_states(N)
-	if np.mod(N, 2) != 0:
-		print('Number of Majoranas is not allowed!')
-		return 0
 
 	number_states	= fock_states.len
 	half_number	= int(number_states/2)
@@ -43,7 +40,7 @@ def constr_tunnel_mat(N, maj_op):
 				if state_cp.valid:
 					bra_ind		= fock_states.find(state_cp)
 					for lead_ind, lead in enumerate(majorana.lead):
-						if ket_ind > bra_ind:
+						if ket_ind < bra_ind:
 							coupling	= majorana.coupling[lead_ind]
 						else:
 							coupling	= np.conj(majorana.coupling[lead_ind] )

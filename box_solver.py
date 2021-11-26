@@ -10,29 +10,30 @@ import box_class as bc
 import multiprocessing
 from joblib import Parallel, delayed
 from time import perf_counter
+from scipy.linalg import eig
 
 def main():
-	epsU = 1e-2
-	epsD = 1e-2
+	epsU = 0e-3
+	epsD = 0e-3
 
-	epsL = 0e-3
-	epsR = 0e-3
+	epsL = 2e-3
+	epsR = 1e-3
 
-	epsLu	= 1e-1
+	epsLu	= 1e-4
 	epsLd	= 0e-2
-	epsRu	= 2e-5
-	epsRd	= 1e-5
+	epsRu	= 0e-4
+	epsRd	= 0e-5
 
-	epsMu	= 2e-6
-	epsMd	= 1e-6
+	epsMu	= 1e-3
+	epsMd	= 0e-6
 
 	model	= 1
 	
-	dphi	= 0e-6
+	dphi	= +1e-6
 	
 	gamma 	= 1.0
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
-	phase	= np.exp( +0j/2*np.pi + 1j*dphi )
+	phase	= np.exp(+1j/2*np.pi + 1j*dphi )
 	theta_u	= np.exp( 1j/5*np.pi + 1j*dphi )
 	theta_d	= np.exp( 0j/5*np.pi + 1j*dphi )
 	faktorU	= 1e-0
@@ -73,7 +74,7 @@ def main():
 	elif model == 3:
 		maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
 	elif model == 4:
-		maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD)
+		maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD, epsL, epsR)
 
 	maj_box		= bc.majorana_box(maj_op, overlaps, Vg)
 	maj_box.diagonalize()
@@ -82,11 +83,17 @@ def main():
 
 	sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
 
+
 	sys.solve(qdq=False, rotateq=False)
+	kernel	= sys.kern
+	eigensys	= eig(kernel)
+	print(eigensys[0] )
+
 	print('Eigenenergies:', sys.Ea)
 	print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
 
+	return
 
 	bias_plot	= False
 	if bias_plot:
@@ -142,7 +149,7 @@ def main():
 			elif model == 3:
 				maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
 			elif model == 4:
-				maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD)
+				maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD, epsL, epsR)
 
 			maj_box.change(majoranas = maj_op)
 			tunnel		= maj_box.constr_tunnel()
@@ -187,14 +194,14 @@ def main():
 		I	= []
 		for eps in energy_range:
 			epsLu	= 1*eps
-			epsLd	= 2*eps
-			epsRu	= 2*eps
-			epsRd	= 1*eps
+			epsLd	= 0*eps
+			epsRu	= 0*eps
+			epsRd	= 0*eps
 
-			epsMu	= 1e-2
-			epsMd	= 1e-2
+			epsMu	= 0e-2
+			epsMd	= 0e-2
 
-			epsU	= eps
+			epsU	= 0*eps
 			epsD	= 0
 
 			if model == 1:
@@ -204,7 +211,7 @@ def main():
 			elif model == 3:
 				maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
 			elif model == 4:
-				maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD)
+				maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD, epsL, epsR)
 
 			maj_box.change(majoranas = maj_op, overlaps=overlaps)
 			maj_box.diagonalize()
@@ -258,7 +265,7 @@ def main():
 			elif model == 3:
 				maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
 			elif model == 4:
-				maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD)
+				maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD, epsL, epsR)
 
 			maj_box.change(majoranas = maj_op)
 			tunnel		= maj_box.constr_tunnel()
@@ -327,15 +334,15 @@ def eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd):
 	par		= np.array([0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1])
 	return maj_op, overlaps, par
 
-def six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD):
-	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tLu]), fc.maj_operator(index=1, lead=[], coupling=[]), \
-				fc.maj_operator(index=2, lead=[], coupling=[]), fc.maj_operator(index=3, lead=[1], coupling=[tRu]), \
-				fc.maj_operator(index=4, lead=[0], coupling=[tLd]), fc.maj_operator(index=7, lead=[1], coupling=[tRd]) ]
+def six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD, epsL, epsR):
+	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tLu]), fc.maj_operator(index=1, lead=[0], coupling=[tLd]), \
+				fc.maj_operator(index=2, lead=[], coupling=[]), fc.maj_operator(index=3, lead=[], coupling=[]), \
+				fc.maj_operator(index=4, lead=[1], coupling=[tRu]), fc.maj_operator(index=5, lead=[1], coupling=[tRd]) ]
 	N		= len(maj_op )
-	nullen		= np.zeros((4, 4) )
-	overlapsU	= np.diag([epsLu, epsMu, epsRu], k=1 )
-	overlapsD	= np.diag([epsD], k=1 )
-	overlaps	= np.matrix( np.block( [[overlapsU, np.zeros((4, 2) )], [np.zeros((2, 4) ), overlapsD]] ) )
+	overlaps	= np.diag([epsL, 0, epsMu, 0, epsR], k=1 )
+	overlaps[0,2]	+= epsLu
+	overlaps[3,4]	+= epsRu
+	overlaps[1,5]	+= epsLu
 
 	par		= np.array([0,0,0,0,1,1,1,1])
 	return maj_op, overlaps, par
