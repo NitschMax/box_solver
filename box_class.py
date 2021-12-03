@@ -37,10 +37,7 @@ class majorana_box:
 
 	def print_eigenstates(self):
 		if self.diagonal:
-			print('Here we go')
-			k = 0
-
-			for k, col in enumerate(self.U):
+			for k, col in enumerate(self.U.transpose() ):
 				column	= np.ravel(col )
 				superpos	= str(k) + '. '
 
