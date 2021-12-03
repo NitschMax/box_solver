@@ -24,9 +24,10 @@ class set_of_fock_states:
 		self.states	= construct_states(N)
 		self.dict	= dict(zip([list_to_int(x) for x in self.states], range(len(self.states) ) ) )
 		self.len	= len(self.states)
+		#print(self.states)
 
-	def get_state(self, index):
-		return fock_state(self.states[index] )
+	def get_state(self, index, fac=1):
+		return fock_state(self.states[index], fac=fac )
 
 	def print(self):
 		print(self.states)

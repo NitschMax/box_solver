@@ -13,23 +13,23 @@ from time import perf_counter
 from scipy.linalg import eig
 
 def main():
-	epsU = 0e-3
-	epsD = 0e-3
+	epsU = 0e-1
+	epsD = 0e-1
 
-	epsL = 2e-3
-	epsR = 1e-3
+	epsL = 4e-3
+	epsR = 3e-3
 
-	epsLu	= 1e-4
-	epsLd	= 0e-2
+	epsLu	= 1e-5
+	epsLd	= 0e-4
 	epsRu	= 0e-4
 	epsRd	= 0e-5
 
-	epsMu	= 1e-3
-	epsMd	= 0e-6
+	epsMu	= 2e-3
+	epsMd	= 1e-3
 
-	model	= 1
+	model	= 4
 	
-	dphi	= +1e-6
+	dphi	= +0e-6
 	
 	gamma 	= 1.0
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
@@ -72,7 +72,7 @@ def main():
 	elif model == 2:
 		maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
 	elif model == 3:
-		maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
+		maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd, epsL, epsR)
 	elif model == 4:
 		maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD, epsL, epsR)
 
@@ -80,6 +80,9 @@ def main():
 	maj_box.diagonalize()
 	Ea		= maj_box.elec_en
 	tunnel		= maj_box.constr_tunnel()
+	maj_box.print_eigenstates()
+
+	return
 
 	sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
 
@@ -87,13 +90,13 @@ def main():
 	sys.solve(qdq=False, rotateq=False)
 	kernel	= sys.kern
 	eigensys	= eig(kernel)
-	print(eigensys[0] )
+	#print(eigensys[0] )
 
 	print('Eigenenergies:', sys.Ea)
 	print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
 
-	return
+
 
 	bias_plot	= False
 	if bias_plot:
@@ -147,7 +150,7 @@ def main():
 			elif model == 2:
 				maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
 			elif model == 3:
-				maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
+				maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd, epsL, epsR)
 			elif model == 4:
 				maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD, epsL, epsR)
 
@@ -181,7 +184,7 @@ def main():
 	if energy_plot:
 		fig, ax2	= plt.subplots(1, 1)
 
-		energy_range	= np.linspace(0, 1e-3, 100)
+		energy_range	= np.linspace(1e-9, 1e-3, 100)
 
 		Vg	= 0e1
 		maj_box.adj_charging(Vg)
@@ -209,7 +212,7 @@ def main():
 			elif model == 2:
 				maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
 			elif model == 3:
-				maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
+				maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd, epsL, epsR)
 			elif model == 4:
 				maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD, epsL, epsR)
 
@@ -225,8 +228,8 @@ def main():
 		I	= np.array(I)
 		fs	= 20
 
-		ax2.plot((energy_range/gamma)**2, I/gamma, label=method)
-		ax2.plot((energy_range/gamma)**2, (energy_range/2/gamma)**2, label=method)
+		ax2.plot((energy_range/gamma)**2, I/gamma, label='numerical result')
+		ax2.plot((energy_range/gamma)**2, (energy_range/2/gamma)**2, label='analytical prediction simple box')
 		ax2.grid(True)
 		ax2.locator_params(axis='both', nbins=5 )
 		ax2.tick_params(labelsize=fs)
@@ -235,6 +238,7 @@ def main():
 		ax2.set_ylabel(r'$\frac{I}{e \Gamma}$', fontsize=fs)
 		ax2.set_ylim(bottom=0)
 
+		plt.legend()
 		fig.tight_layout()
 		plt.show()
 
@@ -263,7 +267,7 @@ def main():
 			elif model == 2:
 				maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
 			elif model == 3:
-				maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd)
+				maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd, epsL, epsR)
 			elif model == 4:
 				maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD, epsL, epsR)
 
@@ -320,16 +324,24 @@ def abs_box(tLu1, tRu1, tLd1, tRd1, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd,
 	par		= np.array([0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1])
 	return maj_op, overlaps, par
 
-def eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd):
-	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tLu]), fc.maj_operator(index=1, lead=[], coupling=[]), \
-				fc.maj_operator(index=2, lead=[], coupling=[]), fc.maj_operator(index=3, lead=[1], coupling=[tRu]), \
-				fc.maj_operator(index=4, lead=[0], coupling=[tLd]), fc.maj_operator(index=5, lead=[], coupling=[]), 
-				fc.maj_operator(index=6, lead=[], coupling=[]), fc.maj_operator(index=7, lead=[1], coupling=[tRd]) ]
+def eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd, epsL, epsR):
+	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tLu]), fc.maj_operator(index=1, lead=[0], coupling=[tLd]),
+				fc.maj_operator(index=2, lead=[], coupling=[]), fc.maj_operator(index=3, lead=[], coupling=[]), \
+		 		fc.maj_operator(index=4, lead=[], coupling=[]), fc.maj_operator(index=5, lead=[], coupling=[]), \
+				fc.maj_operator(index=6, lead=[1], coupling=[tRu]), fc.maj_operator(index=7, lead=[1], coupling=[tRd]) \
+ ]
 	N		= len(maj_op )
-	nullen		= np.zeros((4, 4) )
-	overlapsU	= np.diag([epsLu, epsMu, epsRu], k=1 )
-	overlapsD	= np.diag([epsLd, epsMd, epsRd], k=1 )
-	overlaps	= np.matrix( np.block( [[overlapsU, nullen], [nullen, overlapsD]] ) )
+	overlaps	= np.zeros((N, N) )
+	overlaps[0, 1]	= epsL
+	overlaps[2, 3]	= epsMu
+	overlaps[4, 5]	= epsMd
+	overlaps[6, 7]	= epsR
+
+	overlaps[0, 2]	= epsLu
+	overlaps[3, 6]	= epsRu
+
+	overlaps[1, 4]	= epsLd
+	overlaps[5, 7]	= epsRd
 
 	par		= np.array([0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1])
 	return maj_op, overlaps, par
