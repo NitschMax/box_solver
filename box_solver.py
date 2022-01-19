@@ -16,15 +16,15 @@ from scipy.special import digamma
 def main():
 	np.set_printoptions(precision=7)
 	epsU = 2e-4
-	epsD = +1.0e-4
+	epsD = +0.0e-4
 
 	epsL = 0e-3
 	epsR = 0e-3
 
-	epsLu	= +3e-3
-	epsLd	= +3e-4
-	epsRu	= 2e-4
-	epsRd	= 2e-4
+	epsLu	= +2e-4
+	epsLd	= +2e-5
+	epsRu	= 1e-5
+	epsRd	= 2e-5
 
 	epsMu	= 1e-3
 	epsMd	= 1e-4
@@ -71,14 +71,7 @@ def main():
 	method	= '1vN'
 	itype	= 1
 
-	if model == 1:
-		maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
-	elif model == 2:
-		maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
-	elif model == 3:
-		maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd, epsL, epsR)
-	elif model == 4:
-		maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD, epsL, epsR)
+	maj_op, overlaps, par	= box_definition(model, tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd)
 
 	maj_box		= bc.majorana_box(maj_op, overlaps, Vg)
 	maj_box.diagonalize()
@@ -139,7 +132,7 @@ def main():
 		plt.show()
 		plt.clf()
 
-	bias_variation	= True
+	bias_variation	= False
 	if bias_variation:
 		x	= np.linspace(5*T1, 3*dband, 1000)
 		maxI	= 0
@@ -162,9 +155,12 @@ def main():
 		plt.grid(True)
 		plt.show()
 		
-	phase_plot	= False
+	phase_plot	= True
 	vary_left	= False
 	vary_right	= True
+	models		= []
+	models		= [1, 3]
+
 	if vary_left and vary_right:
 		variation_label	= r'$\Phi_L, \, Phi_R$'
 	elif vary_left:
@@ -179,33 +175,41 @@ def main():
 		maj_box.adj_charging(Vg)
 		mu_lst	= { 0:mu1, 1:mu2}
 
-		I	= []
-		for phi in angles:
-			if vary_left:
-				tLu	= np.exp(1j*phi)*t
-				tLu2	= tLu*theta_u*faktorU
+		platzhalter	= model
 
-			if vary_right:
-				tRu	= np.exp(1j*phi)*t*faktorR
-				tRu2	= tRu*theta_u*faktorU
+		if models == []:
+			models	= [model]
+		for model in models:
+			print(model)
+			I	= []
 
-			if model == 1:
-				maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
-			elif model == 2:
-				maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
-			elif model == 3:
-				maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd, epsL, epsR)
-			elif model == 4:
-				maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD, epsL, epsR)
+			maj_op, overlaps, par	= box_definition(model, tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd)
 
-			maj_box.change(majoranas = maj_op)
-			tunnel		= maj_box.constr_tunnel()
+			maj_box		= bc.majorana_box(maj_op, overlaps, Vg)
+			maj_box.diagonalize()
+			Ea		= maj_box.elec_en
 
-			sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype)
-			sys.solve(qdq=False, rotateq=False)
-			I.append(sys.current[0])
-		I	= np.array(I)
-		ax2.plot(angles, I/gamma, label=r'$\epsilon_{Lu} \lesssim \Gamma$', linewidth=3)
+			for phi in angles:
+				if vary_left:
+					tLu	= np.exp(1j*phi)*t
+					tLu2	= tLu*theta_u*faktorU
+
+				if vary_right:
+					tRu	= np.exp(1j*phi)*t*faktorR
+					tRu2	= tRu*theta_u*faktorU
+
+				maj_op, overlaps, par	= box_definition(model, tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd)
+
+				maj_box.change(majoranas = maj_op)
+				tunnel		= maj_box.constr_tunnel()
+
+				sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype)
+				sys.solve(qdq=False, rotateq=False)
+				I.append(sys.current[0])
+			I	= np.array(I)
+			ax2.plot(angles, I/gamma, label=r'$\epsilon_{Lu} \lesssim \Gamma$', linewidth=3)
+		model	= platzhalter
+		maj_op, overlaps, par	= box_definition(model, tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd)
 
 		fs	= 24
 
@@ -219,7 +223,7 @@ def main():
 		ax2.set_xlabel(variation_label, fontsize=fs)
 		ax2.set_ylabel(r'$I/e \Gamma$', fontsize=fs)
 		ax2.set_ylim(bottom=0)
-		fig.legend(fontsize=fs)
+		#fig.legend(fontsize=fs)
 
 		fig.tight_layout()
 		plt.show()
@@ -251,14 +255,7 @@ def main():
 			epsU	= 1*eps
 			epsD	= 2*eps
 
-			if model == 1:
-				maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
-			elif model == 2:
-				maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
-			elif model == 3:
-				maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd, epsL, epsR)
-			elif model == 4:
-				maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD, epsL, epsR)
+			maj_op, overlaps, par	= box_definition(model, tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd)
 
 			maj_box.change(majoranas = maj_op, overlaps=overlaps)
 			maj_box.diagonalize()
@@ -307,14 +304,7 @@ def main():
 			tRu	= t*faktorR
 			tRd	= t*faktorR
 
-			if model == 1:
-				maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
-			elif model == 2:
-				maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
-			elif model == 3:
-				maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd, epsL, epsR)
-			elif model == 4:
-				maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD, epsL, epsR)
+			maj_op, overlaps, par	= box_definition(model, tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd)
 
 			maj_box.change(majoranas = maj_op)
 			tunnel		= maj_box.constr_tunnel()
@@ -351,6 +341,19 @@ def bias_sweep(indices, bias, Vg, I, maj_box, par, tunnel, dband, T_lst, method,
 	sys.solve(qdq=False, rotateq=False)
 
 	return [indices, sys.current[0] ]
+
+def box_definition(model, tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd):
+	if model == 1:
+		maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
+	elif model == 2:
+		maj_op, overlaps, par	= abs_box(tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsLu, epsRu, epsLd, epsRd)
+	elif model == 3:
+		maj_op, overlaps, par	= eight_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsLd, epsMd, epsRd, epsL, epsR)
+	elif model == 4:
+		maj_op, overlaps, par	= six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD, epsL, epsR)
+
+	return maj_op, overlaps, par
+
 
 def simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR):
 	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tLu]), fc.maj_operator(index=1, lead=[0], coupling=[tLd]), \
