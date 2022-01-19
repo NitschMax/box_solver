@@ -11,38 +11,41 @@ import multiprocessing
 from joblib import Parallel, delayed
 from time import perf_counter
 from scipy.linalg import eig
+from scipy.special import digamma
 
 def main():
-	epsU = 0e-1
-	epsD = 0e-1
+	np.set_printoptions(precision=7)
+	epsU = 2e-4
+	epsD = +1.0e-4
 
-	epsL = 4e-3
-	epsR = 3e-3
+	epsL = 0e-3
+	epsR = 0e-3
 
-	epsLu	= 1e-5
-	epsLd	= 0e-4
-	epsRu	= 0e-4
-	epsRd	= 0e-5
+	epsLu	= +3e-3
+	epsLd	= +3e-4
+	epsRu	= 2e-4
+	epsRd	= 2e-4
 
-	epsMu	= 2e-3
-	epsMd	= 1e-3
+	epsMu	= 1e-3
+	epsMd	= 1e-4
 
-	model	= 4
-	
-	dphi	= +0e-6
-	
+	model	= 1
+
+	dphi	= +1e-6
+
 	gamma 	= 1.0
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
 	phase	= np.exp(+1j/2*np.pi + 1j*dphi )
+	phaseR	= np.exp(+0j/2*np.pi + 1j*dphi )
 	theta_u	= np.exp( 1j/5*np.pi + 1j*dphi )
 	theta_d	= np.exp( 0j/5*np.pi + 1j*dphi )
 	faktorU	= 1e-0
 	faktorD	= 1e-0
-	faktorR	= 1e-0
+	faktorR	= 1.0
 
 	tLu	= t*phase
 	tLd	= t
-	tRu	= t*faktorR
+	tRu	= t*phaseR*faktorR
 	tRd	= t*faktorR
 
 	tLu2	= tLu*theta_u*faktorU
@@ -55,7 +58,7 @@ def main():
 
 	bias	= 2e3
 	mu1	= +bias/2
-	mu2	= -mu1
+	mu2	= -mu1/1
 
 	dband	= 1e5
 	Vg	= +0e1
@@ -64,8 +67,9 @@ def main():
 	mu_lst 	= { 0:mu1 , 1:mu2}
 	method	= 'Redfield'
 	method	= 'Pauli'
-	method	= '1vN'
 	method	= 'Lindblad'
+	method	= '1vN'
+	itype	= 1
 
 	if model == 1:
 		maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
@@ -82,21 +86,24 @@ def main():
 	tunnel		= maj_box.constr_tunnel()
 	maj_box.print_eigenstates()
 
-	return
-
-	sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
-
+	sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype)
 
 	sys.solve(qdq=False, rotateq=False)
 	kernel	= sys.kern
 	eigensys	= eig(kernel)
-	#print(eigensys[0] )
 
 	print('Eigenenergies:', sys.Ea)
 	print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
 
-
+	principle_int_l	= (digamma(0.5-1j*mu1/(2*np.pi*T1) ).real - np.log(dband/(2*np.pi*T1 ) ) )/(2*np.pi)
+	if model == 1:
+		analyt_current	= gamma*(epsU/2)**2/(1+(2*principle_int_l)**2)
+	elif model == 3:
+		analyt_current	= gamma*(epsLu/2)**2/(1+(2*principle_int_l)**2)
+	elif model == 4:
+		analyt_current	= gamma*(epsLu/2)**2/(1+(2*principle_int_l)**2)
+	print('Analytical current:', analyt_current )
 
 	bias_plot	= False
 	if bias_plot:
@@ -111,7 +118,7 @@ def main():
 		I	= np.zeros(X.shape, dtype=np.float64 )
 
 		num_cores	= 4
-		unordered_res	= Parallel(n_jobs=num_cores)(delayed(bias_sweep)(indices, bias, X[indices], I, maj_box, par, tunnel, dband, T_lst, method) for indices, bias in np.ndenumerate(Y) ) 
+		unordered_res	= Parallel(n_jobs=num_cores)(delayed(bias_sweep)(indices, bias, X[indices], I, maj_box, par, tunnel, dband, T_lst, method, itype) for indices, bias in np.ndenumerate(Y) )
 		for el in unordered_res:
 			I[el[0] ]	= el[1]
 		
@@ -132,7 +139,39 @@ def main():
 		plt.show()
 		plt.clf()
 
+	bias_variation	= True
+	if bias_variation:
+		x	= np.linspace(5*T1, 3*dband, 1000)
+		maxI	= 0
+		platzhalter	= 0
+		for itype in [1,2]:
+			I	= np.zeros(x.shape )
+			I	= np.array([bias_sweep(0, item, Vg, I, maj_box, par, tunnel, dband, T_lst, method, itype) for item in x] )[:,1]
+			if itype == 1:
+				label	= 'with P. I.'
+				maxI	= np.max(I )
+			else:
+				label	= 'without P. I.'
+			plt.plot(x/T1, I, label=label )
+			platzhalter	= I
+		plt.xlabel(r'$V_{bias}/T_1$' )
+		plt.ylabel(r'$I_{rem}$' )
+		plt.scatter(2*dband/T1, maxI, marker='x', label=r'$2 \cdot$bandwidth')
+		#plt.yscale('log')
+		plt.legend()
+		plt.grid(True)
+		plt.show()
+		
 	phase_plot	= False
+	vary_left	= False
+	vary_right	= True
+	if vary_left and vary_right:
+		variation_label	= r'$\Phi_L, \, Phi_R$'
+	elif vary_left:
+		variation_label	= r'$\Phi_L$'
+	elif vary_right:
+		variation_label	= r'$\Phi_R$'
+
 	if phase_plot:
 		fig, ax2	= plt.subplots(1, 1)
 		angles	= np.linspace(dphi, 2*np.pi+dphi, 1000)
@@ -142,8 +181,13 @@ def main():
 
 		I	= []
 		for phi in angles:
-			tLu	= np.exp(1j*phi)*t
-			tLu2	= tLu*theta_u*faktorU
+			if vary_left:
+				tLu	= np.exp(1j*phi)*t
+				tLu2	= tLu*theta_u*faktorU
+
+			if vary_right:
+				tRu	= np.exp(1j*phi)*t*faktorR
+				tRu2	= tRu*theta_u*faktorU
 
 			if model == 1:
 				maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
@@ -157,7 +201,7 @@ def main():
 			maj_box.change(majoranas = maj_op)
 			tunnel		= maj_box.constr_tunnel()
 
-			sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
+			sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype)
 			sys.solve(qdq=False, rotateq=False)
 			I.append(sys.current[0])
 		I	= np.array(I)
@@ -172,7 +216,7 @@ def main():
 
 		ax2.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
 		ax2.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
-		ax2.set_xlabel(r'$\Phi$', fontsize=fs)
+		ax2.set_xlabel(variation_label, fontsize=fs)
 		ax2.set_ylabel(r'$I/e \Gamma$', fontsize=fs)
 		ax2.set_ylim(bottom=0)
 		fig.legend(fontsize=fs)
@@ -180,7 +224,7 @@ def main():
 		fig.tight_layout()
 		plt.show()
 
-	energy_plot	= True
+	energy_plot	= False
 	if energy_plot:
 		fig, ax2	= plt.subplots(1, 1)
 
@@ -196,7 +240,7 @@ def main():
 
 		I	= []
 		for eps in energy_range:
-			epsLu	= 1*eps
+			epsLu	= 0*eps
 			epsLd	= 0*eps
 			epsRu	= 0*eps
 			epsRd	= 0*eps
@@ -204,8 +248,8 @@ def main():
 			epsMu	= 0e-2
 			epsMd	= 0e-2
 
-			epsU	= 0*eps
-			epsD	= 0
+			epsU	= 1*eps
+			epsD	= 2*eps
 
 			if model == 1:
 				maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
@@ -221,14 +265,15 @@ def main():
 			tunnel		= maj_box.constr_tunnel()
 			Ea		= maj_box.elec_en
 
-			sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
+			sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype)
 			sys.solve(qdq=False, rotateq=False)
 			I.append(sys.current[0])
 
 		I	= np.array(I)
 		fs	= 20
 
-		ax2.plot((energy_range/gamma)**2, I/gamma, label='numerical result')
+		print((energy_range/2/gamma)**2/I*gamma )
+		ax2.plot((energy_range/gamma)**2, I/gamma, label='numerical result', marker='x')
 		ax2.plot((energy_range/gamma)**2, (energy_range/2/gamma)**2, label='analytical prediction simple box')
 		ax2.grid(True)
 		ax2.locator_params(axis='both', nbins=5 )
@@ -259,8 +304,8 @@ def main():
 			phi	= np.pi/2
 			tLu	= np.exp(1j*phi)*t
 			tLd	= t
-			tRu	= t
-			tRd	= t
+			tRu	= t*faktorR
+			tRd	= t*faktorR
 
 			if model == 1:
 				maj_op, overlaps, par	= simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR)
@@ -275,7 +320,7 @@ def main():
 			tunnel		= maj_box.constr_tunnel()
 			Ea		= maj_box.elec_en
 
-			sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
+			sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype)
 			sys.solve(qdq=False, rotateq=False)
 			I.append(sys.current[0])
 
@@ -297,20 +342,24 @@ def main():
 		plt.show()
 	
 
-def bias_sweep(indices, bias, Vg, I, maj_box, par, tunnel, dband, T_lst, method):
+def bias_sweep(indices, bias, Vg, I, maj_box, par, tunnel, dband, T_lst, method, itype):
 	mu_r	= -bias/2
 	mu_l	= bias/2
 	mu_lst	= { 0:mu_l, 1:mu_r}
 	Ea	= maj_box.adj_charging(Vg)
-	sys 	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
+	sys 	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype)
 	sys.solve(qdq=False, rotateq=False)
 
 	return [indices, sys.current[0] ]
 
 def simple_box(tLu, tRu, tLd, tRd, epsU, epsD, epsL, epsR):
-	overlaps	= np.array([[0, epsU, epsL, 0], [0, 0, 0, epsR], [0, 0, 0, epsD], [0, 0, 0, 0]] )
-	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tLu]), fc.maj_operator(index=1, lead=[1], coupling=[tRu]), \
-					fc.maj_operator(index=2, lead=[0], coupling=[tLd]), fc.maj_operator(index=3, lead=[1], coupling=[tRd]) ]
+	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tLu]), fc.maj_operator(index=1, lead=[0], coupling=[tLd]), \
+				fc.maj_operator(index=2, lead=[1], coupling=[tRu]), fc.maj_operator(index=3, lead=[1], coupling=[tRd]) ]
+	overlaps	= np.zeros( (4,4) )
+	overlaps[0,1]	+= epsL
+	overlaps[0,2]	+= epsU
+	overlaps[1,3]	+= epsD
+	overlaps[2,3]	+= epsR
 	par		= np.array([0,0,1,1])
 	return maj_op, overlaps, par
 
@@ -351,10 +400,14 @@ def six_box(tLu, tRu, tLd, tRd, epsLu, epsMu, epsRu, epsD, epsL, epsR):
 				fc.maj_operator(index=2, lead=[], coupling=[]), fc.maj_operator(index=3, lead=[], coupling=[]), \
 				fc.maj_operator(index=4, lead=[1], coupling=[tRu]), fc.maj_operator(index=5, lead=[1], coupling=[tRd]) ]
 	N		= len(maj_op )
-	overlaps	= np.diag([epsL, 0, epsMu, 0, epsR], k=1 )
+	overlaps	= np.zeros((6, 6) )
+	overlaps[0,1]	+= epsL
+	overlaps[2,3]	+= epsMu
+	overlaps[2,3]	+= epsR
+
 	overlaps[0,2]	+= epsLu
 	overlaps[3,4]	+= epsRu
-	overlaps[1,5]	+= epsLu
+	overlaps[1,5]	+= epsD
 
 	par		= np.array([0,0,0,0,1,1,1,1])
 	return maj_op, overlaps, par
