@@ -22,16 +22,16 @@ def main():
 	epsR = 0e-3
 
 	epsLu	= +2e-4
-	epsLd	= +2e-5
+	epsLd	= +2e-6
 	epsRu	= 1e-5
 	epsRd	= 2e-5
 
-	epsMu	= 1e-3
-	epsMd	= 1e-4
+	epsMu	= 1e-6
+	epsMd	= 1e-6
 
 	model	= 1
 
-	dphi	= +1e-6
+	dphi	= +0e-6
 
 	gamma 	= 1.0
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
@@ -60,7 +60,7 @@ def main():
 	mu1	= +bias/2
 	mu2	= -mu1/1
 
-	dband	= 1e5
+	dband	= 1e4
 	Vg	= +0e1
 	
 	T_lst 	= { 0:T1 , 1:T1}
@@ -184,6 +184,14 @@ def main():
 			I	= []
 
 			maj_op, overlaps, par	= box_definition(model, tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd)
+			if model == 1:
+				plot_label	= 'Simple Box'
+				xi	= (epsU - epsD)/2
+			elif model == 3:
+				plot_label	= '\'Dirty\' Box'
+				xi	= (epsLu - epsLd)/2
+			else:
+				plot_label	= ''
 
 			maj_box		= bc.majorana_box(maj_op, overlaps, Vg)
 			maj_box.diagonalize()
@@ -207,9 +215,12 @@ def main():
 				sys.solve(qdq=False, rotateq=False)
 				I.append(sys.current[0])
 			I	= np.array(I)
-			ax2.plot(angles, I/gamma, label=r'$\epsilon_{Lu} \lesssim \Gamma$', linewidth=3)
+			ax2.plot(angles, I/gamma/xi**2, label=plot_label, linewidth=3)
 		model	= platzhalter
+
 		maj_op, overlaps, par	= box_definition(model, tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd)
+		maj_box.diagonalize()
+		Ea	= maj_box.elec_en
 
 		fs	= 24
 
@@ -221,11 +232,14 @@ def main():
 		ax2.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
 		ax2.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
 		ax2.set_xlabel(variation_label, fontsize=fs)
-		ax2.set_ylabel(r'$I/e \Gamma$', fontsize=fs)
-		ax2.set_ylim(bottom=0)
-		#fig.legend(fontsize=fs)
+		ax2.set_ylabel(r'$I_{rem}/(e \Gamma \xi^2) $', fontsize=fs)
+
+		#ax2.set_ylim(bottom=0, top=0.01)
+		#ax2.set_xlim([np.pi/2-0.1, np.pi/2+0.1] )
 
 		fig.tight_layout()
+
+		plt.legend(fontsize=18, loc=0)
 		plt.show()
 
 	energy_plot	= False
