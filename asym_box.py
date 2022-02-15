@@ -19,9 +19,9 @@ def main():
 
 	eps23	= 0e-3
 
-	dphi	= 1e-5
+	dphi	= 1e-6
 	
-	gamma 	= 0.1
+	gamma 	= 1.0
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
 
 
