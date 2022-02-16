@@ -12,24 +12,25 @@ from joblib import Parallel, delayed
 from time import perf_counter
 from scipy.linalg import eig
 from scipy.special import digamma
+import matplotlib.colors as colors
 
 def main():
 	np.set_printoptions(precision=7)
-	epsU = 1e-4
+	epsU = 0e-4
 	epsD = +0.0e-4
 
 	epsL = 0e-3
 	epsR = 0e-3
 
 	epsLu	= +1e-4
-	epsLd	= +2e-6
-	epsRu	= +2e-5
+	epsLd	= +1e-6
+	epsRu	= +1e-5
 	epsRd	= +1e-5
 
-	epsMu	= 1e-6
-	epsMd	= 3e-6
+	epsMu	= +1e-6
+	epsMd	= +1e-6
 
-	model	= 1
+	model	= 2
 
 	dphi	= +1e-6
 
@@ -37,8 +38,8 @@ def main():
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
 	phase	= np.exp(+1j/2*np.pi + 1j*dphi )
 	phaseR	= np.exp(+0j/2*np.pi + 1j*dphi )
-	theta_u	= np.exp( 0.1j/3*np.pi + 1j*dphi )
-	theta_d	= np.exp( 0.0j/3*np.pi + 1j*dphi )
+	theta_u	= np.exp( 1.0j/3*np.pi + 1j*dphi )
+	theta_d	= np.exp( 0.0j/2*np.pi + 1j*dphi )
 	faktorU	= 1.0
 	faktorD	= 1.0
 	faktorR	= 1e-0
@@ -101,15 +102,17 @@ def main():
 	print('Analytical current:', analyt_current )
 
 	bias_plot	= True
+	bias_plot	= False
 	if bias_plot:
 		bias_plot_create(maj_box, par, tunnel, dband, T_lst, mu_lst, method, itype, gamma)
 
 	bias_variation	= True
+	bias_variation	= False
 	if bias_variation:
 		bias_variation_create(Vg, maj_box, par, tunnel, dband, T_lst, method, itype)
 		
-	phase_plot	= False
 	phase_plot	= True
+	phase_plot	= False
 
 	vary_left	= False
 	vary_left	= True
@@ -124,14 +127,80 @@ def main():
 		phase_plot_create(maj_box, vary_left, vary_right, models, gamma, dband, mu_lst, T_lst, method, itype, faktorU, faktorD, faktorR, theta_u, theta_d, tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd)
 
 	energy_plot	= True
+	energy_plot	= False
 	if energy_plot:
 		energy_plot_create(maj_box, theta_u, faktorU, model, t, tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd, dband, mu_lst, T_lst, method, itype)
 
 
 	rate_plot	= True
+	rate_plot	= False
 	if rate_plot:
 		rate_plot_create(t, theta_u, theta_d, faktorU, faktorD, faktorR, maj_box, model, tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd, dband, mu_lst, T_lst, method, itype)
 	
+	exp_minimization_plot	= False
+	exp_minimization_plot	= True
+
+	if exp_minimization_plot:
+		exp_minimization_plot_create(maj_box, Ea, par, dband, mu_lst, T_lst, method, itype, model, t, theta_u, theta_d, phaseR, faktorU, faktorD, faktorR, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd, dphi)
+
+def exp_minimization_plot_create(maj_box, Ea, par, dband, mu_lst, T_lst, method, itype, model, t, theta_u, theta_d, phaseR, faktorU, faktorD, faktorR, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd, dphi):
+	points	= 100
+	angles	= np.linspace(dphi, 2*np.pi+dphi, points)
+	faktors	= np.linspace(0, 2, points)
+	gamma	= 2*np.pi*np.abs(t)**2
+
+	X, Y	= np.meshgrid(angles, faktors)
+
+	num_cores	= 4
+	I	= Parallel(n_jobs=num_cores)(delayed(some_func)(X[indices], Y[indices], maj_box, Ea, par, dband, mu_lst, T_lst, method, itype, model, t, theta_u, theta_d, phaseR, faktorU, faktorD, faktorR, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd, dphi) for indices, angle in np.ndenumerate(X) )
+	I	= np.array(I).reshape((points, points) )
+
+	fs	= 24
+
+	fig, ax1	= plt.subplots(1,1)
+	c	= ax1.pcolormesh(X, Y, I/gamma, norm=colors.LogNorm(vmin=I.min(), vmax=I.max()), cmap='PuBu_r', shading='auto', rasterized=True)
+
+	#cticks	= [0, 1]
+	cbar	= fig.colorbar(c, ax=ax1, extend='max' )
+	ax1.locator_params(axis='both', nbins=5 )
+	ax1.set_xlabel(r'$\phi_L$', fontsize=fs)
+	ax1.set_ylabel(r'$t_{Ld}/t_{Lu} $', fontsize=fs)
+
+	ax1.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
+	ax1.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
+
+	ax1.tick_params(labelsize=fs)
+	#cbar.ax.set_ylim(-1, 1 )
+	#cbar.ax.locator_params(axis='y', nbins=7 )
+	cbar.ax.set_title(r'$I/e \Gamma$', size=fs)
+	cbar.ax.tick_params(labelsize=fs)
+	plt.tight_layout()
+	plt.show()
+	plt.clf()
+
+def some_func(phi, faktor, maj_box, Ea, par, dband, mu_lst, T_lst, method, itype, model, t, theta_u, theta_d, phaseR, faktorU, faktorD, faktorR, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd, dphi):
+	phase	= np.exp(1j*phi + 1j*dphi)
+	tLu	= t*phase
+	tLd	= t*faktor
+
+	tRu	= t*phaseR*faktorR
+	tRd	= t*faktorR
+
+	tLu2	= tLu*theta_u*faktorU
+	tLd2	= tLd*theta_d*faktorD
+	tRu2	= tRu*theta_u*faktorU
+	tRd2	= tRd*theta_d*faktorD
+
+	maj_op, overlaps, par	= box_definition(model, tLu, tRu, tLd, tRd, tLu2, tRu2, tLd2, tRd2, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd)
+
+	maj_box.change(majoranas = maj_op)
+	tunnel		= maj_box.constr_tunnel()
+
+	sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype)
+	sys.solve(qdq=False, rotateq=False)
+	return sys.current[0]
+
+
 def bias_plot_create(maj_box, par, tunnel, dband, T_lst, mu_lst, method, itype, gamma):
 	fig, ax1	= plt.subplots(1, 1)
 
