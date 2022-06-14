@@ -22,12 +22,12 @@ def phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, t
 		print('Loading data.')
 		X, Y, I		= np.load(file )
 		den_mat		= np.load(file2 )
+		print(den_mat)
 	else:
 		print('Data not already calculated. Calculation ongoing')
 		I	= np.zeros(X.shape, dtype=np.float64)
 		
-		unordered_res	= Parallel(n_jobs=num_cores)(delayed(factor_opt_min)(indices, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult) \
-									for indices, bias in np.ndenumerate(X) )
+		unordered_res	= Parallel(n_jobs=num_cores)(delayed(factor_opt_min)(indices, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult) for indices, bias in np.ndenumerate(X) )
 		unordered_res	= np.stack(unordered_res, axis=0)
 
 		I	= np.stack(unordered_res[:,1], axis=0)
@@ -52,28 +52,24 @@ def phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, t
 def factor_opt_min(indices, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult):
 	print('Calculation: ', indices[0]*len(X[0]) +indices[1], '/', X.size )
 	phases	= [X[indices], 0, Y[indices], 0]
-	result	= opt.fmin(factor_func, args=(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult), x0=[1,1], full_output=True, maxiter=200 )
+	opt_res	= opt.fmin(factor_func, args=(phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult), x0=[1,1], full_output=True, maxiter=200 )
 	factors	= result[0]
 	I	= current(phases, [factors[0], 1, factors[1], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult)
-	return [indices, result[1], I[1] ]
+	return [indices, opt_res[1], I[1] ]
 
 def factor_func(factors, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult):
 	return current(phases, [factors[0], 1, factors[1], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult)[0]
 
 
-def phase_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], tunnel_mult=[1, 1, 1, 1], recalculate=False, num_cores=3, save_result=True, logscale=False):
+def phase_zero_scan_and_plot(fig, ax, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], tunnel_mult=[1, 1, 1, 1], recalculate=False, num_cores=3, save_result=True, logscale=False, plot_state_ov=False, block_state=[1, 0, 0, 0, 0, 0, 0, 0]):
 	X,Y,I,den_mat	= phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result)
 
 	#I	= den_mat[:,:,1] + den_mat[:,:,0]
 	#I	= den_mat[:,:,6]
 
-
-	block_state	= np.array([1, 0, 0, 0, 0, 0, 0, 0])
-	block_state	= np.array([0, 1, 0, 0, 0, 0, 0, 0])		# [00, 11, 01, 10, Re(00/11), Re(01,10), Im(00,11), Im(01,10)]
-	block_state	= np.array([1, 1, 0, 0, +0, 0, +1, 0])*1/2
-
-	mat_diff	= np.sqrt(np.sum((block_state - den_mat)**2, axis=2) )
-	I		= mat_diff
+	if plot_state_ov:
+		mat_diff	= matrix_measure(block_state, den_mat)
+		I		= mat_diff
 
 	if logscale:
 		c	= ax.contourf(X, Y, I, locator=ticker.LogLocator() )
@@ -178,24 +174,32 @@ def phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, mode
 	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=factors, thetas=thetas, tunnel_mult=tunnel_mult, prefix=prefix)
 	file	= file[0] + file[1] + '.npy'
 
+	file2	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=factors, thetas=thetas, tunnel_mult=tunnel_mult, prefix=prefix)
+	file2	= file2[0] + file2[1] + '.npy'
+
 	if os.path.isfile(file ) and (not recalculate):
 		print('Loading data.')
 		X, Y, I	= np.load(file )
 	else:
 		print('Data not already calculated. Calculation ongoing')
-		I	= np.zeros(X.shape, dtype=np.float64 )
 
-		unordered_res	= Parallel(n_jobs=num_cores)(delayed(current_with_ind)(indices, [X[indices], 0, Y[indices], 0], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult) for indices, var in np.ndenumerate(X) )
-		for el in unordered_res:
-			I[el[0] ]	= el[1]
+		unordered_res	= Parallel(n_jobs=num_cores)(delayed(current_with_state)([X[indices], 0, Y[indices], 0], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult) for indices, var in np.ndenumerate(X) )
+
+		unordered_res	= np.array(unordered_res )
+		I	= np.array( unordered_res[:,0] )
+		I	= I.reshape(X.shape)
+		den_mat	= np.array( unordered_res[:,1] )
+		den_mat	= den_mat.reshape(X.shape )
 
 		np.save(file, [X, Y, I] )
+		np.save(file2, den_mat )
 		print('Finished!')
 
 	return I, roots
 
-def current_with_ind(indices, phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult):
-	return [indices, current(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult)[0] ]
+def current_with_state(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult):
+	result	= current(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult)
+	return result[0], np.array(result[1] )
 
 def phase_scan_and_plot(fig, ax, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], tunnel_mult=[1, 1, 1, 1], recalculate=False, num_cores=6):
 	I, roots	= phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores)
@@ -210,8 +214,7 @@ def phase_scan_and_plot(fig, ax, X, Y, factors, maj_box, t, Ea, dband, mu_lst, T
 	ax.set_xlabel(r'$\Phi_{avg}$', fontsize=fs)
 	ax.set_ylabel(r'$\Phi_{diff}$', fontsize=fs)
 
-	fs	= 13
-	ax.locator_params(axis='both', nbins=5 )
+	fs	= ax.locator_params(axis='both', nbins=5 )
 	cbar.ax.locator_params(axis='y', nbins=7 )
 	
 	ax.tick_params(labelsize=fs)
@@ -234,30 +237,53 @@ def abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, 
 	print('Minimal current: ', roots[1] )
 	print('Blocking state:', blocking[1] )
 
-	prefix	= 'prefactor-scan/x-{:1.1f}-{:1.1f}-{}_y-{:1.1f}-{:1.1f}-{}_'.format(X[0,0]/np.pi, X[-1,-1]/np.pi, len(X[0] ), Y[0,0]/np.pi, Y[-1,-1]/np.pi, len(Y[:,0] ) )
-
+	prefix	= 'prefactor-scan/current/x-{:1.1f}-{:1.1f}-{}_y-{:1.1f}-{:1.1f}-{}_'.format(X[0,0]/np.pi, X[-1,-1]/np.pi, len(X[0] ), Y[0,0]/np.pi, Y[-1,-1]/np.pi, len(Y[:,0] ) )
 	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=phases, factors=[], thetas=thetas, tunnel_mult=tunnel_mult, prefix=prefix)
 	file	= file[0] + file[1] + '.npy'
 
+	prefix		= 'prefactor-scan/density_matrix/x-{:1.2f}xpi-{:1.2f}xpi-{}_y-{:1.2f}xpi-{:1.2f}xpi-{}'.format(X[0,0]/np.pi, X[-1,-1]/np.pi, len(X[0] ), Y[0,0]/np.pi, Y[-1,-1]/np.pi, len(Y[:,0] ) )
+	file2	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=phases, factors=[], thetas=thetas, tunnel_mult=tunnel_mult, prefix=prefix)
+	file2	= file2[0] + file2[1] + '.npy'
+
 	if os.path.isfile(file ) and (not recalculate):
 		print('Loading data.')
+		print(file)
+		print(file2)
 		X, Y, I	= np.load(file )
+		den_mat	= np.load(file2)
 	else:
 		print('Data not already calculated. Calculation ongoing')
-		I	= np.zeros(X.shape, dtype=np.float64 )
 
-		unordered_res	= Parallel(n_jobs=num_cores)(delayed(current_with_ind)(indices, phases, [X[indices], 1, Y[indices], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult) for indices, var in np.ndenumerate(X) )
-		for el in unordered_res:
-			I[el[0] ]	= el[1]
+		I	= []
+		den_mat	= []
+		for indices, el in np.ndenumerate(X):
+			result	= current_with_state(phases, [X[indices], 1, Y[indices], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult)
+			I.append(result[0] )
+			den_mat.append(result[1] )
+		I	= np.array(I)
+		den_mat	= np.array(den_mat )
+
+		I	= I.reshape(X.shape)
+		den_mat	= np.array(den_mat.reshape(X.shape+den_mat[0].shape ) )
 
 		np.save(file, [X, Y, I] )
+		np.save(file2, den_mat )
 		print('Finished!')
 
-	return I, roots
+	return I, den_mat, roots
 
-def abs_scan_and_plot(fig, ax, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], tunnel_mult=[1, 1, 1, 1], recalculate=False, num_cores=6):
-	I, roots	= abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores)
-	c		= ax.contourf(X, Y, I)
+def abs_scan_and_plot(fig, ax, X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas=[], tunnel_mult=[1, 1, 1, 1], recalculate=False, num_cores=6, logscale=False, plot_state_ov=False, block_state=[1, 0, 0, 0, 0, 0, 0, 0]):
+	I, den_mat, roots	= abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores)
+
+	if plot_state_ov:
+		mat_diff	= matrix_measure(block_state, den_mat)
+		I		= mat_diff
+
+	if logscale:
+		c	= ax.contourf(X, Y, I, locator=ticker.LogLocator() )
+	else:
+		c	= ax.contourf(X, Y, I )
+
 	cbar		= fig.colorbar(c, ax=ax)
 
 	xmin	= roots[0][0]
@@ -310,6 +336,9 @@ def current(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model
 	sys.solve(qdq=False, rotateq=False)
 
 	return sys.current[0], sys.phi0
+
+def matrix_measure(block_state, den_mat):
+	return np.sqrt(np.sum((block_state - den_mat)**2, axis=2) )
 
 def format_func(value, tick_number):
     # find number of multiples of pi/2

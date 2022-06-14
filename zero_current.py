@@ -20,11 +20,11 @@ def main():
 	eps12 	= 1*eps
 	eps34 	= 2*eps
 
-	eps23	= 3*eps
+	eps23	= 0*eps
 
 	dphi	= 1e-6
 	
-	gamma 	= 0.1
+	gamma 	= 1
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
 
 	phase1	= np.exp( +1j/2*np.pi + 1j*dphi )
@@ -52,9 +52,9 @@ def main():
 
 	tunnel_mult	= [0, 1, 1, 1]
 	tunnel_mult	= [0.5, 0.6, 0.7, 0.8]
-	tunnel_mult	= [1, 1, 1, 1]
 	tunnel_mult	= [0.5, 1.0, 1.0, 1]
 	tunnel_mult	= [0.3, 0.4, 0.2, 0.5]
+	tunnel_mult	= [1, 1, 1, 1]
 
 
 	tb11	= tb1*theta_phases[0]*tunnel_mult[0]
@@ -77,8 +77,8 @@ def main():
 	T_lst 	= { 0:T1 , 1:T1}
 	mu_lst 	= { 0:mu1 , 1:mu2}
 	method	= 'Pauli'
-	method	= 'Lindblad'
 	method	= '1vN'
+	method	= 'Lindblad'
 
 	if model == 1:
 		maj_op, overlaps, par	= box.majorana_leads(tb1, tb2, tb3, tt4, eps12, eps23, eps34)
@@ -101,8 +101,8 @@ def main():
 	#fig, (ax1,ax2)	= plt.subplots(1,2)
 	fig, ax2	= plt.subplots(1,1)
 
-	recalculate	= True
 	recalculate	= False
+	recalculate	= True
 
 	save_result	= False
 	save_result	= True
@@ -110,8 +110,28 @@ def main():
 	logscale	= True
 	logscale	= False
 
-	points	= 50
+	plot_state_ov	= False
+	plot_state_ov	= True
+
+	block_state	= np.array([1, 0, 0, 0, 0, 0, 0, 0])
+	block_state	= np.array([1, 1, 0, 0, +0, 0, +1, 0])*1/2
+	block_state	= np.array([1, 1, 0, 0, +1, 0, +0, 0])*1/2
+	block_state	= np.array([0, 1, 0, 0, 0, 0, 0, 0])		# [00, 11, 01, 10, Re(00/11), Re(01,10), Im(00,11), Im(01,10)]
+
+	phi_1		= 1*np.pi/4
+	phi_3		= 1*np.pi/2
+
+	phi_avg		= (phi_1+phi_3)/2
+	phi_diff	= (phi_1-phi_3)/2
+
+	nu 		= 1*np.pi/8
+	phi_avg		= +1*np.pi/4 + nu
+	phi_diff	= +1*np.pi/4 - nu
+
+	rotated_phases	= [phi_avg, 0, phi_diff, 0] 
+
 	points	= 100
+	points	= 50
 	num_cores	= 6
 
 	x	= np.linspace(1e-5, 2, points )
@@ -119,9 +139,10 @@ def main():
 	
 	X,Y	= np.meshgrid(x, y)
 
-	#X,Y,I	= ts.abs_zero_scan_and_plot(fig, ax1, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result, logscale)
+	#X,Y,I	= ts.abs_zero_scan_and_plot(fig, ax2, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result, logscale)
+	I,roots	= ts.abs_scan_and_plot(fig, ax2, X, Y, rotated_phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, logscale, plot_state_ov, block_state)
 
-	points	= 20
+	points	= 100
 	points	= 50
 
 	x	= np.linspace(-np.pi/2-dphi, np.pi/2+dphi, points)
@@ -129,7 +150,7 @@ def main():
 	X	+= dphi
 	Y	-= dphi
 
-	X,Y,I2,den_mat	= ts.phase_zero_scan_and_plot(fig, ax2, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result, logscale)
+	#X,Y,I2,den_mat	= ts.phase_zero_scan_and_plot(fig, ax2, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result, logscale)
 
 	plt.tight_layout()
 	plt.show()
