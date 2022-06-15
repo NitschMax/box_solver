@@ -170,11 +170,14 @@ def phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, mode
 	if np.abs(diff) > 1e-16:
 		print('Result for minimum not Pi-periodic! Difference:', diff)
 
-	prefix	= 'phase-scan/x-{:1.2f}xpi-{:1.2f}xpi-{}_y-{:1.2f}xpi-{:1.2f}xpi-{}_'.format(X[0,0]/np.pi, X[-1,-1]/np.pi, len(X[0] ), Y[0,0]/np.pi, Y[-1,-1]/np.pi, len(Y[:,0] ) )
-	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=factors, thetas=thetas, tunnel_mult=tunnel_mult, prefix=prefix)
+	prefix	= 'prefactor-scan/current/x-{:1.2f}xpi-{:1.2f}xpi-{}_y-{:1.2f}xpi-{:1.2f}xpi-{}_'.format(X[0,0]/np.pi, X[-1,-1]/np.pi, len(X[0] ), Y[0,0]/np.pi, Y[-1,-1]/np.pi, len(Y[:,0] ) )
+
+	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=phases, factors=[], thetas=thetas, tunnel_mult=tunnel_mult, prefix=prefix)
 	file	= file[0] + file[1] + '.npy'
 
-	file2	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=[], factors=factors, thetas=thetas, tunnel_mult=tunnel_mult, prefix=prefix)
+	prefix		= 'prefactor-scan/density_matrix/x-{:1.2f}xpi-{:1.2f}xpi-{}_y-{:1.2f}xpi-{:1.2f}xpi-{}_'.format(X[0,0]/np.pi, X[-1,-1]/np.pi, len(X[0] ), Y[0,0]/np.pi, Y[-1,-1]/np.pi, len(Y[:,0] ) )
+
+	file2	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=phases, factors=[], thetas=thetas, tunnel_mult=tunnel_mult, prefix=prefix)
 	file2	= file2[0] + file2[1] + '.npy'
 
 	if os.path.isfile(file ) and (not recalculate):
@@ -183,17 +186,20 @@ def phase_scan(X, Y, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, mode
 	else:
 		print('Data not already calculated. Calculation ongoing')
 
-		unordered_res	= Parallel(n_jobs=num_cores)(delayed(current_with_state)([X[indices], 0, Y[indices], 0], factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult) for indices, var in np.ndenumerate(X) )
+		I	= []
+		den_mat	= []
+		for indices, el in np.ndenumerate(X):
+			result	= current_with_state(phases, [X[indices], 1, Y[indices], 1], maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult)
+			I.append(result[0] )
+			den_mat.append(result[1] )
+		I	= np.array(I)
+		den_mat	= np.array(den_mat )
 
-		unordered_res	= np.array(unordered_res )
-		I	= np.array( unordered_res[:,0] )
 		I	= I.reshape(X.shape)
-		den_mat	= np.array( unordered_res[:,1] )
-		den_mat	= den_mat.reshape(X.shape )
+		den_mat	= np.array(den_mat.reshape(X.shape+den_mat[0].shape ) )
 
 		np.save(file, [X, Y, I] )
 		np.save(file2, den_mat )
-		print('Finished!')
 
 	return I, roots
 
@@ -241,7 +247,7 @@ def abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, 
 	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=phases, factors=[], thetas=thetas, tunnel_mult=tunnel_mult, prefix=prefix)
 	file	= file[0] + file[1] + '.npy'
 
-	prefix		= 'prefactor-scan/density_matrix/x-{:1.2f}xpi-{:1.2f}xpi-{}_y-{:1.2f}xpi-{:1.2f}xpi-{}'.format(X[0,0]/np.pi, X[-1,-1]/np.pi, len(X[0] ), Y[0,0]/np.pi, Y[-1,-1]/np.pi, len(Y[:,0] ) )
+	prefix		= 'prefactor-scan/density_matrix/x-{:1.1f}-{:1.1f}-{}_y-{:1.1f}-{:1.1f}-{}_'.format(X[0,0]/np.pi, X[-1,-1]/np.pi, len(X[0] ), Y[0,0]/np.pi, Y[-1,-1]/np.pi, len(Y[:,0] ) )
 	file2	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=phases, factors=[], thetas=thetas, tunnel_mult=tunnel_mult, prefix=prefix)
 	file2	= file2[0] + file2[1] + '.npy'
 
