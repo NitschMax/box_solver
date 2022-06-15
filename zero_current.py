@@ -101,8 +101,8 @@ def main():
 	#fig, (ax1,ax2)	= plt.subplots(1,2)
 	fig, ax2	= plt.subplots(1,1)
 
-	recalculate	= False
 	recalculate	= True
+	recalculate	= False
 
 	save_result	= False
 	save_result	= True

@@ -246,6 +246,7 @@ def abs_scan(X, Y, phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, 
 	prefix	= 'prefactor-scan/current/x-{:1.1f}-{:1.1f}-{}_y-{:1.1f}-{:1.1f}-{}_'.format(X[0,0]/np.pi, X[-1,-1]/np.pi, len(X[0] ), Y[0,0]/np.pi, Y[-1,-1]/np.pi, len(Y[:,0] ) )
 	file	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=phases, factors=[], thetas=thetas, tunnel_mult=tunnel_mult, prefix=prefix)
 	file	= file[0] + file[1] + '.npy'
+	print(file)
 
 	prefix		= 'prefactor-scan/density_matrix/x-{:1.1f}-{:1.1f}-{}_y-{:1.1f}-{:1.1f}-{}_'.format(X[0,0]/np.pi, X[-1,-1]/np.pi, len(X[0] ), Y[0,0]/np.pi, Y[-1,-1]/np.pi, len(Y[:,0] ) )
 	file2	= dd.dir(maj_box, t, Ea, dband, mu_lst, T_lst, method, model, phases=phases, factors=[], thetas=thetas, tunnel_mult=tunnel_mult, prefix=prefix)

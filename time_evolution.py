@@ -16,16 +16,16 @@ from scipy.linalg import eig
 
 
 def main():
-	eps12 	= 0e-5
-	eps23	= 0e-5
-	eps34 	= 0e-5
+	eps12 	= 1e-6
+	eps23	= 0e-6
+	eps34 	= 2e-6
 
-	dphi	= 0e-5
+	dphi	= 1e-6
 	
-	gamma 	= 0.1
+	gamma 	= 1.0
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
 
-	factors	= [0.00, 1, 1.00, 1]
+	factors	= [1.00, 1, 0.00, 1]
 
 	phases	= np.array([+1/2*np.pi-dphi, 0, +1/2*np.pi, 0] )
 	phases	= np.exp(1j*phases )
@@ -49,8 +49,9 @@ def main():
 	mu_lst 	= { 0:mu1 , 1:mu2}
 	method	= 'Redfield'
 	method	= 'Pauli'
-	method	= '1vN'
 	method	= 'Lindblad'
+	method	= '1vN'
+	itype	= 1
 	
 	test_run	= True
 
@@ -61,31 +62,46 @@ def main():
 	Ea		= maj_box.elec_en
 	tunnel		= maj_box.constr_tunnel()
 
-	if test_run:
-		sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=1)
+	sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype)
 
-		sys.solve(qdq=False, rotateq=False)
+	sys.solve(qdq=False, rotateq=False)
+	rho0		= np.array([1, 0, 0, 0, 0, 0, 0, 0])
 
-		kernel		= np.matrix(sys.kern )
-		eigensystem	= eig(kernel, right=True, left=True)
+	stationary_state_limit(sys, rho0)
 
-		eigenval	= eigensystem[0]
-		print(eigenval)
-		U_l		= np.matrix(eigensystem[1] )
-		U_r		= np.matrix(eigensystem[2] )
 
-		inverse_norm	= np.diag(1/np.diag(np.dot(U_l.getH(), U_r) ) )
-		U_r		= np.dot(U_r, inverse_norm)
+def stationary_state_limit(sys, rho0):
+	kernel		= np.matrix(sys.kern )
+	eigenval, U_l, U_r	= get_eigensystem_from_kernel(kernel)
 
-		zero_ind	= np.argmin(np.abs(eigenval ) )
-		zero_mat	= np.dot(U_r[:,zero_ind], U_l.getH()[zero_ind] )
-		print(zero_mat)
-		rho0		= np.array([1, 1, 0, 0, 1, 0, 0, 0])/2
-		print(np.dot(zero_mat, rho0) )
+	zero_ind	= np.argmin(np.abs(eigenval ) )
+	zero_mat	= np.dot(U_r[:,zero_ind], U_l.getH()[zero_ind] )
+	lim_solution	= np.dot(zero_mat, rho0)
 
-		print('Eigenenergies:', sys.Ea)
-		print('Density matrix:', sys.phi0 )
-		print('Current:', sys.current )
+	print('Solution via kernel: ', lim_solution)
+
+	print('Eigenenergies:', sys.Ea)
+	print('Density matrix:', sys.phi0 )
+	print('Current:', sys.current )
+	return 
+
+def finite_time_evolution(sys, rho0):
+	kernel		= np.matrix(sys.kern )
+	eigenval, U_l, U_r	= get_eigensystem_from_kernel(kernel)
+
+	return 0
+
+def get_eigensystem_from_kernel(kernel):
+	eigensystem	= eig(kernel, right=True, left=True)
+
+	eigenval	= eigensystem[0]
+	print(eigenval)
+	U_l		= np.matrix(eigensystem[1] )
+	U_r		= np.matrix(eigensystem[2] )
+
+	inverse_norm	= np.diag(1/np.diag(np.dot(U_l.getH(), U_r) ) )
+	U_r		= np.dot(U_r, inverse_norm)
+	return eigenval, U_l, U_r
 
 
 if __name__=='__main__':
