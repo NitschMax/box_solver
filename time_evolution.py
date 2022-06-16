@@ -16,9 +16,9 @@ from scipy.linalg import eig
 
 
 def main():
-	eps12 	= 1e-6
+	eps12 	= 1e-4
 	eps23	= 0e-6
-	eps34 	= 2e-6
+	eps34 	= 2e-4
 
 	dphi	= 1e-6
 	
@@ -65,9 +65,11 @@ def main():
 	sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype)
 
 	sys.solve(qdq=False, rotateq=False)
-	rho0		= np.array([1, 0, 0, 0, 0, 0, 0, 0])
+	rho0		= np.array([1, 1, 0, 0, 1, 0, 0, 0])/2
 
 	stationary_state_limit(sys, rho0)
+	time_evol	= finite_time_evolution(sys, rho0)
+	print(time_evol(100 ) )
 
 
 def stationary_state_limit(sys, rho0):
@@ -88,14 +90,21 @@ def stationary_state_limit(sys, rho0):
 def finite_time_evolution(sys, rho0):
 	kernel		= np.matrix(sys.kern )
 	eigenval, U_l, U_r	= get_eigensystem_from_kernel(kernel)
+	dimensions	= U_l[0].size
+	time_evol_mats	= [np.dot(U_r[:,index], U_l.getH()[index] ) for index in range(dimensions) ]
+	
+	time_evol	= lambda t: normed_occupations(np.sum(np.exp(eigenval*t)*np.array([np.dot(mat, rho0) for mat in time_evol_mats]), axis=0) )
 
-	return 0
+	return time_evol
+
+def normed_occupations(vector):
+	half_length	= int(vector.size/2)
+	return vector/np.sum(vector[:half_length])
 
 def get_eigensystem_from_kernel(kernel):
 	eigensystem	= eig(kernel, right=True, left=True)
 
 	eigenval	= eigensystem[0]
-	print(eigenval)
 	U_l		= np.matrix(eigensystem[1] )
 	U_r		= np.matrix(eigensystem[2] )
 
