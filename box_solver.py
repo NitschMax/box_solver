@@ -98,6 +98,9 @@ def main():
 	sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype)
 
 	sys.solve(qdq=False, rotateq=False)
+	print(sys.Tba)
+	return
+
 	kernel	= sys.kern
 	print(kernel)
 	#itype	= 2
