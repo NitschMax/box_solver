@@ -23,20 +23,22 @@ def main():
 	eps23	= 0e-4
 	eps34 	= 2e-4
 
-	dphi	= 1e-7
+	dphi	= 1e-5
 	
-	gamma 	= 1.0
+	gamma 	= 1e+0
+	gamma_u	= 1e+0
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
+	t_u	= np.sqrt(gamma_u/(2*np.pi))+0.j
 
 	factors	= [1.00, 1, 0.00, 1]
 
-	phases	= np.array([+1/2*np.pi-dphi, 0, +1/2*np.pi, 0] )
+	phases	= np.array([+1/2*np.pi-dphi, 0, +1/2*np.pi+dphi, 0] )
 	phases	= np.exp(1j*phases )
 
 	tb1	= t*phases[0]*factors[0]
 	tb2     = t*phases[1]*factors[1]
 	tb3     = t*phases[2]*factors[2]
-	tt4	= t*phases[3]*factors[3]
+	tt4	= t_u*phases[3]*factors[3]
 
 	T1	= 1e2
 	T2 	= T1
@@ -56,7 +58,7 @@ def main():
 	method	= '1vN'
 	itype	= 1
 
-	lead	= 0
+	lead	= 1
 	
 	test_run	= True
 
@@ -76,7 +78,7 @@ def main():
 	print('Current:', sys.current )
 	print()
 
-	rho0		= np.array([1, 1, 0, 0, 0, 0, 0, 0])/2
+	rho0		= np.array([1, 1, 0, 0, 1, 0, 0, 0])/2
 
 	stationary_sol	= stationary_state_limit(sys, rho0)
 	kernel_cur	= current(sys, stationary_sol, lead=lead)
@@ -92,7 +94,7 @@ def main():
 	fig,ax	= plt.subplots()
 	T	= 6
 	t	= np.linspace(0, T, 1000)
-	finite_time_plot(ax, sys, rho0, t)
+	finite_time_plot(ax, sys, rho0, t, lead=lead)
 	transm_charge	= quad(lambda x: current(sys, time_evo_rho(x), lead=lead ), 0, np.inf)
 	print('Charge transmitted through the left lead: ', transm_charge )
 	plt.show()
@@ -117,6 +119,7 @@ def finite_time_plot(ax, sys, rho0, t, lead=0):
 	else:
 		lead_string	= 'right'
 
+	ax.grid(True)
 	ax_twin.set_ylabel('Charge transmitted through ' + lead_string + ' lead [e]', c=color)
 	ax_twin.tick_params(axis='y', labelcolor=color)
 	
