@@ -55,6 +55,8 @@ def main():
 	method	= 'Lindblad'
 	method	= '1vN'
 	itype	= 1
+
+	lead	= 0
 	
 	test_run	= True
 
@@ -77,31 +79,31 @@ def main():
 	rho0		= np.array([1, 1, 0, 0, 0, 0, 0, 0])/2
 
 	stationary_sol	= stationary_state_limit(sys, rho0)
-	kernel_cur	= current(sys, stationary_sol)
+	kernel_cur	= current(sys, stationary_sol, lead=lead)
 	print('Current via kernel: ', kernel_cur)
 
 	time_evo_rho	= finite_time_evolution(sys, rho0)
 	finite_sol	= time_evo_rho(100 )
-	finite_cur	= current(sys, finite_sol)
+	finite_cur	= current(sys, finite_sol, lead=lead)
 
 	print('Finite time solution via kernel: ', finite_sol)
-	print('Finite time current via kernel: ', finite_cur)
+	print('Finite time current left lead via kernel: ', finite_cur)
 
 	fig,ax	= plt.subplots()
 	T	= 6
 	t	= np.linspace(0, T, 1000)
 	finite_time_plot(ax, sys, rho0, t)
-	transm_charge_left	= quad(lambda x: current(sys, time_evo_rho(x) ), 0, np.inf)
-	print('Charge transmitted through the left lead: ', transm_charge_left )
+	transm_charge	= quad(lambda x: current(sys, time_evo_rho(x), lead=lead ), 0, np.inf)
+	print('Charge transmitted through the left lead: ', transm_charge )
 	plt.show()
 
 	return
 
-def finite_time_plot(ax, sys, rho0, t):
+def finite_time_plot(ax, sys, rho0, t, lead=0):
 	dt		= t[1]-t[0]
 	time_evo_rho	= finite_time_evolution(sys, rho0)
 	
-	finite_cur	= np.array([current(sys, time_evo_rho(time) ) for time in t])
+	finite_cur	= np.array([current(sys, time_evo_rho(time), lead=lead ) for time in t])
 	ax.plot(t, finite_cur)
 	ax.set_xlabel(r'$t \, [1/\Gamma]$')
 	ax.set_ylabel(r'$I_{trans} \, [e\Gamma]$')
@@ -110,40 +112,43 @@ def finite_time_plot(ax, sys, rho0, t):
 	charge		= np.cumsum(finite_cur)*dt
 	color		= 'r'
 	ax_twin.plot(t, charge, c=color)
-	ax_twin.set_ylabel('Charge transmitted through left lead [e]', c=color)
+	if lead==0:
+		lead_string	= 'left'
+	else:
+		lead_string	= 'right'
+
+	ax_twin.set_ylabel('Charge transmitted through ' + lead_string + ' lead [e]', c=color)
 	ax_twin.tick_params(axis='y', labelcolor=color)
 	
-
-def current(sys, rho):
-	Tba	= sys.Tba[0]
-	zeros	= np.zeros((2,2) )
+def current(sys, rho, lead=0):
+	Tba	= sys.Tba[lead]
 	ones	= np.ones((2,2) )
-	I_matrix_plus	= np.block([[ones, get_I_matrix(sys, 1)*ones], [ones, ones]] )
-	I_matrix_minus	= np.block([[ones, get_I_matrix(sys, -1)*ones], [ones, ones]] )
+	I_matrix_plus	= np.block([[ones, get_I_matrix(sys, 1, lead=lead)*ones], [ones, ones]] )
+	I_matrix_minus	= np.block([[ones, get_I_matrix(sys, -1, lead=lead)*ones], [ones, ones]] )
 	TbaRight	= Tba*I_matrix_plus
 	TbaLeft		= Tba*I_matrix_minus
 
 	cur	= -2*2*np.pi*np.trace(np.imag(np.dot(TbaLeft, np.dot(map_vec_to_den_mat(rho), TbaRight) ) ) )
 	return cur
 
-def get_I_matrix(sys, sign=1):
-	digamma	= princ_int(sys)
-	x_L	= get_x_from_sys(sys)
+def get_I_matrix(sys, sign=1, lead=0):
+	digamma	= princ_int(sys, lead=lead)
+	x_L	= get_x_from_sys(sys, lead=lead)
 	return sign*(-1j/2*fermi_func(sign*x_L) + digamma/(2*np.pi) )
 
-def princ_int(sys):
-	T	= sys.tlst[0]
-	mu	= sys.mulst[0]
+def princ_int(sys, lead=0):
+	T	= sys.tlst[lead]
+	mu	= sys.mulst[lead]
 	D	= sys.dband
-	x_L	= get_x_from_sys(sys)
+	x_L	= get_x_from_sys(sys, lead)
 	return np.real(digamma(0.5+1j*x_L/(2*np.pi) )) - np.log(D/(2*np.pi*T) )
 
-def get_x_from_sys(sys):
+def get_x_from_sys(sys, lead=0):
 	matrix_of_energydiffs	= np.ones((2,2) )
 	energies		= sys.Ea
 	for indices, value in np.ndenumerate(matrix_of_energydiffs):
 		matrix_of_energydiffs[indices]	= energies[indices[0] ] - energies[indices[1]+2]
-	x_L			= (-matrix_of_energydiffs - sys.mulst[0])/sys.tlst[0]		# Minus before energies because of indices cb for I compared to indices bc for Tba
+	x_L			= (-matrix_of_energydiffs - sys.mulst[lead])/sys.tlst[lead]		# Minus before energies because of indices cb for I compared to indices bc for Tba
 	return x_L
 
 def fermi_func(x):
