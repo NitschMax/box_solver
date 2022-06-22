@@ -22,7 +22,6 @@ def phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, t
 		print('Loading data.')
 		X, Y, I		= np.load(file )
 		den_mat		= np.load(file2 )
-		print(den_mat)
 	else:
 		print('Data not already calculated. Calculation ongoing')
 		I	= np.zeros(X.shape, dtype=np.float64)
@@ -35,8 +34,6 @@ def phase_zero_scan(X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, t
 		den_mat	= np.stack(unordered_res[:,2], axis=0)
 		den_mat	= den_mat.reshape(X.shape + den_mat[0].shape)
 
-		print(I.dtype)
-		print(den_mat.dtype)
 
 		if save_result:
 			print('Result for current is saved in:', file )

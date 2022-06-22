@@ -26,6 +26,8 @@ def default_overlaps(N, eps=[]):
 	for i in range(half_number):
 		one_d_over		= nullen.copy()
 		one_d_over[0, 2*i+1]	= eps[i]
+		if i < half_number-1:
+			one_d_over[0, 2*i+2]	= eps[i]+0.5*eps[0]
 		if i == 0:
 			overlaps	= one_d_over
 			overlaps	= np.concatenate((overlaps, nullen), axis=0)

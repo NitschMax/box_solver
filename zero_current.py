@@ -107,8 +107,8 @@ def main():
 	save_result	= False
 	save_result	= True
 
-	logscale	= True
 	logscale	= False
+	logscale	= True
 
 	plot_state_ov	= False
 	plot_state_ov	= True
@@ -140,7 +140,7 @@ def main():
 	X,Y	= np.meshgrid(x, y)
 
 	#X,Y,I	= ts.abs_zero_scan_and_plot(fig, ax2, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result, logscale)
-	I,roots	= ts.abs_scan_and_plot(fig, ax2, X, Y, rotated_phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, logscale, plot_state_ov, block_state)
+	#I,roots	= ts.abs_scan_and_plot(fig, ax2, X, Y, rotated_phases, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, logscale, plot_state_ov, block_state)
 
 	points	= 100
 	points	= 50
@@ -150,7 +150,7 @@ def main():
 	X	+= dphi
 	Y	-= dphi
 
-	#X,Y,I2,den_mat	= ts.phase_zero_scan_and_plot(fig, ax2, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result, logscale)
+	X,Y,I2,den_mat	= ts.phase_zero_scan_and_plot(fig, ax2, X, Y, maj_box, t, Ea, dband, mu_lst, T_lst, method, model, thetas, tunnel_mult, recalculate, num_cores, save_result, logscale)
 
 	plt.tight_layout()
 	plt.show()

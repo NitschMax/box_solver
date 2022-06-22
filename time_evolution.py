@@ -23,7 +23,9 @@ def main():
 	eps23	= 0e-4
 	eps34 	= 2e-4
 
-	dphi	= 1e-5
+	eps	= 1e-5
+
+	dphi	= 1e-6
 	
 	gamma 	= 1e+0
 	gamma_u	= 1e+0
@@ -35,10 +37,20 @@ def main():
 	phases	= np.array([+1/2*np.pi-dphi, 0, +1/2*np.pi+dphi, 0] )
 	phases	= np.exp(1j*phases )
 
-	tb1	= t*phases[0]*factors[0]
-	tb2     = t*phases[1]*factors[1]
-	tb3     = t*phases[2]*factors[2]
-	tt4	= t_u*phases[3]*factors[3]
+	th	= [0.30, 0.15, 0.60, 0.75]
+	th	= [0.00, 0.00, 0.00, 0.00]
+
+	thetas	= np.array(th )*np.pi + np.array([1, 2, 3, 4] )*dphi
+
+	theta_phases	= np.exp( 1j*thetas)
+
+	tunnel_mult	= [0, 1, 1, 1]
+	tunnel_mult	= [0.5, 0.6, 0.7, 0.8]
+	tunnel_mult	= [0.5, 1.0, 1.0, 1]
+	tunnel_mult	= [1, 1, 1, 1]
+	tunnel_mult	= [0.5, 0.5, 0.5, 0.5]
+
+	model	= 2
 
 	T1	= 1e2
 	T2 	= T1
@@ -58,11 +70,35 @@ def main():
 	method	= '1vN'
 	itype	= 1
 
-	lead	= 1
-	
-	test_run	= True
+	lead	= 0
 
-	maj_op, overlaps, par	= abox.majorana_leads(tb1, tb2, tb3, tt4, eps12, eps23, eps34)
+	pre_run	= False
+	pre_run	= True
+	
+	if pre_run:
+		factors_pre	= [0.00, 1, 1.00, 1]
+
+		phases_pre	= np.array([+1/2*np.pi-dphi, 0, +1/2*np.pi+dphi, 0] )
+		phases_pre	= np.exp(1j*phases_pre )
+		tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41	= tunnel_coupl(t, t_u, phases_pre, factors_pre, theta_phases, tunnel_mult)
+		maj_op, overlaps, par	= box_definition(model, tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41, eps12, eps23, eps34, eps)
+
+		maj_box		= bc.majorana_box(maj_op, overlaps, Vg, 'asymmetric_box')
+		maj_box.diagonalize()
+		Ea		= maj_box.elec_en
+		tunnel		= maj_box.constr_tunnel()
+
+		sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype)
+
+		sys.solve(qdq=False, rotateq=False)
+		rho0	= sys.phi0
+		#rho0	= normed_occupations(rho0 )
+		print('Initial state of the system: ', rho0)
+		print('Current at initialization:', sys.current )
+		print()
+
+	tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41	= tunnel_coupl(t, t_u, phases, factors, theta_phases, tunnel_mult)
+	maj_op, overlaps, par	= box_definition(model, tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41, eps12, eps23, eps34, eps)
 
 	maj_box		= bc.majorana_box(maj_op, overlaps, Vg, 'asymmetric_box')
 	maj_box.diagonalize()
@@ -78,14 +114,19 @@ def main():
 	print('Current:', sys.current )
 	print()
 
-	rho0		= np.array([1, 1, 0, 0, 1, 0, 0, 0])/2
+	if not pre_run:
+		if model == 1:
+			rho0	= np.array([1, 1, 0, 0, 1, 0, 0, 0])
+			rho0	= normed_occupations(rho0 )
+		elif model == 2:
+			rho0	= abs_block(model )
 
 	stationary_sol	= stationary_state_limit(sys, rho0)
 	kernel_cur	= current(sys, stationary_sol, lead=lead)
 	print('Current via kernel: ', kernel_cur)
 
 	time_evo_rho	= finite_time_evolution(sys, rho0)
-	finite_sol	= time_evo_rho(100 )
+	finite_sol	= time_evo_rho(1e9 )
 	finite_cur	= current(sys, finite_sol, lead=lead)
 
 	print('Finite time solution via kernel: ', finite_sol)
@@ -100,6 +141,23 @@ def main():
 	plt.show()
 
 	return
+
+def abs_block(model):
+	num_occ		= 16
+	dof		= 128
+	rho0		= np.zeros(dof )
+	rho0[0]		= 1
+	return rho0
+
+def model_spec_dof(rho):
+	dof	= rho.size
+	num_occ	= int(np.sqrt(2*dof) )
+	return num_occ, dof
+
+	if model == 1:
+		return 4, 8
+	if model == 2:
+		return 16, 128
 
 def finite_time_plot(ax, sys, rho0, t, lead=0):
 	dt		= t[1]-t[0]
@@ -125,13 +183,14 @@ def finite_time_plot(ax, sys, rho0, t, lead=0):
 	
 def current(sys, rho, lead=0):
 	Tba	= sys.Tba[lead]
-	ones	= np.ones((2,2) )
+	num_occ, dof	= model_spec_dof(rho)
+	ones	= np.ones((int(num_occ/2), int(num_occ/2) ) )
 	I_matrix_plus	= np.block([[ones, get_I_matrix(sys, 1, lead=lead)*ones], [ones, ones]] )
 	I_matrix_minus	= np.block([[ones, get_I_matrix(sys, -1, lead=lead)*ones], [ones, ones]] )
 	TbaRight	= Tba*I_matrix_plus
 	TbaLeft		= Tba*I_matrix_minus
 
-	cur	= -2*2*np.pi*np.trace(np.imag(np.dot(TbaLeft, np.dot(map_vec_to_den_mat(rho), TbaRight) ) ) )
+	cur	= -2*2*np.pi*np.trace(np.imag(np.dot(TbaLeft, np.dot(map_vec_to_den_mat(sys, rho), TbaRight) ) ) )
 	return cur
 
 def get_I_matrix(sys, sign=1, lead=0):
@@ -147,28 +206,43 @@ def princ_int(sys, lead=0):
 	return np.real(digamma(0.5+1j*x_L/(2*np.pi) )) - np.log(D/(2*np.pi*T) )
 
 def get_x_from_sys(sys, lead=0):
-	matrix_of_energydiffs	= np.ones((2,2) )
 	energies		= sys.Ea
+	num_occ			= energies.size
+	par_occ			= int(num_occ/2)
+	matrix_of_energydiffs	= np.zeros((par_occ, par_occ) )
 	for indices, value in np.ndenumerate(matrix_of_energydiffs):
-		matrix_of_energydiffs[indices]	= energies[indices[0] ] - energies[indices[1]+2]
+		matrix_of_energydiffs[indices]	= energies[indices[0] ] - energies[indices[1]+par_occ]
 	x_L			= (-matrix_of_energydiffs - sys.mulst[lead])/sys.tlst[lead]		# Minus before energies because of indices cb for I compared to indices bc for Tba
 	return x_L
 
 def fermi_func(x):
 	return 1/(1+np.exp(x) )
 
-def map_vec_to_den_mat(rho):
-	dim		= rho.size
-	half_dim	= int(dim/2)
-	den_mat		= np.zeros((half_dim, half_dim), dtype=np.complex )
+def map_vec_to_den_mat(sys, rho):
+	num_occ, dof	= model_spec_dof(rho)
+	ofd_dof		= dof - num_occ
+	half_ofd_dof	= int(ofd_dof/2 )
 
-	den_mat		+= np.diag(rho[:half_dim] )
-	den_mat[0,1]	+= rho[half_dim] + 1j*rho[half_dim+2]
-	den_mat[1,0]	+= np.conjugate(den_mat[0,1] )
+	par_occ		= int(num_occ/2)
+	zeros		= np.zeros((par_occ, par_occ), dtype=np.complex )
+	even_par	= zeros.copy()
+	odd_par		= zeros.copy()
+	for indices, value in np.ndenumerate(even_par):
+		even_par[indices]	= rho[sys.si.get_ind_dm0(indices[0], indices[1], 0) ]
+		if indices[0] < indices[1]:
+			even_par[indices]	+= 1j*rho[sys.si.get_ind_dm0(indices[0], indices[1], 0)+half_ofd_dof ]
+		elif indices[0] > indices[1]:
+			even_par[indices]	-= 1j*rho[sys.si.get_ind_dm0(indices[0], indices[1], 0)+half_ofd_dof ]
 
-	den_mat[2,3]	+= rho[half_dim+1] + 1j*rho[half_dim+3]
-	den_mat[3,2]	+= np.conjugate(den_mat[2,3] )
+	for indices, value in np.ndenumerate(odd_par):
+		odd_par[indices]	= rho[sys.si.get_ind_dm0(indices[0], indices[1], 1) ]
+		if indices[0] < indices[1]:
+			odd_par[indices]	+= 1j*rho[sys.si.get_ind_dm0(indices[0], indices[1], 1)+half_ofd_dof ]
+		elif indices[0] > indices[1]:
+			odd_par[indices]	-= 1j*rho[sys.si.get_ind_dm0(indices[0], indices[1], 1)+half_ofd_dof ]
 
+	den_mat	= np.block([[even_par, zeros], [zeros, odd_par] ] )
+			
 	return den_mat
 
 def stationary_state_limit(sys, rho0):
@@ -176,7 +250,11 @@ def stationary_state_limit(sys, rho0):
 	eigenval, U_l, U_r	= get_eigensystem_from_kernel(kernel)
 
 	zero_ind	= np.argmin(np.abs(eigenval ) )
+	smallest_time	= sorted(np.abs(eigenval) )[1]
+	print(smallest_time )
+
 	zero_mat	= np.dot(U_r[:,zero_ind], U_l.getH()[zero_ind] )
+	
 	lim_solution	= np.array(np.dot(zero_mat, rho0)).reshape(-1)
 
 	print('Solution via kernel: ', lim_solution)
@@ -194,8 +272,8 @@ def finite_time_evolution(sys, rho0):
 	return time_evol
 
 def normed_occupations(vector):
-	half_length	= int(vector.size/2)
-	return vector/np.sum(vector[:half_length])
+	num_occ, dof	= model_spec_dof(vector)
+	return vector/np.sum(vector[:num_occ])
 
 def get_eigensystem_from_kernel(kernel):
 	eigensystem	= eig(kernel, right=True, left=True)
@@ -210,6 +288,26 @@ def get_eigensystem_from_kernel(kernel):
 	U_r		= np.dot(U_r, inverse_norm)
 	return eigenval, U_l, U_r
 
+def box_definition(model, tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41, eps12, eps23, eps34, eps):
+	if model == 1:
+		maj_op, overlaps, par	= abox.majorana_leads(tb1, tb2, tb3, tt4, eps12, eps23, eps34)
+	elif model == 2:
+		maj_op, overlaps, par	= abox.abs_leads(tb1, tb11, tb2, tb21, tb3, tb31, tt4, tt41, eps)
+	
+	return maj_op, overlaps, par
+
+def tunnel_coupl(t, t_u, phases, factors, theta_phases, tunnel_mult):
+	tb1	= t*phases[0]*factors[0]
+	tb2     = t*phases[1]*factors[1]
+	tb3     = t*phases[2]*factors[2]
+	tt4	= t_u*phases[3]*factors[3]
+
+	tb11	= tb1*theta_phases[0]*tunnel_mult[0]
+	tb21	= tb2*theta_phases[1]*tunnel_mult[1]
+	tb31	= tb3*theta_phases[2]*tunnel_mult[2]
+	tt41	= tt4*theta_phases[3]*tunnel_mult[3]
+
+	return tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41
 
 if __name__=='__main__':
 	main()
