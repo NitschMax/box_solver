@@ -37,8 +37,10 @@ def main():
 	phases	= np.array([+1/2*np.pi-dphi, 0, +1/2*np.pi+dphi, 0] )
 	phases	= np.exp(1j*phases )
 
-	th	= [0.30, 0.15, 0.60, 0.75]
+	th	= [0.50, 0.50, 0.50, 0.50]
+	th	= [0.20, 0.20, 0.20, 0.20]
 	th	= [0.00, 0.00, 0.00, 0.00]
+	th	= [0.10, 0.10, 0.10, 0.10]
 
 	thetas	= np.array(th )*np.pi + np.array([1, 2, 3, 4] )*dphi
 
@@ -47,8 +49,8 @@ def main():
 	tunnel_mult	= [0, 1, 1, 1]
 	tunnel_mult	= [0.5, 0.6, 0.7, 0.8]
 	tunnel_mult	= [0.5, 1.0, 1.0, 1]
-	tunnel_mult	= [1, 1, 1, 1]
 	tunnel_mult	= [0.5, 0.5, 0.5, 0.5]
+	tunnel_mult	= [1, 1, 1, 1]
 
 	model	= 2
 
@@ -92,9 +94,14 @@ def main():
 
 		sys.solve(qdq=False, rotateq=False)
 		rho0	= sys.phi0
-		#rho0	= normed_occupations(rho0 )
-		print('Initial state of the system: ', rho0)
-		print('Current at initialization:', sys.current )
+		initial_cur	= sys.current
+
+		time_evo_rho	= finite_time_evolution(sys )
+		rho0		= time_evo_rho(rho0, 1e9 )
+		initial_cur	= current(sys, lead=lead)(rho0)
+
+		#print('Initial state of the system: ', rho0)
+		print('Current at initialization:', initial_cur)
 		print()
 
 	tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41	= tunnel_coupl(t, t_u, phases, factors, theta_phases, tunnel_mult)
@@ -110,7 +117,7 @@ def main():
 	sys.solve(qdq=False, rotateq=False)
 
 	print('Eigenenergies:', sys.Ea)
-	print('Density matrix:', sys.phi0 )
+	#print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
 	print()
 
@@ -121,26 +128,31 @@ def main():
 		elif model == 2:
 			rho0	= abs_block(model )
 
+	current_fct	= current(sys, lead=lead)
 	stationary_sol	= stationary_state_limit(sys, rho0)
-	kernel_cur	= current(sys, stationary_sol, lead=lead)
+	#print('Solution via kernel: ', stationary_sol)
+	kernel_cur	= current_fct(stationary_sol)
 	print('Current via kernel: ', kernel_cur)
 
-	time_evo_rho	= finite_time_evolution(sys, rho0)
-	finite_sol	= time_evo_rho(1e9 )
-	finite_cur	= current(sys, finite_sol, lead=lead)
+	time_evo_rho	= finite_time_evolution(sys)
+	finite_sol	= time_evo_rho(rho0, 1e9 )
+	finite_cur	= current_fct(finite_sol)
 
-	print('Finite time solution via kernel: ', finite_sol)
+	#print('Finite time solution via kernel: ', finite_sol)
 	print('Finite time current left lead via kernel: ', finite_cur)
 
 	fig,ax	= plt.subplots()
 	T	= 6
 	t	= np.linspace(0, T, 1000)
 	finite_time_plot(ax, sys, rho0, t, lead=lead)
-	transm_charge	= quad(lambda x: current(sys, time_evo_rho(x), lead=lead ), 0, np.inf)
+	transm_charge	= charge_transmission(sys, current_fct, time_evo_rho, rho0, tau=5)
 	print('Charge transmitted through the left lead: ', transm_charge )
 	plt.show()
 
 	return
+
+def charge_transmission(sys, current_fct, time_evo_rho, rho0, tau=np.inf):
+	return quad(lambda x: current_fct(time_evo_rho(rho0, x) ), 0, tau)
 
 def abs_block(model):
 	num_occ		= 16
@@ -161,9 +173,10 @@ def model_spec_dof(rho):
 
 def finite_time_plot(ax, sys, rho0, t, lead=0):
 	dt		= t[1]-t[0]
-	time_evo_rho	= finite_time_evolution(sys, rho0)
+	time_evo_rho	= finite_time_evolution(sys)
+	current_fct	= current(sys, lead=lead)
 	
-	finite_cur	= np.array([current(sys, time_evo_rho(time), lead=lead ) for time in t])
+	finite_cur	= np.array([current_fct(time_evo_rho(rho0, time) ) for time in t])
 	ax.plot(t, finite_cur)
 	ax.set_xlabel(r'$t \, [1/\Gamma]$')
 	ax.set_ylabel(r'$I_{trans} \, [e\Gamma]$')
@@ -181,17 +194,17 @@ def finite_time_plot(ax, sys, rho0, t, lead=0):
 	ax_twin.set_ylabel('Charge transmitted through ' + lead_string + ' lead [e]', c=color)
 	ax_twin.tick_params(axis='y', labelcolor=color)
 	
-def current(sys, rho, lead=0):
+def current(sys, lead=0):
 	Tba	= sys.Tba[lead]
-	num_occ, dof	= model_spec_dof(rho)
+	num_occ, dof	= model_spec_dof(sys.phi0)
 	ones	= np.ones((int(num_occ/2), int(num_occ/2) ) )
 	I_matrix_plus	= np.block([[ones, get_I_matrix(sys, 1, lead=lead)*ones], [ones, ones]] )
 	I_matrix_minus	= np.block([[ones, get_I_matrix(sys, -1, lead=lead)*ones], [ones, ones]] )
 	TbaRight	= Tba*I_matrix_plus
 	TbaLeft		= Tba*I_matrix_minus
 
-	cur	= -2*2*np.pi*np.trace(np.imag(np.dot(TbaLeft, np.dot(map_vec_to_den_mat(sys, rho), TbaRight) ) ) )
-	return cur
+	current_rho	= lambda rho: -2*2*np.pi*np.trace(np.imag(np.dot(TbaLeft, np.dot(map_vec_to_den_mat(sys, rho), TbaRight) ) ) )
+	return current_rho
 
 def get_I_matrix(sys, sign=1, lead=0):
 	digamma	= princ_int(sys, lead=lead)
@@ -257,17 +270,16 @@ def stationary_state_limit(sys, rho0):
 	
 	lim_solution	= np.array(np.dot(zero_mat, rho0)).reshape(-1)
 
-	print('Solution via kernel: ', lim_solution)
 
 	return lim_solution
 
-def finite_time_evolution(sys, rho0):
+def finite_time_evolution(sys):
 	kernel		= np.matrix(sys.kern )
 	eigenval, U_l, U_r	= get_eigensystem_from_kernel(kernel)
 	dimensions	= U_l[0].size
 	time_evol_mats	= np.array([np.dot(U_r[:,index], U_l.getH()[index] ) for index in range(dimensions) ] )
 	
-	time_evol	= lambda t: normed_occupations(np.sum(np.array([np.exp(eigenval[index]*t)*np.dot(time_evol_mats[index], rho0) for index in range(dimensions)]), axis=0) )
+	time_evol	= lambda rho0, t: normed_occupations(np.sum(np.array([np.exp(eigenval[index]*t)*np.dot(time_evol_mats[index], rho0) for index in range(dimensions)]), axis=0) )
 
 	return time_evol
 
