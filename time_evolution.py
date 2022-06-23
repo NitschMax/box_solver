@@ -19,11 +19,11 @@ from scipy.integrate import quad
 
 def main():
 	np.set_printoptions(precision=6)
-	eps12 	= 1e-4
-	eps23	= 0e-4
-	eps34 	= 2e-4
+	eps12 	= 1e-3
+	eps23	= 0e-3
+	eps34 	= 2e-3
 
-	eps	= 1e-5
+	eps	= 3e-3
 
 	dphi	= 1e-6
 	
@@ -52,7 +52,7 @@ def main():
 	tunnel_mult	= [0.5, 0.5, 0.5, 0.5]
 	tunnel_mult	= [1, 1, 1, 1]
 
-	model	= 2
+	model	= 3
 
 	T1	= 1e2
 	T2 	= T1
@@ -96,10 +96,6 @@ def main():
 		rho0	= sys.phi0
 		initial_cur	= sys.current
 
-		time_evo_rho	= finite_time_evolution(sys )
-		rho0		= time_evo_rho(rho0, 1e9 )
-		initial_cur	= current(sys, lead=lead)(rho0)
-
 		#print('Initial state of the system: ', rho0)
 		print('Current at initialization:', initial_cur)
 		print()
@@ -115,18 +111,14 @@ def main():
 	sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype)
 
 	sys.solve(qdq=False, rotateq=False)
+	if not pre_run:
+		phi0	= sys.phi0
 
 	print('Eigenenergies:', sys.Ea)
 	#print('Density matrix:', sys.phi0 )
 	print('Current:', sys.current )
 	print()
 
-	if not pre_run:
-		if model == 1:
-			rho0	= np.array([1, 1, 0, 0, 1, 0, 0, 0])
-			rho0	= normed_occupations(rho0 )
-		elif model == 2:
-			rho0	= abs_block(model )
 
 	current_fct	= current(sys, lead=lead)
 	stationary_sol	= stationary_state_limit(sys, rho0)
@@ -154,7 +146,7 @@ def main():
 def charge_transmission(sys, current_fct, time_evo_rho, rho0, tau=np.inf):
 	return quad(lambda x: current_fct(time_evo_rho(rho0, x) ), 0, tau)
 
-def abs_block(model):
+def abs_block():
 	num_occ		= 16
 	dof		= 128
 	rho0		= np.zeros(dof )
@@ -170,6 +162,8 @@ def model_spec_dof(rho):
 		return 4, 8
 	if model == 2:
 		return 16, 128
+	if model == 3:
+		return 8, 32
 
 def finite_time_plot(ax, sys, rho0, t, lead=0):
 	dt		= t[1]-t[0]
@@ -305,6 +299,8 @@ def box_definition(model, tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41, eps12, eps
 		maj_op, overlaps, par	= abox.majorana_leads(tb1, tb2, tb3, tt4, eps12, eps23, eps34)
 	elif model == 2:
 		maj_op, overlaps, par	= abox.abs_leads(tb1, tb11, tb2, tb21, tb3, tb31, tt4, tt41, eps)
+	elif model == 3:
+		maj_op, overlaps, par	= abox.six_maj(tb1, tb2, tb3, tt4, eps12, eps23, eps34, eps)
 	
 	return maj_op, overlaps, par
 

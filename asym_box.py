@@ -139,6 +139,20 @@ def abs_leads(tb10, tb11, tb20, tb21, tb30, tb31, tt40, tt41, eps=0):
 	par		= np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1] )
 	return maj_op, overlaps, par
 
+def six_maj(tb1, tb2, tb3, tt4, eps12=0, eps23=0, eps34=0, eps=0):
+	overlaps	= np.array([[0, eps12, 0, 0], [0, 0, eps23, 0], [0, 0, 0, eps34], [0, 0, 0, 0]] )
+	overlaps	= np.zeros((6,6) )
+	overlaps[0,1]	= eps12
+	overlaps[1,2]	= eps23
+	overlaps[2,3]	= eps34
+	overlaps[1,4]	= eps
+
+	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tb1]), fc.maj_operator(index=1, lead=[0], coupling=[tb2]), \
+					fc.maj_operator(index=2, lead=[0], coupling=[tb3]), fc.maj_operator(index=3, lead=[1], coupling=[tt4]), \
+					fc.maj_operator(index=4, lead=[], coupling=[]), fc.maj_operator(index=5, lead=[], coupling=[]) ]
+	par		= np.array([0,0,0,0,1,1,1,1])
+	return maj_op, overlaps, par
+
 def tunnel_mart(tb1, tb2, tm2, tm3, tt3, tt4):
 	tunnel=np.array([[ \
 	[ 0.+0.j, 0.+0.j, tb1-1.j*tb2, 0], \
