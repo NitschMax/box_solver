@@ -11,11 +11,11 @@ import box_class as bc
 
 def main():
 	np.set_printoptions(precision=3)
-	eps12 	= 1e-4
-	eps23	= 2e-4
-	eps34 	= 3e-4
+	eps12 	= 1e-5
+	eps23	= 2e-5
+	eps34 	= 3e-5
 
-	eps	= 1e-2
+	eps	= 1e-3
 
 	dphi	= 1e-6
 	
@@ -27,10 +27,10 @@ def main():
 	phases	= np.array([+1/2*np.pi-dphi, 0, +1/2*np.pi+dphi, 0] )
 	phases	= np.exp(1j*phases )
 
-	th	= [0.00, 0.00, 0.00, 0.00]
+	th	= [0.00, 0.20, 0.00, 0.00]
 	th	= [0.30, 0.30, 0.30, 0.30]
-	th	= [0.10, 0.40, 0.30, 0.20]
 	th	= [0.00, 0.00, 0.00, 0.00]
+	th	= [0.10, 0.20, 0.30, 0.20]
 
 	thetas	= np.array(th )*np.pi + np.array([1, 2, 3, 4] )*dphi
 
@@ -59,7 +59,7 @@ def main():
 	method	= '1vN'
 	itype	= 1
 
-	model	= 2
+	model	= 2			# 1: Simple box, 2: Box with ABSs on every connection, 3: Simple box with additional ABS within the box
 	initialization	= 1			# Determines how the system is initialized before the cycle, 0: trivial initialization, 1: stationary state of z-blockade, 2: finite time evolution in z-blockade
 
 	lead	= 0
@@ -77,31 +77,36 @@ def main():
 		phases_z	= phases
 		phases_x	= phases
 
-	waiting_time	= 1e3*1/gamma
+	waiting_time	= 1e6*1/gamma
 	n		= 10
 
-	print(factors_z, phases_z)
-	print(factors_x, phases_x)
+	print('Tunnel amplitude z-blockade, factors and phases:', factors_z, phases_z)
+	print('Tunnel amplitude x-blockade, factors and phases:', factors_x, phases_x)
 
 	Ea, tunnel_z, par	= box_preparation(t, t_u, phases_z, factors_z, theta_phases, tunnel_mult, eps12, eps23, eps34, eps, Vg, model)
 	Ea, tunnel_x, par	= box_preparation(t, t_u, phases_x, factors_x, theta_phases, tunnel_mult, eps12, eps23, eps34, eps, Vg, model)
 
+	rho0, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x	= initialize_cycle_fcts(Ea, par, tunnel_z, tunnel_x, dband, mu_lst, T_lst, method, itype, lead, model, initialization)
+
+	average_charge_of_cycle	= charge_transmission_cycle(current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, waiting_time)
+	print('The choosen cycle setup transmits per switch: ', average_charge_of_cycle )
+
+	return
+
+def initialize_cycle_fcts(Ea, par, tunnel_z, tunnel_x, dband, mu_lst, T_lst, method, itype, lead, model, initialization):
 	sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel_z, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype)
 	sys.solve(qdq=False, rotateq=False)
 	time_evo_rho_z	= te.finite_time_evolution(sys)
 	current_fct_z	= te.current(sys, lead=lead)
 
+	rho0	= state_preparation(sys, model, initialization)
+
 	sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel_x, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype)
 	sys.solve(qdq=False, rotateq=False)
 	time_evo_rho_x	= te.finite_time_evolution(sys)
 	current_fct_x	= te.current(sys, lead=lead)
-	
-	rho0	= state_preparation(sys, model, initialization)
 
-	average_charge_of_cycle	= charge_transmission_cycle(sys, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, waiting_time)
-	print('The choosen cycle setup transmits per switch: ', average_charge_of_cycle )
-
-	return
+	return rho0, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x
 
 def find_blockade(model, t, t_u, theta_phases, tunnel_mult, dphi, guess ):
 	func	= lambda x: check_for_blockade(lead_connections(model, t, t_u, [np.exp(1j*x[0]), 1, np.exp(1j*x[1]), 1], [x[2], 1, x[3], 1], theta_phases, tunnel_mult ) )
@@ -110,7 +115,7 @@ def find_blockade(model, t, t_u, theta_phases, tunnel_mult, dphi, guess ):
 	factors = np.array([result[2], 1, result[3], 1] )
 	return phases, factors
 
-def charge_transmission_cycle(sys, current_fct_1, current_fct_2, time_evo_1, time_evo_2, rho0, n, T):
+def charge_transmission_cycle(current_fct_1, current_fct_2, time_evo_1, time_evo_2, rho0, n, T):
 	rho	= rho0
 	charge_transmitted	= 0
 	integration_range	= 10
@@ -122,10 +127,12 @@ def charge_transmission_cycle(sys, current_fct_1, current_fct_2, time_evo_1, tim
 
 	for i in range(n):
 		print('Cycle {} of {}'.format(i+1, n) )
-		charge_transmitted	+= te.charge_transmission(sys, current_fct_1, time_evo_1, rho, tau=integration_range)[0]
+		charge_transmitted	+= te.charge_transmission(current_fct_1, time_evo_1, rho, tzero=0, tau=integration_range)[0]
+		#charge_transmitted	+= te.charge_transmission(current_fct_1, time_evo_1, rho, tzero=integration_range, tau=T)[0]
 		rho	= time_evo_1(rho, T)
 
-		charge_transmitted	+= te.charge_transmission(sys, current_fct_2, time_evo_2, rho, tau=integration_range)[0]
+		charge_transmitted	+= te.charge_transmission(current_fct_2, time_evo_2, rho, tzero=0, tau=integration_range)[0]
+		#charge_transmitted	+= te.charge_transmission(current_fct_2, time_evo_2, rho, tzero=integration_range, tau=T)[0]
 		rho	= time_evo_2(rho, T)
 
 	return charge_transmitted/(2*n )

@@ -137,14 +137,14 @@ def main():
 	T	= 6
 	t	= np.linspace(0, T, 1000)
 	finite_time_plot(ax, sys, rho0, t, lead=lead)
-	transm_charge	= charge_transmission(sys, current_fct, time_evo_rho, rho0, tau=5)
+	transm_charge	= charge_transmission(current_fct, time_evo_rho, rho0, tau=5)
 	print('Charge transmitted through the left lead: ', transm_charge )
 	plt.show()
 
 	return
 
-def charge_transmission(sys, current_fct, time_evo_rho, rho0, tau=np.inf):
-	return quad(lambda x: current_fct(time_evo_rho(rho0, x) ), 0, tau)
+def charge_transmission(current_fct, time_evo_rho, rho0, tzero=0, tau=np.inf):
+	return quad(lambda x: current_fct(time_evo_rho(rho0, x) ), tzero, tau)
 
 def abs_block():
 	num_occ		= 16
