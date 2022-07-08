@@ -27,10 +27,10 @@ def main():
 	phases	= np.array([+1/2*np.pi-dphi, 0, +1/2*np.pi+dphi, 0] )
 	phases	= np.exp(1j*phases )
 
-	th	= [0.00, 0.20, 0.00, 0.00]
 	th	= [0.30, 0.30, 0.30, 0.30]
 	th	= [0.00, 0.00, 0.00, 0.00]
 	th	= [0.10, 0.20, 0.30, 0.20]
+	th	= [0.00, 0.20, 0.00, 0.00]
 
 	thetas	= np.array(th )*np.pi + np.array([1, 2, 3, 4] )*dphi
 
@@ -77,8 +77,8 @@ def main():
 		phases_z	= phases
 		phases_x	= phases
 
-	waiting_time	= 1e6*1/gamma
-	n		= 10
+	waiting_time	= 1e1*1/gamma
+	n		= 2
 
 	print('Tunnel amplitude z-blockade, factors and phases:', factors_z, phases_z)
 	print('Tunnel amplitude x-blockade, factors and phases:', factors_x, phases_x)
@@ -88,9 +88,27 @@ def main():
 
 	rho0, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x	= initialize_cycle_fcts(Ea, par, tunnel_z, tunnel_x, dband, mu_lst, T_lst, method, itype, lead, model, initialization)
 
-	average_charge_of_cycle	= charge_transmission_cycle(current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, waiting_time)
-	print('The choosen cycle setup transmits per switch: ', average_charge_of_cycle )
+	#average_charge_of_cycle	= charge_transmission_cycle(current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, waiting_time)
+	#print('The choosen cycle setup transmits per switch: ', average_charge_of_cycle )
 
+	waiting_times	= np.power(10, np.linspace(1, 5, 10) )
+	timescale	= (eps/gamma)**(-1)
+	print(waiting_times)
+	fig, ax		= plt.subplots(1,1)
+
+	import time
+	zeit	= time.time()
+	charge_waiting_plot(ax, waiting_times, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, timescale=timescale)
+	print(time.time() - zeit)
+	plt.show()
+	
+
+	return
+
+def charge_waiting_plot(ax, waiting_times, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, timescale=1):
+	charge		= np.array([charge_transmission_cycle(current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, waiting_time) for waiting_time in waiting_times ] )
+	ax.plot(waiting_times/timescale, charge)
+	ax.set_xscale('log')
 	return
 
 def initialize_cycle_fcts(Ea, par, tunnel_z, tunnel_x, dband, mu_lst, T_lst, method, itype, lead, model, initialization):

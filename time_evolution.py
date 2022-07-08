@@ -273,7 +273,8 @@ def finite_time_evolution(sys):
 	dimensions	= U_l[0].size
 	time_evol_mats	= np.array([np.dot(U_r[:,index], U_l.getH()[index] ) for index in range(dimensions) ] )
 	
-	time_evol	= lambda rho0, t: normed_occupations(np.sum(np.array([np.exp(eigenval[index]*t)*np.dot(time_evol_mats[index], rho0) for index in range(dimensions)]), axis=0) )
+	#time_evol	= lambda rho0, t: normed_occupations(np.sum(np.array([np.exp(eigenval[index]*t)*np.dot(time_evol_mats[index], rho0) for index in range(dimensions)]), axis=0) )
+	time_evol	= lambda rho0, t: normed_occupations(np.matmul(np.transpose(np.tensordot(time_evol_mats, rho0, axes=1) ), np.exp(eigenval*t) ) )
 
 	return time_evol
 
