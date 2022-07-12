@@ -7,6 +7,7 @@ from scipy.optimize import minimize
 
 import time_evolution as te
 import box_class as bc
+from tunnel_scan import measure_of_vector
 
 
 def main():
@@ -28,17 +29,17 @@ def main():
 	phases	= np.exp(1j*phases )
 
 	th	= [0.30, 0.30, 0.30, 0.30]
+	th	= [+0.15, -0.40, +0.00, +0.20]
 	th	= [0.00, 0.00, 0.00, 0.00]
-	th	= [0.10, 0.20, 0.30, 0.20]
-	th	= [0.00, 0.20, 0.00, 0.00]
+	th	= [0.00, 0.00, 0.30, 0.00]
 
 	thetas	= np.array(th )*np.pi + np.array([1, 2, 3, 4] )*dphi
 
 	theta_phases	= np.exp( 1j*thetas)
 
-	tunnel_mult	= [0, 1, 1, 1]
 	tunnel_mult	= [0.3, 0.3, 0.3, 0.3]
-	tunnel_mult	= [0.4, 0.3, 0.3, 0.4]
+	tunnel_mult	= [0, 0, 0, 0]
+	tunnel_mult	= [0.8, 0.7, 0.5, 1.0]
 	tunnel_mult	= [1, 1, 1, 1]
 
 	T1	= 1e2
@@ -78,7 +79,8 @@ def main():
 		phases_x	= phases
 
 	waiting_time	= 1e1*1/gamma
-	n		= 2
+	n		= 10
+	pre_run		= 1e3
 
 	print('Tunnel amplitude z-blockade, factors and phases:', factors_z, phases_z)
 	print('Tunnel amplitude x-blockade, factors and phases:', factors_x, phases_x)
@@ -88,27 +90,42 @@ def main():
 
 	rho0, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x	= initialize_cycle_fcts(Ea, par, tunnel_z, tunnel_x, dband, mu_lst, T_lst, method, itype, lead, model, initialization)
 
-	#average_charge_of_cycle	= charge_transmission_cycle(current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, waiting_time)
+	#average_charge_of_cycle	= charge_transmission_cycle(current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, waiting_time, pre_run)
 	#print('The choosen cycle setup transmits per switch: ', average_charge_of_cycle )
 
-	waiting_times	= np.power(10, np.linspace(1, 5, 10) )
+	waiting_times	= np.power(10, np.linspace(0, 5, 50) )
 	timescale	= (eps/gamma)**(-1)
 	print(waiting_times)
 	fig, ax		= plt.subplots(1,1)
 
-	import time
-	zeit	= time.time()
-	charge_waiting_plot(ax, waiting_times, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, timescale=timescale)
-	print(time.time() - zeit)
+	den_mat_cycle_plot(ax, time_evo_rho_z, time_evo_rho_x, rho0, waiting_time, pre_run=1e3)
 	plt.show()
+	return
 	
-
+	charge_waiting_plot(ax, waiting_times, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, pre_run, timescale=timescale)
+	plt.show()
 	return
 
-def charge_waiting_plot(ax, waiting_times, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, timescale=1):
-	charge		= np.array([charge_transmission_cycle(current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, waiting_time) for waiting_time in waiting_times ] )
-	ax.plot(waiting_times/timescale, charge)
+
+def den_mat_cycle_plot(ax, time_evo_rho_z, time_evo_rho_x, rho0, waiting_time, pre_run=1e3):
+	diff_z, diff_x	= den_mat_cycle(time_evo_rho_z, time_evo_rho_x, rho0, waiting_time, pre_run=pre_run)
+	ax.plot(diff_z, label='Matrix-diff of z-blockade to x')
+	ax.plot(diff_x, label='Matrix-diff of x-blockade to x')
+	ax.legend()
+	ax.grid(True)
+	return
+
+def charge_waiting_plot(ax, waiting_times, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, pre_run, timescale=1):
+	print('Neglected charge of the order', timescale**(-2)/2*waiting_times[-1])
+	charge		= np.array([charge_transmission_cycle(current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, waiting_time, pre_run=pre_run) for waiting_time in waiting_times ] )
+	ax.plot(waiting_times/timescale, charge, label='Integrated charge')
+	#ax.plot(waiting_times/timescale, timescale**(-2)*waiting_times, label='Charge neglected by integration')
+	ax.set_xlabel(r'Blockade time $[ \epsilon^{-1} ]$')
+	ax.set_ylabel('Charge per cycle [e]')
 	ax.set_xscale('log')
+	ax.set_ylim([0, 1.2])
+	ax.legend()
+	ax.grid(True)
 	return
 
 def initialize_cycle_fcts(Ea, par, tunnel_z, tunnel_x, dband, mu_lst, T_lst, method, itype, lead, model, initialization):
@@ -133,11 +150,39 @@ def find_blockade(model, t, t_u, theta_phases, tunnel_mult, dphi, guess ):
 	factors = np.array([result[2], 1, result[3], 1] )
 	return phases, factors
 
-def charge_transmission_cycle(current_fct_1, current_fct_2, time_evo_1, time_evo_2, rho0, n, T):
+def den_mat_cycle(time_evo_1, time_evo_2, rho0, T, pre_run=1e3):
+	rho	= rho0
+	n	= int(pre_run)
+	difference_1 	= np.zeros(n)
+	difference_2 	= np.zeros(n)
+
+	print('Pre-running system {} cycles'.format(n) )
+	for k in range(n ):
+		rho	= time_evo_1(rho, T)
+		rho	= time_evo_2(rho, T)
+
+	rho_lim	= rho
+	rho	= rho0
+
+	print('Measuring density matrix convergence {} cycles'.format(n) )
+	for k in range(n ):
+		rho	= time_evo_1(rho, T)
+		difference_1[k]	= measure_of_vector(rho, rho_lim)
+		
+		rho	= time_evo_2(rho, T)
+		difference_2[k]	= measure_of_vector(rho, rho_lim)
+		
+	return difference_1, difference_2
+	
+def charge_transmission_cycle(current_fct_1, current_fct_2, time_evo_1, time_evo_2, rho0, n, T, pre_run=1e3):
 	rho	= rho0
 	charge_transmitted	= 0
-	integration_range	= 10
-	pre_run	= 1e3
+
+	if T > 20:
+		integration_range	= 20
+	else:
+		integration_range	= T
+
 	print('Pre-running system {} cycles'.format(pre_run) )
 	for k in range(int(pre_run) ):
 		rho	= time_evo_1(rho, T)
@@ -153,11 +198,13 @@ def charge_transmission_cycle(current_fct_1, current_fct_2, time_evo_1, time_evo
 		#charge_transmitted	+= te.charge_transmission(current_fct_2, time_evo_2, rho, tzero=integration_range, tau=T)[0]
 		rho	= time_evo_2(rho, T)
 
-	return charge_transmitted/(2*n )
+	return charge_transmitted/(1*n )
 		
 def state_preparation(sys, model, initialization=0):
 	if initialization==0:
-		rho0		= te.abs_block(model )
+		rho0	= sys.phi0
+		rho0[0]		= 1
+		rho0[1:]	= 0
 	elif initialization==1:
 		rho0	= sys.phi0
 	elif initialization==2:

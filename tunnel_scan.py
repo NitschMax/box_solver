@@ -344,6 +344,9 @@ def current(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model
 def matrix_measure(block_state, den_mat):
 	return np.sqrt(np.sum((block_state - den_mat)**2, axis=2) )
 
+def measure_of_vector(block_state, state):
+	return np.sqrt(np.sum(np.abs(block_state - state)**2) )
+
 def format_func(value, tick_number):
     # find number of multiples of pi/2
     N = int(np.round(2 * value / np.pi))
