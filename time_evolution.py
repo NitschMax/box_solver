@@ -205,20 +205,21 @@ def get_I_matrix(sys, sign=1, lead=0):
 	x_L	= get_x_from_sys(sys, lead=lead)
 	return sign*(-1j/2*fermi_func(sign*x_L) + digamma/(2*np.pi) )
 
-def princ_int(sys, lead=0):
+def princ_int(sys, lead=0, include_eigenenergies=1):
 	T	= sys.tlst[lead]
 	mu	= sys.mulst[lead]
 	D	= sys.dband
-	x_L	= get_x_from_sys(sys, lead)
+	x_L	= get_x_from_sys(sys, lead, include_eigenenergies=include_eigenenergies)
 	return np.real(digamma(0.5+1j*x_L/(2*np.pi) )) - np.log(D/(2*np.pi*T) )
 
-def get_x_from_sys(sys, lead=0):
+def get_x_from_sys(sys, lead=0, include_eigenenergies=1):
 	energies		= sys.Ea
 	num_occ			= energies.size
 	par_occ			= int(num_occ/2)
 	matrix_of_energydiffs	= np.zeros((par_occ, par_occ) )
 	for indices, value in np.ndenumerate(matrix_of_energydiffs):
 		matrix_of_energydiffs[indices]	= energies[indices[0] ] - energies[indices[1]+par_occ]
+	matrix_of_energydiffs	*= include_eigenenergies
 	x_L			= (-matrix_of_energydiffs - sys.mulst[lead])/sys.tlst[lead]		# Minus before energies because of indices cb for I compared to indices bc for Tba
 	return x_L
 
