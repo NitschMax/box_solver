@@ -54,10 +54,10 @@ def main():
 	
 	T_lst 	= { 0:T1 , 1:T1}
 	mu_lst 	= { 0:mu1 , 1:mu2}
-	method	= 'Redfield'
-	method	= 'Pauli'
-	method	= 'Lindblad'
-	method	= '1vN'
+	method	= 'pyRedfield'
+	method	= 'pyPauli'
+	method	= 'pyLindblad'
+	method	= 'py1vN'
 	itype	= 1
 
 	model	= 2			# 1: Simple box, 2: Box with ABSs on every connection, 3: Simple box with additional ABS within the box
@@ -79,7 +79,7 @@ def main():
 		phases_x	= phases
 
 	waiting_time	= 1e1*1/gamma
-	n		= 10
+	n		= 1
 	pre_run		= 1e3
 
 	print('Tunnel amplitude z-blockade, factors and phases:', factors_z, phases_z)
@@ -93,19 +93,19 @@ def main():
 	#average_charge_of_cycle	= charge_transmission_cycle(current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, waiting_time, pre_run)
 	#print('The choosen cycle setup transmits per switch: ', average_charge_of_cycle )
 
-	waiting_times	= np.power(10, np.linspace(0, 5, 50) )
+	waiting_times	= np.power(10, np.linspace(0, 5, 20) )
 	timescale	= (eps/gamma)**(-1)
 	print(waiting_times)
 	fig, ax		= plt.subplots(1,1)
+
+	charge_waiting_plot(ax, waiting_times, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, pre_run, timescale=timescale)
+	plt.show()
+	return
 
 	den_mat_cycle_plot(ax, time_evo_rho_z, time_evo_rho_x, rho0, waiting_time, pre_run=1e3)
 	plt.show()
 	return
 	
-	charge_waiting_plot(ax, waiting_times, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, pre_run, timescale=timescale)
-	plt.show()
-	return
-
 
 def den_mat_cycle_plot(ax, time_evo_rho_z, time_evo_rho_x, rho0, waiting_time, pre_run=1e3):
 	diff_z, diff_x	= den_mat_cycle(time_evo_rho_z, time_evo_rho_x, rho0, waiting_time, pre_run=pre_run)
@@ -178,8 +178,8 @@ def charge_transmission_cycle(current_fct_1, current_fct_2, time_evo_1, time_evo
 	rho	= rho0
 	charge_transmitted	= 0
 
-	if T > 20:
-		integration_range	= 20
+	if T > 10:
+		integration_range	= 10
 	else:
 		integration_range	= T
 

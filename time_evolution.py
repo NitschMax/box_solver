@@ -66,10 +66,10 @@ def main():
 	
 	T_lst 	= { 0:T1 , 1:T1}
 	mu_lst 	= { 0:mu1 , 1:mu2}
-	method	= 'Redfield'
-	method	= 'Pauli'
-	method	= 'Lindblad'
-	method	= '1vN'
+	method	= 'pyRedfield'
+	method	= 'pyPauli'
+	method	= 'pyLindblad'
+	method	= 'py1vN'
 	itype	= 1
 
 	lead	= 0
@@ -132,6 +132,11 @@ def main():
 
 	#print('Finite time solution via kernel: ', finite_sol)
 	print('Finite time current left lead via kernel: ', finite_cur)
+
+	sys.phi0	= finite_sol
+	sys.current.fill(0.0)
+	sys.appr.generate_current(sys.appr)
+	print('Finite time current via qmeq', sys.current)
 
 	fig,ax	= plt.subplots()
 	T	= 6
@@ -197,8 +202,15 @@ def current(sys, lead=0):
 	TbaRight	= Tba*I_matrix_plus
 	TbaLeft		= Tba*I_matrix_minus
 
-	current_rho	= lambda rho: -2*2*np.pi*np.trace(np.imag(np.dot(TbaLeft, np.dot(map_vec_to_den_mat(sys, rho), TbaRight) ) ) )
+	#current_rho	= lambda rho: -2*2*np.pi*np.trace(np.imag(np.dot(TbaLeft, np.dot(map_vec_to_den_mat(sys, rho), TbaRight) ) ) )
+	current_rho	= lambda rho: current_via_sys(sys, rho, lead)
 	return current_rho
+
+def current_via_sys(sys, rho, lead):
+	sys.phi0	= rho
+	sys.current.fill(0.0)
+	sys.appr.generate_current(sys.appr)
+	return sys.current[lead]
 
 def get_I_matrix(sys, sign=1, lead=0):
 	digamma	= princ_int(sys, lead=lead)
@@ -264,7 +276,6 @@ def stationary_state_limit(sys, rho0):
 	zero_mat	= np.dot(U_r[:,zero_ind], U_l.getH()[zero_ind] )
 	
 	lim_solution	= np.array(np.dot(zero_mat, rho0)).reshape(-1)
-
 
 	return lim_solution
 
