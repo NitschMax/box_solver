@@ -29,8 +29,8 @@ def main():
 	phases	= np.exp(1j*phases )
 
 	th	= [0.30, 0.30, 0.30, 0.30]
-	th	= [+0.15, -0.40, +0.00, +0.20]
 	th	= [0.00, 0.00, 0.00, 0.00]
+	th	= [+0.15, -0.40, +0.00, +0.20]
 	th	= [0.00, 0.00, 0.30, 0.00]
 
 	thetas	= np.array(th )*np.pi + np.array([1, 2, 3, 4] )*dphi
@@ -80,7 +80,7 @@ def main():
 
 	waiting_time	= 1e1*1/gamma
 	n		= 1
-	pre_run		= 1e3
+	pre_run		= 1e2
 
 	print('Tunnel amplitude z-blockade, factors and phases:', factors_z, phases_z)
 	print('Tunnel amplitude x-blockade, factors and phases:', factors_x, phases_x)
@@ -93,7 +93,7 @@ def main():
 	#average_charge_of_cycle	= charge_transmission_cycle(current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, waiting_time, pre_run)
 	#print('The choosen cycle setup transmits per switch: ', average_charge_of_cycle )
 
-	waiting_times	= np.power(10, np.linspace(0, 5, 20) )
+	waiting_times	= np.power(10, np.linspace(0, 9, 100) )
 	timescale	= (eps/gamma)**(-1)
 	print(waiting_times)
 	fig, ax		= plt.subplots(1,1)

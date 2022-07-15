@@ -1,6 +1,8 @@
 import time_evolution as te
 import fock_basis_rotation as fbr
 import fock_class as fc
+import numpy as np
+import qmeq
 
 def main():
 	np.set_printoptions(precision=3)
@@ -46,10 +48,10 @@ def main():
 	
 	T_lst 	= { 0:T1 , 1:T1}
 	mu_lst 	= { 0:mu1 , 1:mu2}
-	method	= 'Redfield'
-	method	= 'Pauli'
-	method	= 'Lindblad'
-	method	= '1vN'
+	method	= 'pyRedfield'
+	method	= 'pyPauli'
+	method	= 'pyLindblad'
+	method	= 'py1vN'
 	itype	= 1
 
 	model	= 1			# 1: Simple box, 2: Box with ABSs on every connection
@@ -61,7 +63,7 @@ def majorana_noise_box(tb1, tb2, tm2, tm3, tt4, eps12, ep23, eps34):
 	par		= np.array([0,0,1,1])
 	return maj_op, overlaps, par
 
-def abs_noise_box(tb10, tb11, tb20, tb21, tm20, tm21, tm30, tm31, tt40, tt41, eps=0)
+def abs_noise_box(tb10, tb11, tb20, tb21, tm20, tm21, tm30, tm31, tt40, tt41, eps=0):
 	overlaps	= fbr.default_overlaps(8, overlaps)
 
 	maj_op		=  [fc.maj_operator(index=0, lead=[0], coupling=[tb10]), fc.maj_operator(index=1, lead=[0], coupling=[tb11]), \

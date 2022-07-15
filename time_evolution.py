@@ -1,5 +1,4 @@
 import numpy as np
-import qmeq
 import matplotlib.pyplot as plt
 import os
 import fock_class as fc
@@ -9,6 +8,7 @@ import box_class as bc
 import bias_scan as bias_sc
 import tunnel_scan
 import asym_box as abox
+import cyclic_blockade as cb
 
 from time import perf_counter
 import scipy.optimize as opt
@@ -16,14 +16,16 @@ from scipy.linalg import eig
 from scipy.special import digamma
 from scipy.integrate import quad
 
+import qmeq
+
 
 def main():
 	np.set_printoptions(precision=6)
-	eps12 	= 1e-3
-	eps23	= 0e-3
-	eps34 	= 2e-3
+	eps12 	= 1e-6
+	eps23	= 1e-6
+	eps34 	= 2e-6
 
-	eps	= 3e-3
+	eps	= 1e-3
 
 	dphi	= 1e-6
 	
@@ -38,9 +40,9 @@ def main():
 	phases	= np.exp(1j*phases )
 
 	th	= [0.50, 0.50, 0.50, 0.50]
-	th	= [0.20, 0.20, 0.20, 0.20]
 	th	= [0.00, 0.00, 0.00, 0.00]
-	th	= [0.10, 0.10, 0.10, 0.10]
+	th	= [0.00, 0.00, 0.30, 0.00]
+	th	= [0.00, 0.00, 0.00, 0.00]
 
 	thetas	= np.array(th )*np.pi + np.array([1, 2, 3, 4] )*dphi
 
@@ -49,10 +51,10 @@ def main():
 	tunnel_mult	= [0, 1, 1, 1]
 	tunnel_mult	= [0.5, 0.6, 0.7, 0.8]
 	tunnel_mult	= [0.5, 1.0, 1.0, 1]
-	tunnel_mult	= [0.5, 0.5, 0.5, 0.5]
 	tunnel_mult	= [1, 1, 1, 1]
+	tunnel_mult	= [1.0, 0.0, 0.1, 0.0]
 
-	model	= 3
+	model	= 2
 
 	T1	= 1e2
 	T2 	= T1
@@ -68,8 +70,8 @@ def main():
 	mu_lst 	= { 0:mu1 , 1:mu2}
 	method	= 'pyRedfield'
 	method	= 'pyPauli'
-	method	= 'pyLindblad'
 	method	= 'py1vN'
+	method	= 'pyLindblad'
 	itype	= 1
 
 	lead	= 0
@@ -78,10 +80,9 @@ def main():
 	pre_run	= True
 	
 	if pre_run:
-		factors_pre	= [0.00, 1, 1.00, 1]
+		guess_x	= np.array([np.pi/2, np.pi/2, 0, 1] )
+		phases_pre, factors_pre	= cb.find_blockade(model, t, t_u, theta_phases, tunnel_mult, dphi, guess_x )
 
-		phases_pre	= np.array([+1/2*np.pi-dphi, 0, +1/2*np.pi+dphi, 0] )
-		phases_pre	= np.exp(1j*phases_pre )
 		tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41	= tunnel_coupl(t, t_u, phases_pre, factors_pre, theta_phases, tunnel_mult)
 		maj_op, overlaps, par	= box_definition(model, tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41, eps12, eps23, eps34, eps)
 
@@ -99,6 +100,9 @@ def main():
 		#print('Initial state of the system: ', rho0)
 		print('Current at initialization:', initial_cur)
 		print()
+
+	guess_z	= np.array([np.pi/2, np.pi/2, 1, 0] )
+	phases, factors	= cb.find_blockade(model, t, t_u, theta_phases, tunnel_mult, dphi, guess_z )
 
 	tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41	= tunnel_coupl(t, t_u, phases, factors, theta_phases, tunnel_mult)
 	maj_op, overlaps, par	= box_definition(model, tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41, eps12, eps23, eps34, eps)
@@ -120,7 +124,7 @@ def main():
 	print()
 
 
-	current_fct	= current(sys, lead=lead)
+	current_fct	= current(sys, lead=lead, include_noise=True)
 	stationary_sol	= stationary_state_limit(sys, rho0)
 	#print('Solution via kernel: ', stationary_sol)
 	kernel_cur	= current_fct(stationary_sol)
@@ -133,20 +137,49 @@ def main():
 	#print('Finite time solution via kernel: ', finite_sol)
 	print('Finite time current left lead via kernel: ', finite_cur)
 
-	sys.phi0	= finite_sol
-	sys.current.fill(0.0)
-	sys.appr.generate_current(sys.appr)
-	print('Finite time current via qmeq', sys.current)
-
 	fig,ax	= plt.subplots()
-	T	= 6
-	t	= np.linspace(0, T, 1000)
-	finite_time_plot(ax, sys, rho0, t, lead=lead)
-	transm_charge	= charge_transmission(current_fct, time_evo_rho, rho0, tau=5)
-	print('Charge transmitted through the left lead: ', transm_charge )
+	T	= 8
+	t	= 10**np.linspace(0, T, 1000)
+	t	= np.linspace(1e3, 1e4, 1000)
+	finite_time_plot(ax, sys, rho0, t, lead=lead, logx=False, logy=False, plot_charge=False, include_noise=True )
+	#transm_charge	= charge_transmission(current_fct, time_evo_rho, rho0, tau=5)
+	#print('Charge transmitted through the left lead: ', transm_charge )
+	plt.show()
+	return
+
+	energies	= np.linspace(0, 0.1, 20)
+	eigenvalue_plot(ax, model, Vg, dband, mu_lst, T_lst, method, itype, tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41, eps12, eps23, eps34, energies)
 	plt.show()
 
-	return
+def eigenvalue_plot(ax, model, Vg, dband, mu_lst, T_lst, method, itype, tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41, eps12, eps23, eps34, energies):
+	eigenvalues	= []
+	for eps in energies:
+		maj_op, overlaps, par	= box_definition(model, tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41, eps12, eps23, eps34, eps)
+
+		maj_box		= bc.majorana_box(maj_op, overlaps, Vg, 'asymmetric_box')
+		maj_box.diagonalize()
+		Ea		= maj_box.elec_en
+		tunnel		= maj_box.constr_tunnel()
+
+		sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype)
+
+		sys.solve(qdq=False, rotateq=False)
+		eigenvalues.append(quasi_stationary_states(sys) )
+	ax.set_xlabel(r'ABS overlap [$\Gamma$]')
+	ax.set_ylabel('Eigenvalues')
+	ax.grid(True)
+	ax.plot(energies, eigenvalues)
+
+def quasi_stationary_states(sys):
+	kernel		= np.matrix(sys.kern )
+	eigenval, U_l, U_r	= get_eigensystem_from_kernel(kernel)
+
+	zero_ind	= np.argmin(np.abs(eigenval ) )
+	rate_ordering	= np.argsort(np.real(eigenval) )[-16:]
+	smallest_rate	= np.abs(np.imag(eigenval[rate_ordering] ) )
+	smallest_rate	= np.real(eigenval[rate_ordering] )
+
+	return smallest_rate
 
 def charge_transmission(current_fct, time_evo_rho, rho0, tzero=0, tau=np.inf):
 	return quad(lambda x: current_fct(time_evo_rho(rho0, x) ), tzero, tau)
@@ -170,46 +203,67 @@ def model_spec_dof(rho):
 	if model == 3:
 		return 8, 32
 
-def finite_time_plot(ax, sys, rho0, t, lead=0):
+def finite_time_plot(ax, sys, rho0, t, lead=0, logx=False, logy=False, plot_charge=True, include_noise=True):
 	dt		= t[1]-t[0]
 	time_evo_rho	= finite_time_evolution(sys)
-	current_fct	= current(sys, lead=lead)
-	
+	current_fct	= current(sys, lead=lead, include_noise=include_noise)
+
 	finite_cur	= np.array([current_fct(time_evo_rho(rho0, time) ) for time in t])
+	
+	if include_noise:
+		labels		= ['Current', 'Noise']
+	else:
+		labels		= ['Current']
 	ax.plot(t, finite_cur)
 	ax.set_xlabel(r'$t \, [1/\Gamma]$')
 	ax.set_ylabel(r'$I_{trans} \, [e\Gamma]$')
 
-	ax_twin		= ax.twinx()
-	charge		= np.cumsum(finite_cur)*dt
-	color		= 'r'
-	ax_twin.plot(t, charge, c=color)
 	if lead==0:
 		lead_string	= 'left'
 	else:
 		lead_string	= 'right'
 
+	if plot_charge:
+		ax_twin		= ax.twinx()
+		charge		= np.cumsum(finite_cur)*dt
+		color		= 'r'
+		ax_twin.plot(t, charge, c=color)
+		ax_twin.set_ylabel('Charge transmitted through ' + lead_string + ' lead [e]', c=color)
+		ax_twin.tick_params(axis='y', labelcolor=color)
+
+	if logx:
+		ax.set_xscale('log')
+	if logy:
+		ax.set_yscale('log')
+
 	ax.grid(True)
-	ax_twin.set_ylabel('Charge transmitted through ' + lead_string + ' lead [e]', c=color)
-	ax_twin.tick_params(axis='y', labelcolor=color)
+	ax.legend(labels=labels)
+	return
 	
-def current(sys, lead=0):
-	Tba	= sys.Tba[lead]
-	num_occ, dof	= model_spec_dof(sys.phi0)
-	ones	= np.ones((int(num_occ/2), int(num_occ/2) ) )
-	I_matrix_plus	= np.block([[ones, get_I_matrix(sys, 1, lead=lead)*ones], [ones, ones]] )
-	I_matrix_minus	= np.block([[ones, get_I_matrix(sys, -1, lead=lead)*ones], [ones, ones]] )
-	TbaRight	= Tba*I_matrix_plus
-	TbaLeft		= Tba*I_matrix_minus
+def current(sys, lead=0, include_noise=False):
+	#Tba	= sys.Tba[lead]
+	#num_occ, dof	= model_spec_dof(sys.phi0)
+	#ones	= np.ones((int(num_occ/2), int(num_occ/2) ) )
+	#I_matrix_plus	= np.block([[ones, get_I_matrix(sys, 1, lead=lead)*ones], [ones, ones]] )
+	#I_matrix_minus	= np.block([[ones, get_I_matrix(sys, -1, lead=lead)*ones], [ones, ones]] )
+	#TbaRight	= Tba*I_matrix_plus
+	#TbaLeft		= Tba*I_matrix_minus
 
 	#current_rho	= lambda rho: -2*2*np.pi*np.trace(np.imag(np.dot(TbaLeft, np.dot(map_vec_to_den_mat(sys, rho), TbaRight) ) ) )
-	current_rho	= lambda rho: current_via_sys(sys, rho, lead)
+	current_rho	= lambda rho: current_via_sys(sys, rho, lead, include_noise=include_noise)
 	return current_rho
 
-def current_via_sys(sys, rho, lead):
+def current_via_sys(sys, rho, lead, include_noise=False):
+	sys.appr.kernel_handler.set_phi0(rho)
 	sys.phi0	= rho
 	sys.current.fill(0.0)
-	sys.appr.generate_current(sys.appr)
+
+	if include_noise:
+		sys.current_noise.fill(0.0)
+		sys.appr.generate_current_noise()
+		return np.array(sys.current_noise )
+	
+	sys.appr.generate_current()
 	return sys.current[lead]
 
 def get_I_matrix(sys, sign=1, lead=0):
@@ -270,8 +324,8 @@ def stationary_state_limit(sys, rho0):
 	eigenval, U_l, U_r	= get_eigensystem_from_kernel(kernel)
 
 	zero_ind	= np.argmin(np.abs(eigenval ) )
-	smallest_time	= sorted(np.abs(eigenval) )[1]
-	print(smallest_time )
+	smallest_time	= sorted(np.real(eigenval) )[-20:]
+	print('Slowest decay rates', smallest_time )
 
 	zero_mat	= np.dot(U_r[:,zero_ind], U_l.getH()[zero_ind] )
 	
