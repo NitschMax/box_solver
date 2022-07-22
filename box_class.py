@@ -18,6 +18,7 @@ class majorana_box:
 		self.diagonal	= False
 		self.U		= np.matrix(np.zeros((self.elec_num, self.elec_num) ) )
 		self.energies	= np.zeros(2**self.elec_num)
+		self.par	= np.concatenate((np.zeros(2**(self.elec_num-1) ), np.ones(2**(self.elec_num-1) ) ) ).astype(np.int)
 		self.elec_en	= np.zeros(2**self.elec_num)
 		self.name	= name
 		self.adj_charging(self.Vg)
@@ -27,6 +28,21 @@ class majorana_box:
 		self.energies, self.U	= fbr.rotated_system(self.elec_num, self.overlaps)
 		self.adj_charging(self.Vg)
 		self.diagonal	= True
+
+	@classmethod
+	def box_via_edges(cls, list_of_edges, Vg=0):
+		majoranas	= np.concatenate([np.array(edge.majoranas) for edge in list_of_edges] )
+		number_majoranas	= np.max([maj.index for maj in majoranas] )+1
+
+		if number_majoranas != majoranas.size:
+			print('Indices of Majoranas invalid! Can not build a box with that input.')
+			return
+
+		energy_overlaps	= np.zeros( (number_majoranas, number_majoranas) )
+		for maj in majoranas:
+			for partner_ind in maj.overlaps:
+				energy_overlaps[partner_ind, maj.index]	+= maj.overlaps[partner_ind]
+		return majorana_box(majoranas, energy_overlaps, Vg)
 
 	def adj_charging(self, Vg):
 		half_number		= int(2**self.elec_num/2 )

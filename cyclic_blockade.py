@@ -31,7 +31,7 @@ def main():
 	th	= [0.30, 0.30, 0.30, 0.30]
 	th	= [0.00, 0.00, 0.00, 0.00]
 	th	= [+0.15, -0.40, +0.00, +0.20]
-	th	= [0.00, 0.00, 0.30, 0.00]
+	th	= [0.0100, 0.0000, 0.00, 0.00]
 
 	thetas	= np.array(th )*np.pi + np.array([1, 2, 3, 4] )*dphi
 
@@ -60,7 +60,7 @@ def main():
 	method	= 'py1vN'
 	itype	= 1
 
-	model	= 2			# 1: Simple box, 2: Box with ABSs on every connection, 3: Simple box with additional ABS within the box
+	model	= 1			# 1: Simple box, 2: Box with ABSs on every connection, 3: Simple box with additional Majoranas on 1st and 2nd lead
 	initialization	= 1			# Determines how the system is initialized before the cycle, 0: trivial initialization, 1: stationary state of z-blockade, 2: finite time evolution in z-blockade
 
 	lead	= 0
@@ -81,6 +81,7 @@ def main():
 	waiting_time	= 1e1*1/gamma
 	n		= 1
 	pre_run		= 1e2
+	qs_desc		= False
 
 	print('Tunnel amplitude z-blockade, factors and phases:', factors_z, phases_z)
 	print('Tunnel amplitude x-blockade, factors and phases:', factors_x, phases_x)
@@ -88,17 +89,17 @@ def main():
 	Ea, tunnel_z, par	= box_preparation(t, t_u, phases_z, factors_z, theta_phases, tunnel_mult, eps12, eps23, eps34, eps, Vg, model)
 	Ea, tunnel_x, par	= box_preparation(t, t_u, phases_x, factors_x, theta_phases, tunnel_mult, eps12, eps23, eps34, eps, Vg, model)
 
-	rho0, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x	= initialize_cycle_fcts(Ea, par, tunnel_z, tunnel_x, dband, mu_lst, T_lst, method, itype, lead, model, initialization)
+	sys, rho0, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x	= initialize_cycle_fcts(Ea, par, tunnel_z, tunnel_x, dband, mu_lst, T_lst, method, itype, lead, model, initialization, qs_desc)
 
-	#average_charge_of_cycle	= charge_transmission_cycle(current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, waiting_time, pre_run)
+	#average_charge_of_cycle, overlap	= charge_transmission_cycle(current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, waiting_time, sys, pre_run)
 	#print('The choosen cycle setup transmits per switch: ', average_charge_of_cycle )
 
-	waiting_times	= np.power(10, np.linspace(0, 9, 100) )
+	waiting_times	= np.power(10, np.linspace(-0, 9, 10) )
 	timescale	= (eps/gamma)**(-1)
 	print(waiting_times)
 	fig, ax		= plt.subplots(1,1)
 
-	charge_waiting_plot(ax, waiting_times, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, pre_run, timescale=timescale)
+	charge_waiting_plot(ax, waiting_times, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, pre_run, sys, timescale=timescale)
 	plt.show()
 	return
 
@@ -115,33 +116,35 @@ def den_mat_cycle_plot(ax, time_evo_rho_z, time_evo_rho_x, rho0, waiting_time, p
 	ax.grid(True)
 	return
 
-def charge_waiting_plot(ax, waiting_times, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, pre_run, timescale=1):
+def charge_waiting_plot(ax, waiting_times, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, pre_run, sys, timescale=1):
 	print('Neglected charge of the order', timescale**(-2)/2*waiting_times[-1])
-	charge		= np.array([charge_transmission_cycle(current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, waiting_time, pre_run=pre_run) for waiting_time in waiting_times ] )
-	ax.plot(waiting_times/timescale, charge, label='Integrated charge')
+	charge		= np.array([charge_transmission_cycle(current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x, rho0, n, waiting_time, sys, pre_run=pre_run) for waiting_time in waiting_times ] )
+	labels	= ['Integrated charge', r'1- Tr$[\rho_1.\rho_2]$']
+	ax.plot(waiting_times/timescale, charge[:,0])
+	ax.plot(waiting_times/timescale, 1-charge[:,1])
 	#ax.plot(waiting_times/timescale, timescale**(-2)*waiting_times, label='Charge neglected by integration')
 	ax.set_xlabel(r'Blockade time $[ \epsilon^{-1} ]$')
 	ax.set_ylabel('Charge per cycle [e]')
 	ax.set_xscale('log')
 	ax.set_ylim([0, 1.2])
-	ax.legend()
+	ax.legend(labels=labels)
 	ax.grid(True)
 	return
 
-def initialize_cycle_fcts(Ea, par, tunnel_z, tunnel_x, dband, mu_lst, T_lst, method, itype, lead, model, initialization):
+def initialize_cycle_fcts(Ea, par, tunnel_z, tunnel_x, dband, mu_lst, T_lst, method, itype, lead, model, initialization, qs_desc):
 	sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel_z, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype)
 	sys.solve(qdq=False, rotateq=False)
-	time_evo_rho_z	= te.finite_time_evolution(sys)
+	time_evo_rho_z	= te.finite_time_evolution(sys, qs_desc)
 	current_fct_z	= te.current(sys, lead=lead)
 
 	rho0	= state_preparation(sys, model, initialization)
 
 	sys		= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel_x, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype)
 	sys.solve(qdq=False, rotateq=False)
-	time_evo_rho_x	= te.finite_time_evolution(sys)
+	time_evo_rho_x	= te.finite_time_evolution(sys, qs_desc)
 	current_fct_x	= te.current(sys, lead=lead)
 
-	return rho0, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x
+	return sys, rho0, current_fct_z, current_fct_x, time_evo_rho_z, time_evo_rho_x
 
 def find_blockade(model, t, t_u, theta_phases, tunnel_mult, dphi, guess ):
 	func	= lambda x: check_for_blockade(lead_connections(model, t, t_u, [np.exp(1j*x[0]), 1, np.exp(1j*x[1]), 1], [x[2], 1, x[3], 1], theta_phases, tunnel_mult ) )
@@ -174,7 +177,7 @@ def den_mat_cycle(time_evo_1, time_evo_2, rho0, T, pre_run=1e3):
 		
 	return difference_1, difference_2
 	
-def charge_transmission_cycle(current_fct_1, current_fct_2, time_evo_1, time_evo_2, rho0, n, T, pre_run=1e3):
+def charge_transmission_cycle(current_fct_1, current_fct_2, time_evo_1, time_evo_2, rho0, n, T, sys, pre_run=1e3):
 	rho	= rho0
 	charge_transmitted	= 0
 
@@ -188,17 +191,20 @@ def charge_transmission_cycle(current_fct_1, current_fct_2, time_evo_1, time_evo
 		rho	= time_evo_1(rho, T)
 		rho	= time_evo_2(rho, T)
 
+	overlap	= 0
 	for i in range(n):
 		print('Cycle {} of {}'.format(i+1, n) )
 		charge_transmitted	+= te.charge_transmission(current_fct_1, time_evo_1, rho, tzero=0, tau=integration_range)[0]
-		#charge_transmitted	+= te.charge_transmission(current_fct_1, time_evo_1, rho, tzero=integration_range, tau=T)[0]
+		rho_pl	= rho
 		rho	= time_evo_1(rho, T)
+		overlap	+= np.abs(np.trace(np.matmul(te.map_vec_to_den_mat(sys, rho_pl), te.map_vec_to_den_mat(sys, rho) ) ) )
 
 		charge_transmitted	+= te.charge_transmission(current_fct_2, time_evo_2, rho, tzero=0, tau=integration_range)[0]
-		#charge_transmitted	+= te.charge_transmission(current_fct_2, time_evo_2, rho, tzero=integration_range, tau=T)[0]
+		rho_pl	= rho
 		rho	= time_evo_2(rho, T)
+		overlap	+= np.abs(np.trace(np.matmul(te.map_vec_to_den_mat(sys, rho_pl), te.map_vec_to_den_mat(sys, rho) ) ) )
 
-	return charge_transmitted/(1*n )
+	return charge_transmitted/(1*n ), (overlap/(2*n) )
 		
 def state_preparation(sys, model, initialization=0):
 	if initialization==0:
@@ -213,7 +219,7 @@ def state_preparation(sys, model, initialization=0):
 
 def lead_connections(model, t, t_u, phases, factors, theta_phases, tunnel_mult, lead=0):
 	tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41	= te.tunnel_coupl(t, t_u, phases, factors, theta_phases, tunnel_mult)
-	if model == 1 or model == 3:
+	if model == 1:
 		if lead	== 0:
 			tunnel_amplitudes	= [tb1, tb2, tb3]
 		elif lead == 1:
@@ -223,6 +229,11 @@ def lead_connections(model, t, t_u, phases, factors, theta_phases, tunnel_mult, 
 			tunnel_amplitudes	= [tb1, tb2, tb3, tb11, tb21, tb31]
 		elif lead == 1:
 			tunnel_amplitudes	= [tt4, tt41]
+	elif model == 3:
+		if lead	== 0:
+			tunnel_amplitudes	= [tb1, tb2, tb3, tb11, tb21]
+		elif lead == 1:
+			tunnel_amplitudes	= [tt4]
 	return np.array(tunnel_amplitudes )
 
 def check_for_blockade(tunnel_amplitudes ):

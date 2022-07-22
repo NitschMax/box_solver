@@ -1,65 +1,37 @@
 import time_evolution as te
 import fock_basis_rotation as fbr
 import fock_class as fc
+import box_class as bc
+import time_evolution as te
+
+import setup as set
+
+import matplotlib.pyplot as plt
 import numpy as np
 import qmeq
 
 def main():
-	np.set_printoptions(precision=3)
-	eps12 	= 1e-5
-	eps23	= 2e-5
-	eps34 	= 3e-5
+	np.set_printoptions(precision=6)
+	sys	= qmeq.Builder_many_body(Ea=set.Ea, Na=set.par, Tba=set.tunnel, dband=set.dband, mulst=set.mu_lst, tlst=set.T_lst, kerntype=set.method, itype=set.itype, countingleads=[0])
 
-	eps	= 1e-3
+	sys.solve(qdq=False, rotateq=False)
+	print(sys.current)
 
-	dphi	= 1e-6
-	
-	gamma 	= 1e+0
-	gamma_u	= 1e+0
-	t 	= np.sqrt(gamma/(2*np.pi))+0.j
-	t_u	= np.sqrt(gamma_u/(2*np.pi))+0.j
+	fig, ax	= plt.subplots(1,1)
+	logx	= True
+	logy	= True
+	plot_charge	= False
+	i_n	= True
+	rho0	= np.array([1, 1, 1, 1, 0, 0, 0, 0] )
+	t	= 10**np.linspace(-1, 2, 100)
+	te.finite_time_plot(ax, sys, rho0, t, logx=logx, logy=logy, plot_charge=plot_charge, i_n=i_n)
+	plt.show()
 
-	phases	= np.array([+1/2*np.pi-dphi, 0, +1/2*np.pi+dphi, 0] )
-	phases	= np.exp(1j*phases )
 
-	th	= [0.30, 0.30, 0.30, 0.30]
-	th	= [+0.15, -0.40, +0.00, +0.20]
-	th	= [0.00, 0.00, 0.00, 0.00]
-	th	= [0.00, 0.00, 0.30, 0.00]
-
-	thetas	= np.array(th )*np.pi + np.array([1, 2, 3, 4] )*dphi
-
-	theta_phases	= np.exp( 1j*thetas)
-
-	tunnel_mult	= [0.3, 0.3, 0.3, 0.3]
-	tunnel_mult	= [0, 0, 0, 0]
-	tunnel_mult	= [0.8, 0.7, 0.5, 1.0]
-	tunnel_mult	= [1, 1, 1, 1]
-
-	T1	= 1e2
-	T2 	= T1
-
-	v_bias	= 2e3
-	mu1	= v_bias/2
-	mu2	= -v_bias/2
-
-	dband	= 1e5
-	Vg	= +0e1
-	
-	T_lst 	= { 0:T1 , 1:T1}
-	mu_lst 	= { 0:mu1 , 1:mu2}
-	method	= 'pyRedfield'
-	method	= 'pyPauli'
-	method	= 'pyLindblad'
-	method	= 'py1vN'
-	itype	= 1
-
-	model	= 1			# 1: Simple box, 2: Box with ABSs on every connection
-
-def majorana_noise_box(tb1, tb2, tm2, tm3, tt4, eps12, ep23, eps34):
-	overlaps	= np.array([[0, eps12, 0, 0], [0, 0, eps23, 0], [0, 0, 0, eps34], [0, 0, 0, 0]] )
-	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tb1]), fc.maj_operator(index=1, lead=[0,1], coupling=[tb2,tm2]), \
-					fc.maj_operator(index=2, lead=[1], coupling=[tm3]), fc.maj_operator(index=3, lead=[2], coupling=[tt4]) ]
+def majorana_noise_box(tc, energies):
+	overlaps	= np.diag(energies, k=1)
+	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tc[0]]), fc.maj_operator(index=1, lead=[0,1], coupling=[tc[1],tc[2]]), \
+					fc.maj_operator(index=2, lead=[1], coupling=[tc[3]]), fc.maj_operator(index=3, lead=[2], coupling=[tc[4]]) ]
 	par		= np.array([0,0,1,1])
 	return maj_op, overlaps, par
 

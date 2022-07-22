@@ -76,21 +76,32 @@ class fock_state:
 		return self.valid
 		
 class maj_operator:
-	def __init__(self, index, fac=1, lead=[], coupling=[]):
+	def __init__(self, index, fac=1, lead=[], coupling=[], overlaps={}):
 		self.index	= index
 		self.fac	= fac
 		self.lead	= lead
 		if len(lead) != len(coupling):
 			print('The coupling to the leads is not valid. This can case mistakes in the tunneling.')
 		self.coupling	= coupling
+		self.overlaps	= overlaps
 
 		if len(self.lead) >= 0:
 			self.couples	= True
 		else:
 			self.couples	= False
 
+	@classmethod
+	def from_edge(cls, index, edge, wf_factor=1, wf_phase_angle=0, overlaps={}):
+		new_majorana	= maj_operator(index, fac=1, lead=edge.cl, coupling=edge.tunnelings*wf_factor*np.exp(1j*wf_phase_angle), overlaps=overlaps )
+		edge.majoranas.append(new_majorana)
+		return new_majorana
+
 	def greet(self):
-		print('Hello World! I am {}. I couple to lead nr. {} with t={}'.format(self.__str__(), self.lead, self.coupling) )
+		print('Hello World! I am the Majorana operator {}. I couple to lead nr. {} with t={}'.format(self.__str__(), self.lead, np.array_str(self.coupling, precision=3 ) ) )
+		if len(self.overlaps) == 0:
+			print('Currently I have no overlaps with other Majoranas')
+		else:
+			print('I have overlaps with the Majoranas {}'.format(self.overlaps.keys() ) )
 
 	def __str__(self):
 		return '{}*gamma_{}'.format(self.fac, self.index)
