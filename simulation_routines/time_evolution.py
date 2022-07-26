@@ -296,16 +296,18 @@ def partial_current(sys, lead=0, i_n=False):
 	current_p	= lambda ind: -2*2*np.pi*np.trace(np.imag(np.dot(TbaLeft, np.dot(map_vec_to_den_mat(sys, U_r[:,ind]), TbaRight) ) ) )
 	return current_p
 
-def current(sys, lead=0, i_n=False):
-	#Tba	= sys.Tba[lead]
-	#num_occ, dof	= model_spec_dof(sys.phi0)
-	#ones	= np.ones((int(num_occ/2), int(num_occ/2) ) )
-	#I_matrix_plus	= np.block([[ones, get_I_matrix(sys, 1, lead=lead)*ones], [ones, ones]] )
-	#I_matrix_minus	= np.block([[ones, get_I_matrix(sys, -1, lead=lead)*ones], [ones, ones]] )
-	#TbaRight	= Tba*I_matrix_plus
-	#TbaLeft		= Tba*I_matrix_minus
+def current_self_implemented(sys, lead=0, i_n=False):
+	Tba	= sys.Tba[lead]
+	num_occ, dof	= model_spec_dof(sys.phi0)
+	ones	= np.ones((int(num_occ/2), int(num_occ/2) ) )
+	I_matrix_plus	= np.block([[ones, get_I_matrix(sys, 1, lead=lead)*ones], [ones, ones]] )
+	I_matrix_minus	= np.block([[ones, get_I_matrix(sys, -1, lead=lead)*ones], [ones, ones]] )
+	TbaRight	= Tba*I_matrix_plus
+	TbaLeft		= Tba*I_matrix_minus
+	current_rho	= lambda rho: -2*2*np.pi*np.trace(np.imag(np.dot(TbaLeft, np.dot(map_vec_to_den_mat(sys, rho), TbaRight) ) ) )
+	return current_rho
 
-	#current_rho	= lambda rho: -2*2*np.pi*np.trace(np.imag(np.dot(TbaLeft, np.dot(map_vec_to_den_mat(sys, rho), TbaRight) ) ) )
+def current(sys, lead=0, i_n=False):
 	current_rho	= lambda rho: current_via_sys(sys, rho, lead, i_n=i_n)
 	return current_rho
 
