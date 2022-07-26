@@ -1,14 +1,14 @@
+import time_evolution as te
+from tunnel_scan import measure_of_vector
+
+import box_class as bc
+
 import numpy as np
 import qmeq
 import matplotlib.pyplot as plt
 import os
 
 from scipy.optimize import minimize
-
-import time_evolution as te
-import box_class as bc
-from tunnel_scan import measure_of_vector
-
 
 def main():
 	np.set_printoptions(precision=3)

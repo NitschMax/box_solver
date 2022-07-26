@@ -10,8 +10,8 @@ def main():
 	tRu		= t
 	tRd		= t
 
-	maj_op		= [fc.maj_operator(index=0, lead=0, coupling=tLu), fc.maj_operator(index=1, lead=1, coupling=tRu), \
-		fc.maj_operator(index=2, lead=0, coupling=tLd), fc.maj_operator(index=3, lead=1, coupling=tRd) ]
+	maj_op		= [fc.maj_operator(index=0, lead=[0], coupling=[tLu]), fc.maj_operator(index=1, lead=[1], coupling=[tRu]), \
+		fc.maj_operator(index=2, lead=[0], coupling=[tLd]), fc.maj_operator(index=3, lead=[1], coupling=[tRd]) ]
 	tunnel		= constr_tunnel_mat(N, maj_op)
 	print(tunnel)
 

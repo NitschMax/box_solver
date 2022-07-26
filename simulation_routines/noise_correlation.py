@@ -1,10 +1,10 @@
+import setup as set
 import time_evolution as te
+
 import fock_basis_rotation as fbr
 import fock_class as fc
 import box_class as bc
-import time_evolution as te
 
-import setup as set
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,7 +12,7 @@ import qmeq
 
 def main():
 	np.set_printoptions(precision=6)
-	sys	= qmeq.Builder_many_body(Ea=set.Ea, Na=set.par, Tba=set.tunnel, dband=set.dband, mulst=set.mu_lst, tlst=set.T_lst, kerntype=set.method, itype=set.itype, countingleads=[0])
+	sys	= qmeq.Builder_many_body(Ea=set.Ea, Na=set.par, Tba=set.tunnel, dband=set.dband, mulst=set.mu_lst, tlst=set.T_lst, kerntype=set.method, itype=set.itype, countingleads=set.leads )
 
 	sys.solve(qdq=False, rotateq=False)
 	print(sys.current)

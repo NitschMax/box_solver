@@ -1,15 +1,16 @@
+import bias_scan as bias_sc
+import tunnel_scan
+
 import numpy as np
 import qmeq
 import matplotlib.pyplot as plt
 import os
+
 import fock_class as fc
 import fock_tunnel_mat as ftm
 import fock_basis_rotation as fbr
 import box_class as bc
-import bias_scan as bias_sc
-import tunnel_scan
 
-from time import perf_counter
 import scipy.optimize as opt
 
 def main():
