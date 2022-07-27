@@ -150,10 +150,10 @@ class transport_setup:
 			edgy2 	= ec.edge(self.phi2, [0], [self.gamma_02])
 			edgy3 	= ec.edge(self.phi3, [1], [self.gamma_e3])
 		elif self.box_symmetry == 3:
-			edgy0 	= ec.edge(self.phi0, [0], [gamma_00])
-			edgy1 	= ec.edge(self.phi1, [0, 1], [self.gamma_01, self.gamma11])
-			edgy2 	= ec.edge(self.phi2, [1], [gamma_12])
-			edgy3 	= ec.edge(self.phi3, [2], [gamma_e3])
+			edgy0 	= ec.edge(self.phi0, [0], [self.gamma_00])
+			edgy1 	= ec.edge(self.phi1, [0, 1], [self.gamma_01, self.gamma_11])
+			edgy2 	= ec.edge(self.phi2, [1], [self.gamma_12])
+			edgy3 	= ec.edge(self.phi3, [2], [self.gamma_e3])
 		
 		edgy0.create_majorana(0)
 		edgy1.create_majorana(1, overlaps={0: self.eps01})
