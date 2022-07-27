@@ -186,8 +186,6 @@ def main():
 	plt.tight_layout()
 	plt.show()
 
-
-
 def current(phase, maj_box, t, Ea, dband, mu_lst, T_lst, method):
 	phi_1	= phase
 	phi_3	= -phase

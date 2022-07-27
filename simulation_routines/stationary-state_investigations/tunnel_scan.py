@@ -1,6 +1,9 @@
+import help_functions as hf
+
+import asym_box as box
+
 import numpy as np
 import scipy.optimize as opt
-import asym_box as box
 import qmeq
 import matplotlib.pyplot as plt
 import data_directory as dd
@@ -329,9 +332,9 @@ def current(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model
 	tt41	= tt4*theta_phases[3]*tunnel_mult[3]
 
 	if model == 1:
-		maj_op, overlaps, par	= box.majorana_leads(tb1, tb2, tb3, tt4)
+		maj_op, overlaps, par	= abox.majorana_leads(tb1, tb2, tb3, tt4)
 	else:
-		maj_op, overlaps, par	= box.abs_leads(tb1, tb11, tb2, tb21, tb3, tb31, tt4, tt41)
+		maj_op, overlaps, par	= abox.abs_leads(tb1, tb11, tb2, tb21, tb3, tb31, tt4, tt41)
 
 	maj_box.change(majoranas = maj_op)
 	tunnel		= maj_box.constr_tunnel()
@@ -343,9 +346,6 @@ def current(phases, factors, maj_box, t, Ea, dband, mu_lst, T_lst, method, model
 
 def matrix_measure(block_state, den_mat):
 	return np.sqrt(np.sum((block_state - den_mat)**2, axis=2) )
-
-def measure_of_vector(block_state, state):
-	return np.sqrt(np.sum(np.abs(block_state - state)**2) )
 
 def format_func(value, tick_number):
     # find number of multiples of pi/2

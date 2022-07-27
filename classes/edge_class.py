@@ -1,5 +1,5 @@
 import numpy as np
-import help_functions_setup as hf
+import help_functions as hf
 import fock_class as fc
 
 class edge:

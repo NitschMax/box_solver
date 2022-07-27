@@ -23,7 +23,17 @@ class majorana_box:
 		self.name	= name
 		self.adj_charging(self.Vg)
 		self.states	= fc.set_of_fock_states(self.elec_num)
+		self.blockade_cond	= 1
 		
+	def calculate_blockade_cond(self, lead=0):
+		self.blockade_cond	= 0
+		for majorana in self.majoranas:
+			for connection in majorana.lead:
+				if connection == lead:
+					self.blockade_cond	+= majorana.coupling**2
+		self.blockade_cond	= np.abs(self.blockade_cond)
+		return self.blockade_cond
+	
 	def diagonalize(self):
 		self.energies, self.U	= fbr.rotated_system(self.elec_num, self.overlaps)
 		self.adj_charging(self.Vg)

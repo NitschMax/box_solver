@@ -203,22 +203,6 @@ def abs_tree_leads(tb10, tb11, tb20, tb21, tm20, tm21, tm30, tm31, tt30, tt31, t
 	par		= np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1] )
 	return maj_op, overlaps, par
 
-def tunnel_mart(tb1, tb2, tm2, tm3, tt3, tt4):
-	tunnel=np.array([[ \
-	[ 0.+0.j, 0.+0.j, tb1-1.j*tb2, 0], \
-	[ 0.+0.j, 0.+0.j, 0.+0.j, tb1+1.j*tb2], \
-	[ np.conj(tb1)+1.j*np.conj(tb2), 0.+0.j, 0.+0.j, 0.+0.j], \
-	[ 0.+0.j, np.conj(tb1)-1.j*np.conj(tb2), 0.+0.j, 0.+0.j]], \
-	[[ 0.+0.j, 0.+0.j, -1.j*tm2, tm3], \
-	[  0.+0.j, 0.+0.j, -tm3, 1.j*tm2], \
-	[ 1.j*np.conj(tm2), -np.conj(tm3), 0.+0.j, 0.+0.j], \
-	[ np.conj(tm3), -1.j*np.conj(tm2), 0.+0.j, 0.+0.j]], \
-	[[ 0.+0.j, 0.+0.j, 0.+0.j, tt3-1.j*tt4], \
-	[  0.+0.j, 0.+0.j, -tt3-1.j*tt4, 0.+0.j], \
-	[ 0.+0.j, -np.conj(tt3)+1.j*np.conj(tt4), 0.+0.j, 0.+0.j], \
-	[ np.conj(tt3)+1.j*np.conj(tt4), 0.+0.j, 0.+0.j, 0.+0.j]]])
-	return tunnel
-
 def format_func(value, tick_number):
     # find number of multiples of pi/2
     N = int(np.round(2 * value / np.pi))
