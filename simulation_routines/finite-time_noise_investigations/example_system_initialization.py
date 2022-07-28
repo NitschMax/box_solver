@@ -1,3 +1,7 @@
+from sys import path
+path.append('../../classes')
+path.append('../../qmeq_noise_version')
+
 import setup as set
 import time_evolution as te
 
