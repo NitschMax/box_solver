@@ -8,12 +8,13 @@ from scipy.optimize import minimize
 from copy import copy
 
 class transport_setup:
-	def __init__(self, dband, method, itype, counting_leads, model, box_symmetry, eps01, eps12, eps23, eps, dphi, gamma_00, gamma_01, gamma_02, gamma_e2, gamma_e3, gamma_11, gamma_12, \
+	def __init__(self, dband, method, itype, counting_leads, i_n, model, box_symmetry, eps01, eps12, eps23, eps, dphi, gamma_00, gamma_01, gamma_02, gamma_e2, gamma_e3, gamma_11, gamma_12, \
 			phi0, phi1, phi2, phi3, factor0, factor1, factor2, factor3, th0, th1, th2, th3, T_0, T_1, T_e, v_bias, Vg ):
 		self.dband	= dband
 		self.method	= method
 		self.itype	= itype
 		self.counting_leads	= counting_leads
+		self.i_n		= i_n
 		self.model		= model			# 1: Majorana box, 	2: Box with ABSs on every connection
 		self.box_symmetry	= box_symmetry		# 1: Simple Box,	2: Asymmetric Box,			3: Asymmetric Box with three leads
 
@@ -81,7 +82,10 @@ class transport_setup:
 			print('Can not use builder of qmeq as no Majorana box assigned or connected')
 			return None
 		else:
-			return Builder_many_body(Ea=self.Ea, Na=self.par, Tba=self.tunnel, dband=self.dband, mulst=self.mu_lst, tlst=self.T_lst, kerntype=self.method, itype=self.itype, countingleads=self.counting_leads )
+			if self.i_n:
+				return Builder_many_body(Ea=self.Ea, Na=self.par, Tba=self.tunnel, dband=self.dband, mulst=self.mu_lst, tlst=self.T_lst, kerntype=self.method, itype=self.itype, countingleads=self.counting_leads )
+			else:
+				return Builder_many_body(Ea=self.Ea, Na=self.par, Tba=self.tunnel, dband=self.dband, mulst=self.mu_lst, tlst=self.T_lst, kerntype=self.method, itype=self.itype)
 
 	def adjust_to_z_blockade(self, gamma=1.0):
 		if self.box_symmetry == 1:

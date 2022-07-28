@@ -15,6 +15,7 @@ def create_transport_setup():
 	box_symmetry	= 2		# 1: Simple Box,	2: Asymmetric Box,			3: Asymmetric Box with three leads
 	
 	counting_leads		= [0]
+	i_n			= False		### Flag to determine wether to include noise calculations; i_n means include_noise
 	
 	### Overlaps between Majorans with numbers 0, 1, 2, 3
 	eps01 	= 1e-6
@@ -75,7 +76,7 @@ def create_transport_setup():
 	method	= 'py1vN'
 	itype	= 1
 
-	t_set	= tsc.transport_setup(dband, method, itype, counting_leads, model, box_symmetry, eps01, eps12, eps23, eps, dphi, \
+	t_set	= tsc.transport_setup(dband, method, itype, counting_leads, i_n, model, box_symmetry, eps01, eps12, eps23, eps, dphi, \
 			gamma_00, gamma_01, gamma_02, gamma_e2, gamma_e3, gamma_11, gamma_12, phi0, phi1, phi2, phi3, factor0, factor1, factor2, factor3, th0, th1, th2, th3, T_0, T_1, T_e, v_bias, Vg )
 	return t_set
 
