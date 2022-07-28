@@ -22,4 +22,7 @@ def main():
 	sys	= t_set.build_qmeq_sys()
 
 	sys.solve(qdq=False, rotateq=False)
+	print(sys.current)
 
+if __name__=='__main__':
+	main()
