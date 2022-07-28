@@ -52,6 +52,8 @@ class transport_setup:
 		self.th1	= th1
 		self.th2	= th2
 		self.th3	= th3
+
+		### Parameters for the construction of leads
 		self.T_0	= T_0
 		self.T_1 	= T_1
 		self.T_e 	= T_e
@@ -59,9 +61,11 @@ class transport_setup:
 		self.Vg		= Vg
 		self.dband	= dband
 
+		### Method specification
 		self.method	= method
 		self.itype	= itype
 
+		### Parameters for the qmeq Many body builder that are calculated via class routines
 		self.Ea		= None
 		self.par	= None
 		self.tunnel	= None
@@ -181,14 +185,14 @@ class transport_setup:
 		if not self.box_assigned:
 			print('No box to connect in the transport setup')
 			return
-
-		self.maj_box.diagonalize()
+		else:
+			self.maj_box.diagonalize()
 	
-		self.Ea		= self.maj_box.elec_en
-		self.par	= self.maj_box.par
-		self.tunnel	= self.maj_box.constr_tunnel()
+			self.Ea		= self.maj_box.elec_en
+			self.par	= self.maj_box.par
+			self.tunnel	= self.maj_box.constr_tunnel()
 
-		self.box_connected	= True
+			self.box_connected	= True
 
 	def copy(self):
 		return copy(self )

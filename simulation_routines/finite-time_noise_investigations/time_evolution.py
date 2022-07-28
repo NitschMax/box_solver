@@ -150,13 +150,6 @@ def quasi_stationary_states(sys, real=True, imag=False):
 def charge_transmission(current_fct, time_evo_rho, rho0, tzero=0, tau=np.inf):
 	return quad(lambda x: current_fct(time_evo_rho(rho0, x) ), tzero, tau)
 
-def abs_block():
-	num_occ		= 16
-	dof		= 128
-	rho0		= np.zeros(dof )
-	rho0[0]		= 1
-	return rho0
-
 def model_spec_dof(rho):
 	dof	= rho.size
 	num_occ	= int(np.sqrt(2*dof) )
@@ -351,28 +344,6 @@ def get_eigensystem_from_kernel(kernel):
 	U_r		= np.dot(U_r, inverse_norm)
 	return eigenval, U_l, U_r
 
-def box_definition(model, tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41, eps12, eps23, eps34, eps):
-	if model == 1:
-		maj_op, overlaps, par	= abox.majorana_leads(tb1, tb2, tb3, tt4, eps12, eps23, eps34)
-	elif model == 2:
-		maj_op, overlaps, par	= abox.abs_leads(tb1, tb11, tb2, tb21, tb3, tb31, tt4, tt41, eps)
-	elif model == 3:
-		maj_op, overlaps, par	= abox.six_maj(tb1, tb2, tb3, tt4, eps12, eps23, eps34, eps, tb11=tb11, tb21=tb21)
-	
-	return maj_op, overlaps, par
-
-def tunnel_coupl(t, t_u, phases, factors, theta_phases, tunnel_mult):
-	tb1	= t*phases[0]*factors[0]
-	tb2     = t*phases[1]*factors[1]
-	tb3     = t*phases[2]*factors[2]
-	tt4	= t_u*phases[3]*factors[3]
-
-	tb11	= tb1*theta_phases[0]*tunnel_mult[0]
-	tb21	= tb2*theta_phases[1]*tunnel_mult[1]
-	tb31	= tb3*theta_phases[2]*tunnel_mult[2]
-	tt41	= tt4*theta_phases[3]*tunnel_mult[3]
-
-	return tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41
 
 if __name__=='__main__':
 	main()
