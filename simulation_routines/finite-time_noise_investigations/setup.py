@@ -52,11 +52,11 @@ def create_transport_setup():
 	factor3	= 1
 	
 	### Relative wavefct phase-angles for second Majoranas at each edge; only relevant for ABSs
-	th0	= 0.30
-	th1	= 0.00
+	th0	= 0.30*np.pi
+	th1	= 0.10*np.pi
 	### Irrelevant for model 3
-	th2	= 0.00
-	th3	= 0.00
+	th2	= 0.00*np.pi
+	th3	= 0.00*np.pi
 	
 	T_0	= 1e2
 	T_1 	= T_0

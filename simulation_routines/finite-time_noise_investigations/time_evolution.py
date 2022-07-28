@@ -44,17 +44,20 @@ def main():
 	t_set_z	= t_set_x.copy()
 	t_set_z.adjust_to_z_blockade()
 
+	t_set_z.initialize_leads()
+	t_set_z.initialize_box()
 	t_set_z.connect_box()
+
 	sys_z	= t_set_z.build_qmeq_sys()
 
 	sys_z.solve(qdq=False, rotateq=False)
 	if not pre_run:
 		phi0	= sys_z.phi0
 
-	lead	= 1
-	i_n	= True
+	lead	= [0,1]
+	i_n	= t_set_z.i_n
 
-	current_fct_z	= current(sys_z, lead=lead, i_n=i_n)
+	current_fct_z	= current(sys_z, i_n=i_n)
 	#stationary_sol	= stationary_state_limit(sys_z, rho0)
 	#print('Solution via kernel: ', stationary_sol)
 	#kernel_cur	= current_fct(stationary_sol)
@@ -71,12 +74,11 @@ def main():
 	fig,ax	= plt.subplots()
 
 	logx	= False
-	logy	= False
+	logy	= True
 	qs_desc	= False
-	i_n	= True
 	T	= 9
-	t	= 10**np.linspace(0, T, 1000)
-	t	= np.linspace(0e1, 1e1, 1000)
+	t	= 10**np.linspace(0, T, 1000 )
+	t	= np.linspace(0e1, 1e1, 1000 )
 	finite_time_plot(ax, sys_z, rho0, t, lead=lead, logx=logx, logy=logy, plot_charge=False, i_n=i_n, qs_desc=qs_desc )
 	#transm_charge	= charge_transmission(current_fct, time_evo_rho, rho0, tau=5)
 	#print('Charge transmitted through the left lead: ', transm_charge )
@@ -156,30 +158,27 @@ def model_spec_dof(rho):
 	return num_occ, dof
 
 
-def finite_time_plot(ax, sys, rho0, t, lead=0, logx=False, logy=False, plot_charge=True, i_n=True, qs_desc=False):
+def finite_time_plot(ax, sys, rho0, t, lead=[0], logx=False, logy=False, plot_charge=True, i_n=True, qs_desc=False):
 	dt		= t[1]-t[0]
 	time_evo_rho	= finite_time_evolution(sys, qs_desc=qs_desc)
-	current_fct	= current(sys, lead=lead, i_n=i_n)
+	current_fct	= current(sys, i_n=i_n)
 
 	finite_cur	= np.array([current_fct(time_evo_rho(rho0, time) ) for time in t])
 	
 	if i_n:
 		labels		= ['Current', 'Noise']
+		ax.plot(t, finite_cur )
 	else:
-		labels		= ['Current']
-	if np.less(finite_cur[:,0], 0).all() and logy:
-		ax.plot(t, -finite_cur[:,0])
-		labels		= ['Negative Current', 'Noise']
-	else:
-		ax.plot(t, finite_cur[:,0])
-	ax.plot(t, finite_cur[:,1])
+		labels		= []
+		for k in lead:
+			labels.append('Current via lead {}'.format(k) )
+			if np.less(finite_cur[:,k], 0).all() and logy:
+				ax.plot(t, -finite_cur[:,k])
+			else:
+				ax.plot(t, finite_cur[:,k])
+
 	ax.set_xlabel(r'$t \, [1/\Gamma]$')
 	ax.set_ylabel(r'$I_{trans} \, [e\Gamma]$')
-
-	if lead==0:
-		lead_string	= 'left'
-	else:
-		lead_string	= 'right'
 
 	if plot_charge:
 		ax_twin		= ax.twinx()
@@ -224,13 +223,13 @@ def current_self_implemented(sys, lead=0, i_n=False):
 	current_rho	= lambda rho: -2*2*np.pi*np.trace(np.imag(np.dot(TbaLeft, np.dot(map_vec_to_den_mat(sys, rho), TbaRight) ) ) )
 	return current_rho
 
-def current(sys, lead=0, i_n=False):
-	current_rho	= lambda rho: current_via_sys(sys, rho, lead, i_n=i_n)
+def current(sys, i_n=False):
+	current_rho	= lambda rho: current_via_sys(sys, rho, i_n=i_n)
 	return current_rho
 
-def current_via_sys(sys, rho, lead, i_n=False):
-	sys.appr.kernel_handler.set_phi0(rho)
+def current_via_sys(sys, rho, i_n=False):
 	sys.phi0	= rho
+	sys.appr.kernel_handler.set_phi0(rho)
 	sys.current.fill(0.0)
 
 	if i_n:
@@ -239,7 +238,7 @@ def current_via_sys(sys, rho, lead, i_n=False):
 		return np.array(sys.current_noise )
 	
 	sys.appr.generate_current()
-	return sys.current[lead]
+	return np.array(sys.current )
 
 def get_I_matrix(sys, sign=1, lead=0):
 	digamma	= princ_int(sys, lead=lead)
