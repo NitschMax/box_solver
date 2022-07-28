@@ -1,7 +1,6 @@
 import numpy as np
 from sys import path
 path.append('../../classes')
-path.append('../../qmeq_noise_version')
 
 import help_functions as hf
 
