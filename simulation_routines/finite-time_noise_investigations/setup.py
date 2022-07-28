@@ -8,15 +8,15 @@ import transport_setup_class as tsc
 
 
 def create_transport_setup():
-	model		= 1		# 1: Majorana box, 	2: Box with ABSs on every connection
+	model		= 3		# 1: Majorana box, 	2: Box with ABSs on every connection	3: Two ABSs and two Majoranas
 	box_symmetry	= 2		# 1: Simple Box,	2: Asymmetric Box,			3: Asymmetric Box with three leads
 	
 	counting_leads		= [0]
 	
 	### Overlaps between Majorans with numbers 0, 1, 2, 3
-	eps01 	= 0e-5
-	eps12 	= 1e-3
-	eps23	= 0e-5
+	eps01 	= 1e-6
+	eps12 	= 0e-6
+	eps23	= 2e-6
 	
 	### Overlaps between ABSs
 	eps	= 1e-3
@@ -32,7 +32,7 @@ def create_transport_setup():
 	gamma_e3	= 1e-0
 	
 	gamma_11	= 0e-3		## Only reelvant for asym Box with three leads
-	gamma_12	= 1e-3		## Only reelvant for asym Box with three leads
+	gamma_12	= 0e-3		## Only reelvant for asym Box with three leads
 	
 	### Phases of the edges 0, 1, 2, 3
 	phi0	= +1/2*np.pi-dphi
@@ -43,13 +43,15 @@ def create_transport_setup():
 	### Wavefct factors for second Majoranas at each edge; only relevant for ABSs
 	factor0	= 1
 	factor1	= 1
+	### Irrelevant for model 3
 	factor2	= 1
 	factor3	= 1
 	
 	### Relative wavefct phase-angles for second Majoranas at each edge; only relevant for ABSs
 	th0	= 0.30
 	th1	= 0.00
-	th2	= 0.10
+	### Irrelevant for model 3
+	th2	= 0.00
 	th3	= 0.00
 	
 	T_0	= 1e2
