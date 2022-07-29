@@ -89,7 +89,12 @@ class transport_setup:
 
 	def adjust_to_z_blockade(self, gamma=1.0):
 		if self.box_symmetry == 1:
-			print('Blockade in z-basis only well defined for asymmetric box')
+			self.gamma_02	= 0.0
+			self.gamma_01	= gamma
+			self.phi1	= 0.0
+			opt_func	= lambda x: self.tune_couplings_to_z_blockade(x)
+			guess		= [1.0, 1/2*np.pi]					## Blockade-condition for z-blockade in a pure majorana box
+			result		= minimize(opt_func, guess).x
 		elif self.box_symmetry == 3:
 			self.gamma_00	= gamma
 			self.gamma_01	= gamma
@@ -112,7 +117,7 @@ class transport_setup:
 	
 	def adjust_to_x_blockade(self, gamma=1.0):
 		if self.box_symmetry == 1:
-			print('Blockade in x-basis only well defined for asymmetric box')
+			self.adjust_to_z_blockade(self, gamma)
 		elif self.box_symmetry == 3:
 			self.gamma_00	= 0.0
 			self.gamma_01	= 0.0
@@ -169,13 +174,13 @@ class transport_setup:
 		edgy3.create_majorana(3, overlaps={2: self.eps23})
 
 		if self.model == 2:
-			edgy0.create_majorana(4, wf_factor=self.factor0, wf_phase_angle=self.th0, overlaps={0: self.eps})
-			edgy1.create_majorana(5, wf_factor=self.factor1, wf_phase_angle=self.th1, overlaps={1: self.eps})
-			edgy2.create_majorana(6, wf_factor=self.factor2, wf_phase_angle=self.th2, overlaps={2: self.eps})
-			edgy3.create_majorana(7, wf_factor=self.factor3, wf_phase_angle=self.th3, overlaps={3: self.eps})
+			edgy0.create_majorana(4, wf_factor=self.factor0, wf_phase_angle=self.th0, overlaps={0: 0.5*self.eps})
+			edgy1.create_majorana(5, wf_factor=self.factor1, wf_phase_angle=self.th1, overlaps={1: 1.0*self.eps})
+			edgy2.create_majorana(6, wf_factor=self.factor2, wf_phase_angle=self.th2, overlaps={2: 1.5*self.eps})
+			edgy3.create_majorana(7, wf_factor=self.factor3, wf_phase_angle=self.th3, overlaps={3: 2.0*self.eps})
 		elif self.model == 3:
-			edgy0.create_majorana(4, wf_factor=self.factor0, wf_phase_angle=self.th0, overlaps={0: self.eps})
-			edgy1.create_majorana(5, wf_factor=self.factor1, wf_phase_angle=self.th1, overlaps={1: self.eps})
+			edgy0.create_majorana(4, wf_factor=self.factor0, wf_phase_angle=self.th0, overlaps={0: 1.0*self.eps})
+			edgy1.create_majorana(5, wf_factor=self.factor1, wf_phase_angle=self.th1, overlaps={1: 2.0*self.eps})
 		
 		edge_lst	= np.array([edgy0, edgy1, edgy2, edgy3], dtype='object')
 		maj_box		= bc.majorana_box.box_via_edges(edge_lst, self.Vg)

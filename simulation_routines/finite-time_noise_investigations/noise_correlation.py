@@ -1,5 +1,6 @@
 import setup as set
 import time_evolution as te
+import cyclic_blockade as cb
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,18 +21,18 @@ def main():
 
 	sys.solve(qdq=False, rotateq=False)
 
+	print(sys.current_noise)
+	print(sys.current_noise[0]/sys.current_noise[1])
 
-	#sys	= qmeq.Builder_many_body(Ea=t_set.Ea, Na=t_set.par, Tba=t_set.tunnel, dband=t_set.dband, mulst=t_set.mu_lst, tlst=t_set.T_lst, kerntype=t_set.method, itype=t_set.itype, countingleads=t_set.leads )
-	#sys.solve(qdq=False, rotateq=False)
+	return
 
-	print(sys.current)
 	fig, ax	= plt.subplots(1,1)
 	logx	= True
-	logy	= True
+	logy	= False
 	plot_charge	= False
-	i_n	= True
-	#rho0	= np.array([1, 1, 1, 1, 0, 0, 0, 0] )
-	rho0	= sys.phi0
+	i_n	= t_set.i_n
+	initialization	= 1
+	rho0	= cb.state_preparation(sys, initialization)
 	t	= 10**np.linspace(-1, 2, 100)
 	te.finite_time_plot(ax, sys, rho0, t, logx=logx, logy=logy, plot_charge=plot_charge, i_n=i_n)
 	plt.show()
