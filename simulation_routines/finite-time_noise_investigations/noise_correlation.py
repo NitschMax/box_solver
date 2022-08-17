@@ -19,24 +19,20 @@ def main():
 
 	sys	= t_set.build_qmeq_sys()
 
-	sys.solve(qdq=False, rotateq=False)
+	current	= []
+	for k in range(3):
+		t_set.counting_leads	= [k]
+		sys	= t_set.build_qmeq_sys()
+		sys.solve(qdq=False, rotateq=False)
 
-	print(sys.current_noise)
-	print(sys.current_noise[0]/sys.current_noise[1])
+		current.append(sys.current_noise )
+	
+	current	= np.array(current)
+	print(current)
+	noise_correlation	= current[2,1] - current[0,1] - current[1,1]
+	print(noise_correlation)
 
 	return
-
-	fig, ax	= plt.subplots(1,1)
-	logx	= True
-	logy	= False
-	plot_charge	= False
-	i_n	= t_set.i_n
-	initialization	= 1
-	rho0	= cb.state_preparation(sys, initialization)
-	t	= 10**np.linspace(-1, 2, 100)
-	te.finite_time_plot(ax, sys, rho0, t, logx=logx, logy=logy, plot_charge=plot_charge, i_n=i_n)
-	plt.show()
-
 
 if __name__=='__main__':
 	main()

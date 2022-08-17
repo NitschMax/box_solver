@@ -20,8 +20,9 @@ def main():
 	t_set.connect_box()
 
 	sys	= t_set.build_qmeq_sys()
-
 	sys.solve(qdq=False, rotateq=False)
+	print(te.map_vec_to_den_mat(sys, sys.phi0) )
+
 	print(sys.current)
 
 if __name__=='__main__':

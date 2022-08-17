@@ -11,14 +11,19 @@ def main():
 
 	t_set	= set.create_transport_setup()
 
-	#t_set.adjust_to_z_blockade()
+	t_set.adjust_to_z_blockade()
 
 	t_set.initialize_leads()
 	t_set.initialize_box()
 	t_set.connect_box()
-	sys	= t_set.build_qmeq_sys()
+
+	t_set.maj_box.print_eigenstates()
 	
-	phi_range	= np.pi/2+np.linspace(-1e-5, 1e-5, 100)
+
+	sys	= t_set.build_qmeq_sys()
+	sys.solve(qdq=False, rotateq=False)
+
+	phi_range	= np.pi/2+np.linspace(-1e-1, 1e-1, 100)
 	phi_range	= np.linspace(0, np.pi, 400)
 	fig, ax		= plt.subplots(1,1)
 	current_noise_plot_phi0(sys, t_set, ax, phi_range)
@@ -43,13 +48,14 @@ def current_noise_plot_phi0(sys, t_set, ax, phi_range):
 	ax.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
 	ax.set_xlabel(r'$\phi_0$')
 	ax.set_ylabel('current/noise')
-	ax.set_ylim( [ 0.5, 2] )
+	#ax.set_ylim( [ 0.5, 2] )
 	ax.grid(True)
 
 	ax_twin	= ax.twinx()
-	ax_twin.plot(phi_range, current, c='g')
+	ax_twin.plot(phi_range, current, c='r')
 	ax_twin.set_ylim(bottom=0)
 	ax_twin.set_ylabel(r'current [$e\Gamma$]')
+	ax_twin.yaxis.get_label().set_color('r')
 
 def format_func(value, tick_number):
     # find number of multiples of pi/2
