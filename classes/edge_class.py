@@ -14,6 +14,11 @@ class edge:
 		self.majoranas	= []
 		self.check_validity(print_pos_answer=False)
 
+	def change_phase_angle(self, angle):
+		self.angle	= angle
+		self.phase	= np.exp(1j*angle)
+		self.tunnelings	= hf.tunnel_from_gamma(self.rates)*self.phase
+
 	def check_validity(self, print_pos_answer=True):
 		if self.rates.size == self.cl.size:
 			if print_pos_answer:

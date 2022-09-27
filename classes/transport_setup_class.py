@@ -70,10 +70,12 @@ class transport_setup:
 		self.Ea		= None
 		self.par	= None
 		self.tunnel	= None
+		self.edges	= None
 		self.maj_box	= None
 		self.T_lst	= None
 		self.mu_lst	= None
 		self.leads_initialized	= False
+		self.edges_assigned	= False
 		self.box_assigned	= False
 		self.box_connected	= False
 
@@ -151,6 +153,42 @@ class transport_setup:
 			self.mu_lst 	= { 0:mu_0, 1:mu_e}
 		self.leads_initialized	= True
 
+	def classify_edges(self, lead):
+		potential_edges	= 1*np.array([lead in edgy.cl for edgy in self.edges], dtype='bool')		## Find out which edges are connected to lead
+		return potential_edges
+
+	def tune_phases(self, angles, lead ):
+		#edge_classif	= self.classify_edges(lead)
+		edge_classif	= np.array([1,0,1,0] )
+		edge_phase_angles	= np.array([self.phi0, self.phi1, self.phi2, self.phi3] )
+		angles			= edge_classif*angles + (1-edge_classif)*edge_phase_angles		## Make sure that only the phaseangles of edges attached to lead are changed
+		self.phi0, self.phi1, self.phi2, self.phi3	= angles
+		self.initialize_box()
+		return self.maj_box.calculate_blockade_cond(lead)
+
+	def block_via_phases(self, lead=0):
+		angles_zero	= np.array([np.pi/4, 0, np.pi/3, 0] )
+		opt_func	= lambda x: self.tune_phases(x, lead)
+		bnds		= ((0, 2*np.pi), (0, 2*np.pi), (0, 2*np.pi), (0, 2*np.pi) )
+		min_res		= minimize(opt_func, angles_zero, tol=self.dphi**2, options={'maxiter':1000}, bounds=bnds )
+		return
+
+	def tune_rates(self, rates, lead ):
+		edge_classif	= np.array([1,0,1,0] )
+		edge_rates	= np.array([self.gamma_00, self.gamma_01, self.gamma_02, self.gamma_e3] )
+		rates			= edge_classif*rates + (1-edge_classif)*edge_rates		## Make sure that only the rates of edges attached to lead are changed
+		self.gamma_00, self.gamma_01, self.gamma_02, self.gamma_e3	= rates
+		self.initialize_box()
+		return self.maj_box.calculate_blockade_cond(lead)
+
+	def block_via_rates(self, lead=0):
+		rates_zero	= np.array([1,1,1,1] )
+		opt_func	= lambda x: self.tune_rates(x, lead)
+		bnds		= ((0, np.inf), (0, np.inf), (0, np.inf), (0, np.inf) )
+		min_res		= minimize(opt_func, rates_zero, tol=self.dphi**2, options={'maxiter':10000}, bounds=bnds )
+		return
+
+
 	def initialize_box(self):
 		if self.box_symmetry == 1:
 			edgy0 	= ec.edge(self.phi0, [0], [self.gamma_00])
@@ -174,17 +212,19 @@ class transport_setup:
 		edgy3.create_majorana(3, overlaps={2: self.eps23})
 
 		if self.model == 2:
-			edgy0.create_majorana(4, wf_factor=self.factor0, wf_phase_angle=self.th0, overlaps={0: 0.5*self.eps})
-			edgy1.create_majorana(5, wf_factor=self.factor1, wf_phase_angle=self.th1, overlaps={1: 1.0*self.eps})
-			edgy2.create_majorana(6, wf_factor=self.factor2, wf_phase_angle=self.th2, overlaps={2: 1.5*self.eps})
-			edgy3.create_majorana(7, wf_factor=self.factor3, wf_phase_angle=self.th3, overlaps={3: 2.0*self.eps})
-		elif self.model == 3:
 			edgy0.create_majorana(4, wf_factor=self.factor0, wf_phase_angle=self.th0, overlaps={0: 1.0*self.eps})
-			edgy1.create_majorana(5, wf_factor=self.factor1, wf_phase_angle=self.th1, overlaps={1: 2.0*self.eps})
+			edgy1.create_majorana(5, wf_factor=self.factor1, wf_phase_angle=self.th1, overlaps={1: 0.0*self.eps})
+			edgy2.create_majorana(6, wf_factor=self.factor2, wf_phase_angle=self.th2, overlaps={2: 0.0*self.eps})
+			edgy3.create_majorana(7, wf_factor=self.factor3, wf_phase_angle=self.th3, overlaps={3: 0.0*self.eps})
+		elif self.model == 3:
+			edgy0.create_majorana(4, wf_factor=self.factor0, wf_phase_angle=self.th0, overlaps={0: +1.0*self.eps})
+			edgy1.create_majorana(5, wf_factor=self.factor1, wf_phase_angle=self.th1, overlaps={1: +0.0*self.eps})
 		
 		edge_lst	= np.array([edgy0, edgy1, edgy2, edgy3], dtype='object')
+		self.edges	= edge_lst
 		maj_box		= bc.majorana_box.box_via_edges(edge_lst, self.Vg)
 		self.assign_box(maj_box)
+		return maj_box
 
 	def assign_box(self, maj_box):
 		self.maj_box	= maj_box

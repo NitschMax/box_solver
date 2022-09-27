@@ -32,8 +32,8 @@ def main():
 	epsR = +0e-3
 
 	epsLu	= +1e-3
-	epsLd	= +0e-4
-	epsRu	= +4e-6
+	epsLd	= +1e-6
+	epsRu	= +2e-6
 	epsRd	= +3e-6
 
 	epsMu	= +2e-6
@@ -42,12 +42,12 @@ def main():
 	model	= 1
 
 	deviat	= +0e-3
-	dphi	= +1e-6
+	dphi	= +1e-3
 	deviatR	= 0*deviat
 
 	gamma 	= 1.0e-0
 	t 	= np.sqrt(gamma/(2*np.pi))+0.j
-	phi	= +1/2*np.pi
+	phi	= +0/2*np.pi
 	phase	= np.exp( 1j*phi + 1j*dphi )
 	phaseR	= np.exp(+0j/2*np.pi + 1j*dphi )
 	theta_u	= np.exp( 0.0j/5*np.pi + 1j*1e-6 )
@@ -98,17 +98,6 @@ def main():
 	sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype)
 
 	sys.solve(qdq=False, rotateq=False)
-	print(sys.Tba)
-	return
-
-	kernel	= sys.kern
-	print(kernel)
-	#itype	= 2
-	#sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype)
-
-	#sys.solve(qdq=False, rotateq=False)
-	#print(kernel - sys.kern)
-	eigensys	= eig(kernel)
 
 	print('Eigenenergies:', sys.Ea)
 	print('Density matrix:', sys.phi0 )
@@ -183,6 +172,7 @@ def main():
 		blockade_figure	= True
 		phi	= np.pi/2
 		lw	= 5
+		points	= 100
 
 		fig, ax	= plt.subplots(1, 1)
 		epsU		= epsUgen
@@ -190,7 +180,7 @@ def main():
 		dphi		= 0e-3
 		faktorA		= 1 - deviat
 		faktorR		= 1.0
-		angles, I	= phase_plot_calculate(maj_box, vary_left, vary_right, model, gamma, dband, mu_lst, T_lst, method, itype, faktorA, faktorB, faktorU, faktorD, faktorR, theta_u, theta_d, phi, dphi, phaseR, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd, blockade_figure=blockade_figure)
+		angles, I	= phase_plot_calculate(maj_box, vary_left, vary_right, model, gamma, dband, mu_lst, T_lst, method, itype, faktorA, faktorB, faktorU, faktorD, faktorR, theta_u, theta_d, phi, dphi, phaseR, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd, points=points, blockade_figure=blockade_figure)
 		phase_plot_paint(fig, ax, angles, I, vary_left, vary_right, blockade_figure=blockade_figure, lw=lw)
 
 		epsLu		= epsLugen
@@ -199,21 +189,21 @@ def main():
 		dphi		= 0e-3
 		faktorA		= 1 - deviat
 		faktorR		= 1
-		angles, I	= phase_plot_calculate(maj_box, vary_left, vary_right, model, gamma, dband, mu_lst, T_lst, method, itype, faktorA, faktorB, faktorU, faktorD, faktorR, theta_u, theta_d, phi, dphi, phaseR, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd, blockade_figure=blockade_figure)
+		angles, I	= phase_plot_calculate(maj_box, vary_left, vary_right, model, gamma, dband, mu_lst, T_lst, method, itype, faktorA, faktorB, faktorU, faktorD, faktorR, theta_u, theta_d, phi, dphi, phaseR, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd, points=points, blockade_figure=blockade_figure)
 		ax.plot(angles, I, linewidth=lw, c='r', linestyle='solid' )
 
 		model		= 2
 		epsLu		= epsLugen
+		epsU		= 0
 		deviat		= 0e-4
 		dphi		= 0e-3
 		faktorA		= 1 - deviat
 		faktorB		= faktorA
 		faktorR		= 1
-		angles, I	= phase_plot_calculate(maj_box, vary_left, vary_right, model, gamma, dband, mu_lst, T_lst, method, itype, faktorA, faktorB, faktorU, faktorD, faktorR, theta_u, theta_d, phi, dphi, phaseR, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd, points=1000, blockade_figure=blockade_figure )
-		ax.plot(angles, I, linewidth=lw, c='g', linestyle='solid' )
+		angles, I	= phase_plot_calculate(maj_box, vary_left, vary_right, model, gamma, dband, mu_lst, T_lst, method, itype, faktorA, faktorB, faktorU, faktorD, faktorR, theta_u, theta_d, phi, dphi, phaseR, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd, points=points, blockade_figure=blockade_figure )
+		ax.plot(angles, I, linewidth=lw, c='g', linestyle='dashed' )
 
 		plt.show()
-		plt.close(fig)
 		return
 		
 		epsU		= epsUgen
@@ -317,7 +307,8 @@ def main():
 		faktorR		= 1
 		angles, I	= phase_plot_calculate(maj_box, vary_left, vary_right, model, gamma, dband, mu_lst, T_lst, method, itype, faktorA, faktorB, faktorU, faktorD, faktorR, theta_u, theta_d, phi, dphi, phaseR, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd, points=1000, blockade_figure=blockade_figure )
 		ax.plot(angles, I, linewidth=lw, c='g', linestyle='dashed' )
-
+		
+		plt.show()
 
 	energy_plot	= True
 	energy_plot	= False
@@ -438,7 +429,7 @@ def bias_plot_create(maj_box, par, tunnel, dband, T_lst, mu_lst, method, itype, 
 
 	points	= 100
 	m_bias	= mu_lst[0] - mu_lst[1]
-	x	= np.linspace(-m_bias, m_bias, points)
+	x	= np.linspace(-2*m_bias, 2*m_bias, points)
 	y	= x
 	
 	X,Y	= np.meshgrid(x, y)
@@ -459,6 +450,8 @@ def bias_plot_create(maj_box, par, tunnel, dband, T_lst, mu_lst, method, itype, 
 	ax1.set_xlabel(r'$ \alpha_g V_g/T$', fontsize=fs)
 	ax1.set_ylabel(r'$V_{b}/T$', fontsize=fs)
 	ax1.tick_params(labelsize=fs)
+	ax1.set_xticks([-40, 0, 40])
+	ax1.set_yticks([-40, 0, 40])
 	cbar.ax.set_ylim(-1, 1 )
 	cbar.ax.locator_params(axis='y', nbins=7 )
 	cbar.ax.set_title(r'$I/e \Gamma$', size=fs, y=1.05)

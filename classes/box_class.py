@@ -28,9 +28,9 @@ class majorana_box:
 	def calculate_blockade_cond(self, lead=0):
 		self.blockade_cond	= 0
 		for majorana in self.majoranas:
-			for connection in majorana.lead:
+			for idx, connection in np.ndenumerate(majorana.lead):
 				if connection == lead:
-					self.blockade_cond	+= majorana.coupling**2
+					self.blockade_cond	+= majorana.coupling[idx]**2
 		self.blockade_cond	= np.abs(self.blockade_cond)
 		return self.blockade_cond
 	

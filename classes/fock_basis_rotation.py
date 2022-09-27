@@ -19,6 +19,12 @@ def main():
 
 def default_overlaps(N, eps=[]):
 	half_number	= int(N/2)
+	print('Be careful, default_overlaps changed. Check fock_basis_rotation')
+	if len(eps) != 0:
+		overlaps	= np.ravel([np.array(eps), np.zeros(half_number) ], order='F')[:-1]
+		overlaps	= np.diag(overlaps, k=1)
+		return overlaps
+		
 	if len(eps) != half_number:
 		eps	= np.ones(half_number)
 	nullen		= np.zeros((1, N ) )
