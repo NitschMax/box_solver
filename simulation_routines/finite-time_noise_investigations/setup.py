@@ -42,17 +42,17 @@ def create_transport_setup():
 	gamma_12	= 1e-0		## Only reelvant for asym Box with three leads
 	
 	### Phases of the edges 0, 1, 2, 3
-	phi0	= +1/9*np.pi-dphi
+	phi0	= +1/2*np.pi-dphi
 	phi1	= 0
 	phi2	= +0/2*np.pi-dphi
 	phi3	= 0
 	
 	### Wavefct factors for second Majoranas at each edge; only relevant for ABSs
-	factor0	= 0.0
-	factor1	= 0.0
+	factor0	= 1.0
+	factor1	= 1.0
 	### Irrelevant for model 3
-	factor2	= 0.0
-	factor3	= 0.0
+	factor2	= 1.0
+	factor3	= 1.0
 	
 	### Relative wavefct phase-angles for second Majoranas at each edge; only relevant for ABSs in models 2 and 3
 	th0	= 0.00*np.pi
