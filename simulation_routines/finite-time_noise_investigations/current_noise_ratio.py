@@ -25,6 +25,16 @@ def main():
 	sys	= t_set.build_qmeq_sys()
 	sys.solve(qdq=False, rotateq=False)
 
+	phi_idx	= 0
+
+	fig, ax		= plt.subplots(1,1)
+	phi_range	= np.linspace(0, np.pi, 100)
+	phi_range	= np.pi/2+np.linspace(-1e-2, 1e-2, 40)
+	current_noise_plot_phi0(sys, t_set, ax, phi_range, phi_idx)
+	plt.show()
+
+	return
+
 	points	= 10
 	fig, axes		= plt.subplots(1,2)
 	logsc	= True
@@ -35,15 +45,6 @@ def main():
 
 	tunnel_sweep_plot(sys, t_set, fig, axes, points, logscale=logsc)
 	plt.show()
-	return
-
-	phi_idx	= 2
-
-	phi_range	= np.pi/2+np.linspace(-1e-2, 1e-2, 10)
-	phi_range	= np.linspace(0, np.pi, 400)
-	current_noise_plot_phi0(sys, t_set, ax, phi_range, phi_idx)
-	plt.show()
-
 	return
 
 def sweep_func(sys, t_set, t0, t2):

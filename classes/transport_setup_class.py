@@ -8,8 +8,8 @@ from scipy.optimize import minimize
 from copy import copy
 
 class transport_setup:
-	def __init__(self, dband, method, itype, counting_leads, i_n, model, box_symmetry, eps01, eps12, eps23, eps, dphi, gamma_00, gamma_01, gamma_02, gamma_e2, gamma_e3, gamma_11, gamma_12, \
-			phi0, phi1, phi2, phi3, factor0, factor1, factor2, factor3, th0, th1, th2, th3, T_0, T_1, T_e, v_bias, Vg ):
+	def __init__(self, dband, method, itype, counting_leads, i_n, model, box_symmetry, eps01, eps12, eps23, eps_abs_0, eps_abs_1, eps_abs_2, eps_abs_3, dphi, \
+			gamma_00, gamma_01, gamma_02, gamma_e2, gamma_e3, gamma_11, gamma_12, phi0, phi1, phi2, phi3, factor0, factor1, factor2, factor3, th0, th1, th2, th3, T_0, T_1, T_e, v_bias, Vg ):
 		self.dband	= dband
 		self.method	= method
 		self.itype	= itype
@@ -24,7 +24,11 @@ class transport_setup:
 		self.eps23	= eps23
 
 		### Overlaps between ABSs
-		self.eps	= eps
+		self.eps_abs_0	= eps_abs_0
+		self.eps_abs_1	= eps_abs_1
+		self.eps_abs_2	= eps_abs_2
+		self.eps_abs_3	= eps_abs_3
+
 		self.dphi	= dphi
 
 		### Rates for the connections between leads 0,1,e and edges 0,1,2,3
@@ -212,13 +216,13 @@ class transport_setup:
 		edgy3.create_majorana(3, overlaps={2: self.eps23})
 
 		if self.model == 2:
-			edgy0.create_majorana(4, wf_factor=self.factor0, wf_phase_angle=self.th0, overlaps={0: 1.0*self.eps})
-			edgy1.create_majorana(5, wf_factor=self.factor1, wf_phase_angle=self.th1, overlaps={1: 0.0*self.eps})
-			edgy2.create_majorana(6, wf_factor=self.factor2, wf_phase_angle=self.th2, overlaps={2: 0.0*self.eps})
-			edgy3.create_majorana(7, wf_factor=self.factor3, wf_phase_angle=self.th3, overlaps={3: 0.0*self.eps})
+			edgy0.create_majorana(4, wf_factor=self.factor0, wf_phase_angle=self.th0, overlaps={0: self.eps_abs_0})
+			edgy1.create_majorana(5, wf_factor=self.factor1, wf_phase_angle=self.th1, overlaps={1: self.eps_abs_1})
+			edgy2.create_majorana(6, wf_factor=self.factor2, wf_phase_angle=self.th2, overlaps={2: self.eps_abs_2})
+			edgy3.create_majorana(7, wf_factor=self.factor3, wf_phase_angle=self.th3, overlaps={3: self.eps_abs_3})
 		elif self.model == 3:
-			edgy0.create_majorana(4, wf_factor=self.factor0, wf_phase_angle=self.th0, overlaps={0: +1.0*self.eps})
-			edgy1.create_majorana(5, wf_factor=self.factor1, wf_phase_angle=self.th1, overlaps={1: +0.0*self.eps})
+			edgy0.create_majorana(4, wf_factor=self.factor0, wf_phase_angle=self.th0, overlaps={0: self.eps_abs_0})
+			edgy1.create_majorana(5, wf_factor=self.factor1, wf_phase_angle=self.th1, overlaps={1: self.eps_abs_1})
 		
 		edge_lst	= np.array([edgy0, edgy1, edgy2, edgy3], dtype='object')
 		self.edges	= edge_lst
