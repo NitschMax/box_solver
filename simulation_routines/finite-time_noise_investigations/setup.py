@@ -18,15 +18,15 @@ def create_transport_setup():
 	i_n			= True		### Flag to include noise calculations; i_n means include_noise
 	
 	### Overlaps between Majorans with numbers 0, 1, 2, 3
-	eps01 	= 1e-6
-	eps12 	= 2e-6
-	eps23	= 3e-6
+	eps01 	= 0e-6
+	eps12 	= 0e-6
+	eps23	= 0e-6
 	
 	### Overlaps between ABSs
-	eps_abs_0	= 0.5*1e-3
-	eps_abs_1	= 1.0*1e-3
-	eps_abs_2	= 1.5*1e-3
-	eps_abs_3	= 2.0*1e-3
+	eps_abs_0	= 0.0*1e-3
+	eps_abs_1	= 0.0*1e-3
+	eps_abs_2	= 0.0*1e-2
+	eps_abs_3	= 0.0*1e-4
 	
 	dphi	= 1e-6
 	
@@ -48,11 +48,11 @@ def create_transport_setup():
 	phi3	= 0
 	
 	### Wavefct factors for second Majoranas at each edge; only relevant for ABSs
-	factor0	= 1.0
-	factor1	= 1.0
+	factor0	= 0.0
+	factor1	= 0.0
 	### Irrelevant for model 3
-	factor2	= 1.0
-	factor3	= 1.0
+	factor2	= 0.0
+	factor3	= 0.0
 	
 	### Relative wavefct phase-angles for second Majoranas at each edge; only relevant for ABSs in models 2 and 3
 	th0	= 0.00*np.pi

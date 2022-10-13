@@ -123,7 +123,7 @@ class transport_setup:
 	
 	def adjust_to_x_blockade(self, gamma=1.0):
 		if self.box_symmetry == 1:
-			self.adjust_to_z_blockade(self, gamma)
+			self.adjust_to_z_blockade(gamma)
 		elif self.box_symmetry == 3:
 			self.gamma_00	= 0.0
 			self.gamma_01	= 0.0

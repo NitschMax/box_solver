@@ -8,6 +8,7 @@ import box_class as bc
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import os
 
 import scipy.optimize as opt
@@ -71,7 +72,26 @@ def main():
 	#print('Finite time solution via kernel: ', finite_sol)
 	print('Finite time current left lead via kernel: ', finite_cur)
 
-	fig,ax	= plt.subplots()
+
+	t_set	= set.create_transport_setup()
+
+	fig, ax		= plt.subplots(1,1)
+	x	= 10**np.linspace(-6, 0, 8)
+	print(x)
+	X, Y	= np.meshgrid(x, x)
+	the_code_does_work_plot(fig, ax, X, Y, t_set)
+	plt.show()
+	return
+
+	fig, axes	= plt.subplots(2,2)
+	tunnel_matrix_plot(axes, t_set)
+	plt.show()
+	return
+
+	energies	= np.linspace(0, 0.1, 20)
+	eigenvalue_plot(ax, energies, t_set, number=1, real=True, imag=False )
+	plt.show()
+	return
 
 	logx	= False
 	logy	= True
@@ -85,40 +105,92 @@ def main():
 	plt.show()
 	return
 
-	energies	= np.linspace(0, 0.1, 20)
-	eigenvalue_plot(ax, model, lead, Vg, dband, mu_lst, T_lst, method, itype, tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41, eps12, eps23, eps34, energies)
-	plt.show()
-	return
+def the_code_does_work_plot(fig, ax, X, Y, t_set):
+	st_state_eigen	= np.zeros(X.shape)
 
-def eigenvalue_plot(ax, model, lead, Vg, dband, mu_lst, T_lst, method, itype, tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41, eps12, eps23, eps34, energies):
+	for idx, dummy in np.ndenumerate(X):
+		t_set.eps_abs_0	= +1.0*X[idx]
+		t_set.eps_abs_1	= +0.9*X[idx]
+		t_set.eps_abs_2	= +1.0*Y[idx]
+		t_set.eps_abs_3	= +0*Y[idx]
+		t_set.initialize_leads()
+		t_set.initialize_box()
+		t_set.connect_box()
+
+		sys	= t_set.build_qmeq_sys()
+		sys.solve(qdq=False, rotateq=False)
+		st_state_eigen[idx]	= quasi_stationary_states(sys, real=True, imag=True, number=1)[0].real
+
+	print(st_state_eigen)
+	c	= ax.contourf(X, Y, np.abs(st_state_eigen ), locator=ticker.LogLocator() )
+	cbar	= fig.colorbar(c, ax=ax)
+
+	fs	= 16
+	ax.tick_params(labelsize=fs)
+	ax.set_xlabel(r'$\epsilon_0$', size=fs)
+	ax.set_ylabel(r'$\epsilon_2$', size=fs)
+	ax.set_xscale('log')
+	ax.set_yscale('log')
+	#ax.locator_params(axis='both', nbins=5)
+
+	cbar.ax.tick_params(labelsize=fs)
+	cbar.ax.set_title(label='largest EV', size=fs)
+	cbar.ax.locator_params(axis='y', nbins=5)
+
+	
+def tunnel_matrix_plot(axes, t_set):
+	t_set.initialize_leads()
+	t_set.initialize_box()
+	t_set.connect_box()
+
+	sys	= t_set.build_qmeq_sys()
+	sys.solve(qdq=False, rotateq=False)
+
+	axes[0,0].imshow(sys.Tba[0].real )
+	axes[0,1].imshow(sys.Tba[1].real )
+	axes[1,0].imshow(sys.Tba[0].imag )
+	axes[1,1].imshow(sys.Tba[1].imag )
+	print('Largest eigenvalue of the Liouvillion', quasi_stationary_states(sys, real=True, imag=True, number=1)[0].real )
+
+def eigenvalue_plot(ax, energies, t_set, number=0, real=True, imag=True):
 	eigenvalues	= []
 	for eps in energies:
-		maj_op, overlaps, par	= box_definition(model, tb1, tb2, tb3, tt4, tb11, tb21, tb31, tt41, eps12, eps23, eps34, eps)
+		t_set.eps_abs_0	= 1.0*eps
+		t_set.eps_abs_1	= 0.0*eps
+		t_set.eps_abs_2	= 0.0*eps
+		t_set.eps_abs_3	= 0.0*eps
 
-		maj_box		= bc.majorana_box(maj_op, overlaps, Vg, 'asymmetric_box')
-		maj_box.diagonalize()
-		Ea		= maj_box.elec_en
-		tunnel		= maj_box.constr_tunnel()
+		t_set.initialize_leads()
+		t_set.initialize_box()
+		t_set.connect_box()
 
-		sys	= qmeq.Builder_many_body(Ea=Ea, Na=par, Tba=tunnel, dband=dband, mulst=mu_lst, tlst=T_lst, kerntype=method, itype=itype, countingleads=[lead])
-
+		sys	= t_set.build_qmeq_sys()
 		sys.solve(qdq=False, rotateq=False)
-		eigenvalues.append(quasi_stationary_states(sys, real=True, imag=True) )
+
+		eigenvalues.append(quasi_stationary_states(sys, real=real, imag=imag, number=number) )
+
+	print(sys.Ea)
 	ax.set_xlabel(r'ABS overlap [$\Gamma$]')
 	ax.set_ylabel('Eigenvalues')
 	ax.grid(True)
 	eigenvalues	= np.array(eigenvalues)
 	labels	= np.array(range(eigenvalues[0,0].size) )[::-1]
-	ax_twin		= ax.twinx()
+	print(energies.shape )
+	print(eigenvalues[:,0].shape)
 	ax.plot(energies, eigenvalues[:,0].real )
-	ax_twin.plot(energies, eigenvalues[:,0].imag )
 	ax.legend(labels)
+	if imag:
+		ax_twin		= ax.twinx()
+		ax_twin.plot(energies, eigenvalues[:,0].imag )
 
-def filter_smallest_eigen(eigenval, real=True, imag=False, order=True):
+def filter_smallest_eigen(eigenval, real=True, imag=False, order=True, number=0):
 	rates		= np.column_stack( (eigenval, range(eigenval.size) ) )
-	rates		= rates[eigenval.real > -0.1]
+	rates		= rates[eigenval.real > -0.01]
 	if order:
-		rates		= rates[np.argsort(rates[:,0].real ) ]
+		rates		= rates[np.argsort(rates[:,0].real )[::-1] ]
+	if number != 0:
+		rates	= rates[:number]
+
 	result		= rates[:,0]
 	indices		= rates[:,1]
 	if real == True:
@@ -140,12 +212,12 @@ def filter_largest_eigen(eigenval, real=True, imag=False, order=True):
 		result	+= 1j*np.imag(rates[:,0] )
 	return result, indices
 
-def quasi_stationary_states(sys, real=True, imag=False):
+def quasi_stationary_states(sys, real=True, imag=False, number=0):
 	kernel		= np.matrix(sys.kern )
 	eigenval, U_l, U_r	= get_eigensystem_from_kernel(kernel)
 
 	zero_ind	= np.argmin(np.abs(eigenval ) )
-	smallest_rate	= filter_smallest_eigen(eigenval, real=real, imag=imag)
+	smallest_rate	= filter_smallest_eigen(eigenval, real=real, imag=imag, number=number)
 
 	return smallest_rate
 
