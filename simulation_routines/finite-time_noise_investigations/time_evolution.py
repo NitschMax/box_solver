@@ -21,8 +21,8 @@ import qmeq
 
 def main():
 	np.set_printoptions(precision=6)
-	pre_run	= False
 	pre_run	= True
+	pre_run	= False
 	
 	if pre_run:
 		t_set_x	= set.create_transport_setup()
@@ -42,41 +42,55 @@ def main():
 		print('Current at initialization:', initial_cur)
 		print()
 
-	t_set_z	= t_set_x.copy()
-	t_set_z.adjust_to_z_blockade()
+		t_set_z	= t_set_x.copy()
 
-	t_set_z.initialize_leads()
-	t_set_z.initialize_box()
-	t_set_z.connect_box()
+		t_set_z.adjust_to_z_blockade()
 
-	sys_z	= t_set_z.build_qmeq_sys()
+		t_set_z.initialize_leads()
+		t_set_z.initialize_box()
+		t_set_z.connect_box()
 
-	sys_z.solve(qdq=False, rotateq=False)
-	if not pre_run:
-		phi0	= sys_z.phi0
+		sys_z	= t_set_z.build_qmeq_sys()
 
-	lead	= [0,1]
-	i_n	= t_set_z.i_n
+		sys_z.solve(qdq=False, rotateq=False)
+		if not pre_run:
+			phi0	= sys_z.phi0
 
-	current_fct_z	= current(sys_z, i_n=i_n)
-	#stationary_sol	= stationary_state_limit(sys_z, rho0)
-	#print('Solution via kernel: ', stationary_sol)
-	#kernel_cur	= current_fct(stationary_sol)
-	#print('Current via kernel: ', kernel_cur)
+		lead	= [0,1]
+		i_n	= t_set_z.i_n
 
-	time_evo_rho	= finite_time_evolution(sys_z)
-	finite_sol	= time_evo_rho(rho0, 0e9 )
-	finite_cur	= current_fct_z(finite_sol)
-	print('Current:', finite_cur )
+		current_fct_z	= current(sys_z, i_n=i_n)
+		#stationary_sol	= stationary_state_limit(sys_z, rho0)
+		#print('Solution via kernel: ', stationary_sol)
+		#kernel_cur	= current_fct(stationary_sol)
+		#print('Current via kernel: ', kernel_cur)
 
-	#print('Finite time solution via kernel: ', finite_sol)
-	print('Finite time current left lead via kernel: ', finite_cur)
+		time_evo_rho	= finite_time_evolution(sys_z)
+		finite_sol	= time_evo_rho(rho0, 0e9 )
+		finite_cur	= current_fct_z(finite_sol)
+		print('Current:', finite_cur )
+
+		#print('Finite time solution via kernel: ', finite_sol)
+		print('Finite time current left lead via kernel: ', finite_cur)
 
 
 	t_set	= set.create_transport_setup()
+	t_set.block_via_phases()
+
+	t_set.initialize_leads()
+	t_set.initialize_box()
+	t_set.connect_box()
+	t_set.maj_box.print_eigenstates()
+
+	sys	= t_set.build_qmeq_sys()
+	sys.solve(qdq=False, rotateq=False)
+	print(sys.phi0 )
+	print(sys.current)
+	check_validity_of_EV(sys)
+	return
 
 	fig, ax		= plt.subplots(1,1)
-	x	= 10**np.linspace(-6, 0, 8)
+	x	= 10**np.linspace(-6, 0, 16)
 	print(x)
 	X, Y	= np.meshgrid(x, x)
 	the_code_does_work_plot(fig, ax, X, Y, t_set)
@@ -105,14 +119,22 @@ def main():
 	plt.show()
 	return
 
+def check_validity_of_EV(sys):
+	largest_ev	= quasi_stationary_states(sys, real=True, imag=True, number=1)[0].real
+	if np.abs(largest_ev) > 1e-14:
+		print('Positive eigenvalue detected! Check spectrum of Liovillion.')
+	else:
+		print('Eigenvalue spectrum of Liovillion appears physicsal.')
+	return
+
 def the_code_does_work_plot(fig, ax, X, Y, t_set):
 	st_state_eigen	= np.zeros(X.shape)
 
 	for idx, dummy in np.ndenumerate(X):
 		t_set.eps_abs_0	= +1.0*X[idx]
-		t_set.eps_abs_1	= +0.9*X[idx]
+		t_set.eps_abs_1	= +0.0*X[idx]
 		t_set.eps_abs_2	= +1.0*Y[idx]
-		t_set.eps_abs_3	= +0*Y[idx]
+		t_set.eps_abs_3	= +0.0*Y[idx]
 		t_set.initialize_leads()
 		t_set.initialize_box()
 		t_set.connect_box()
@@ -121,7 +143,6 @@ def the_code_does_work_plot(fig, ax, X, Y, t_set):
 		sys.solve(qdq=False, rotateq=False)
 		st_state_eigen[idx]	= quasi_stationary_states(sys, real=True, imag=True, number=1)[0].real
 
-	print(st_state_eigen)
 	c	= ax.contourf(X, Y, np.abs(st_state_eigen ), locator=ticker.LogLocator() )
 	cbar	= fig.colorbar(c, ax=ax)
 
@@ -169,14 +190,11 @@ def eigenvalue_plot(ax, energies, t_set, number=0, real=True, imag=True):
 
 		eigenvalues.append(quasi_stationary_states(sys, real=real, imag=imag, number=number) )
 
-	print(sys.Ea)
 	ax.set_xlabel(r'ABS overlap [$\Gamma$]')
 	ax.set_ylabel('Eigenvalues')
 	ax.grid(True)
 	eigenvalues	= np.array(eigenvalues)
 	labels	= np.array(range(eigenvalues[0,0].size) )[::-1]
-	print(energies.shape )
-	print(eigenvalues[:,0].shape)
 	ax.plot(energies, eigenvalues[:,0].real )
 	ax.legend(labels)
 	if imag:

@@ -12,7 +12,7 @@ import transport_setup_class as tsc
 
 def create_transport_setup():
 	model		= 2		# 1: Majorana box, 	2: Box with ABSs on every connection	3: Two ABSs and two Majoranas
-	box_symmetry	= 1		# 1: Simple Box,	2: Asymmetric Box,			3: Asymmetric Box with three leads
+	box_symmetry	= 2		# 1: Simple Box,	2: Asymmetric Box,			3: Asymmetric Box with three leads
 	
 	counting_leads		= [0]
 	i_n			= True		### Flag to include noise calculations; i_n means include_noise
@@ -23,10 +23,10 @@ def create_transport_setup():
 	eps23	= 0e-6
 	
 	### Overlaps between ABSs
-	eps_abs_0	= 0.0*1e-3
-	eps_abs_1	= 0.0*1e-3
-	eps_abs_2	= 0.0*1e-2
-	eps_abs_3	= 0.0*1e-4
+	eps_abs_0	= +0.0*1e-4
+	eps_abs_1	= +0.0*1e-6
+	eps_abs_2	= +1.0*1e-4
+	eps_abs_3	= +0.0*1e-4
 	
 	dphi	= 1e-6
 	
@@ -42,7 +42,7 @@ def create_transport_setup():
 	gamma_12	= 1e-0		## Only reelvant for asym Box with three leads
 	
 	### Phases of the edges 0, 1, 2, 3
-	phi0	= +1/2*np.pi-dphi
+	phi0	= +0/2*np.pi-dphi
 	phi1	= 0
 	phi2	= +0/2*np.pi-dphi
 	phi3	= 0
