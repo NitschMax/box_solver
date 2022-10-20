@@ -171,6 +171,7 @@ class transport_setup:
 		return self.maj_box.calculate_blockade_cond(lead)
 
 	def block_via_phases(self, lead=0):
+		print('Adjusting phases through lead {} to establish blockade.'.format(lead) )
 		angles_zero	= np.array([np.pi/4, 0, np.pi/3, 0] )
 		opt_func	= lambda x: self.tune_phases(x, lead)
 		bnds		= ((0, 2*np.pi), (0, 2*np.pi), (0, 2*np.pi), (0, 2*np.pi) )
