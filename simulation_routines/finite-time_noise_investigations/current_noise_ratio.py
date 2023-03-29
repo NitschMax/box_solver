@@ -4,6 +4,11 @@ import cyclic_blockade as cb
 import help_functions as hf
 
 import matplotlib.pyplot as plt
+plt.rcParams.update({
+    "text.usetex": True,
+    "font.family": "serif"
+})
+
 import matplotlib.ticker as ticker
 import numpy as np
 import qmeq
@@ -25,6 +30,39 @@ def main():
 	sys	= t_set.build_qmeq_sys()
 	sys.solve(qdq=False, rotateq=False)
 
+	points	= 81
+	fig, axes		= plt.subplots(1,1, figsize=(3, 3*1.57) )
+	axes	= [axes]
+	logsc	= True
+
+	dir	= '/Users/ma0274ni/Documents/projects/majorana_box/plots/nanolund_annual/'
+	X	= np.load(dir + 'data/X.npy' )
+	Y	= np.load(dir + 'data/Y.npy' )
+	I	= np.load(dir + 'data/I.npy' )
+	data	= [X, Y, I]
+	X, Y, I = phase_sweep_plot(sys, t_set, fig, axes, points, logscale=logsc, data=data, rerun=False)
+	data	= [X, Y, I]
+	np.save(dir + 'data/X', X )
+	np.save(dir + 'data/Y', Y )
+	np.save(dir + 'data/I', I )
+	plt.savefig(dir + 'Fano-factor_phase-sweep-81x81_dpi-300', dpi=300)
+	plt.savefig(dir + 'Fano-factor_phase-sweep-81x81_dpi-600', dpi=600)
+	plt.savefig(dir + 'Fano-factor_phase-sweep-81x81_dpi-900', dpi=900)
+	plt.savefig(dir + 'Fano-factor_phase-sweep-81x81_dpi-1200', dpi=1200)
+	plt.show()
+	return
+
+	points	= 11
+	fig, axes		= plt.subplots(1,2)
+	#axes	= [axes]
+	logsc	= True
+
+	tunnel_sweep_plot(sys, t_set, fig, [axes[0]], points, logscale=logsc)
+
+	phase_sweep_plot(sys, t_set, fig, [axes[1]], points, logscale=logsc)
+	plt.show()
+	return
+
 	phi_idx	= 0
 
 	fig, ax		= plt.subplots(1,1)
@@ -33,18 +71,6 @@ def main():
 	current_noise_plot_phi0(sys, t_set, ax, phi_range, phi_idx)
 	plt.show()
 
-	return
-
-	points	= 10
-	fig, axes		= plt.subplots(1,2)
-	logsc	= True
-
-	phase_sweep_plot(sys, t_set, fig, axes, points, logscale=logsc)
-	plt.show()
-	return
-
-	tunnel_sweep_plot(sys, t_set, fig, axes, points, logscale=logsc)
-	plt.show()
 	return
 
 def sweep_func(sys, t_set, t0, t2):
@@ -72,22 +98,31 @@ def tunnel_sweep_calc(sys, t_set, points):
 
 def tunnel_sweep_plot(sys, t_set, fig, axes, points, logscale=False):
 	X,Y,I	= tunnel_sweep_calc(sys, t_set, points)
-	colorbar_plot(X, Y, I, fig, axes, logscale)
+	fs	= 16
+	for ax in axes:
+		ax.locator_params(axis='both', nbins=3 )
+		ax.set_xlabel(r'$t_0/t$', size=fs)
+		ax.set_ylabel(r'$t_2/t$', size=fs)
+	colorbar_plot(X, Y, I, fig, axes, logscale, fs)
 	return
 
 def sweep_phases(sys, t_set, phi_avg, phi_diff):
+	#t_set.gamma_00	= 1
+	#t_set.gamma_01	= 1
+	#t_set.gamma_02	= 1
 	t_set.phi0	= phi_avg+phi_diff
 	t_set.phi2	= phi_avg-phi_diff
-	t_set.block_via_rates(lead=0)
+	t_set.block_via_rates(lead=0, tuneable_rates=[1,1,0,0])
 
 	t_set.connect_box()
 	sys.Tba	= t_set.tunnel
 
 	sys.solve(qdq=False, rotateq=False)
+
 	return np.array(sys.current_noise )
 
 def phase_sweep_calc(sys, t_set, points):
-	x	= np.linspace(-np.pi/2, np.pi/2, points)
+	x	= np.linspace(-np.pi/2-1e-2, np.pi/2+1e-2, points)
 	y	= x
 
 	X, Y	= np.meshgrid(x, y)
@@ -97,37 +132,61 @@ def phase_sweep_calc(sys, t_set, points):
 
 	return X, Y, I
 
-def phase_sweep_plot(sys, t_set, fig, axes, points, logscale=False):
-	X,Y,I	= phase_sweep_calc(sys, t_set, points)
-	colorbar_plot(X, Y, I, fig, axes, logscale)
-	return
+def phase_sweep_plot(sys, t_set, fig, axes, points, logscale=False, data=None, rerun=False):
+	if data is not None and rerun is False:
+		X	= data[0]
+		Y	= data[1]
+		I	= data[2]
+	else:
+		X,Y,I	= phase_sweep_calc(sys, t_set, points)
+	fs	= 16
+	for ax in axes:
+		ax.set_xlabel(r'$\phi_{avg}$', size=fs)
+		ax.set_ylabel(r'$\phi_{diff}$', size=fs, labelpad=-20)
 
-def colorbar_plot(X, Y, I, fig, axes, logscale):
+		ax.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
+		ax.xaxis.set_major_formatter(plt.FuncFormatter(format_func) )
+
+		ax.yaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
+		ax.yaxis.set_major_formatter(plt.FuncFormatter(format_func) )
+
+	colorbar_plot(X, Y, I, fig, axes, logscale, fs)
+	return X, Y, I
+
+def colorbar_plot(X, Y, I, fig, axes, logscale, fs ):
+	if len(axes) == 1:
+		second_plot	= False
+	else:
+		second_plot	= True
+
 	if logscale:
-		c1	= axes[0].contourf(X, Y, I[:,:,1]/I[:,:,0] )
-		c2	= axes[1].contourf(X, Y, I[:,:,0], locator=ticker.LogLocator() )
+		print(I[:,:,0] )
+		c1	= axes[0].contourf(X, Y, I[:,:,1]/I[:,:,0], cmap='Blues' ) 					#, cmap='RdYlGn'
+		if second_plot:
+			c2	= axes[1].contourf(X, Y, I[:,:,0], locator=ticker.LogLocator() )
 	else:
 		c1	= axes[0].contourf(X, Y, I[:,:,1]/I[:,:,0] )
-		c2	= axes[1].contourf(X, Y, I[:,:,0] )
+		if second_plot:
+			c2	= axes[1].contourf(X, Y, I[:,:,0] )
 
 	cbar	= fig.colorbar(c1, ax=axes[0])
-	axes[0].locator_params(axis='both', nbins=5 )
-	cbar.ax.locator_params(axis='y', nbins=5 )
+	cbar.ax.locator_params(axis='y', nbins=3 )
 
-	fs	= 16
 	axes[0].tick_params(labelsize=fs)
-	cbar.ax.set_title('Fano factor', size=fs)
+
+	cbar.ax.set_title(r'$I_{min} \, [\Gamma e]$', size=fs, pad=10)
 	cbar.ax.tick_params(labelsize=fs)
 
-	cbar	= fig.colorbar(c2, ax=axes[1])
-	axes[1].locator_params(axis='both', nbins=5 )
-	cbar.ax.locator_params(axis='y', nbins=5 )
+	if second_plot:
+		cbar	= fig.colorbar(c2, ax=axes[1])
+		#axes[1].locator_params(axis='both', nbins=5 )
+		cbar.ax.locator_params(axis='y', nbins=5 )
 
-	fs	= 16
-	axes[1].tick_params(labelsize=fs)
-	cbar.ax.set_title('mc', size=fs)
-	cbar.ax.tick_params(labelsize=fs)
+		axes[1].tick_params(labelsize=fs)
+		cbar.ax.set_title('Fano factor', size=fs)
+		cbar.ax.tick_params(labelsize=fs)
 
+	fig.tight_layout()
 	return
 
 

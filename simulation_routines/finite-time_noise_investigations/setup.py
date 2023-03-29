@@ -11,32 +11,32 @@ import transport_setup_class as tsc
 
 
 def create_transport_setup():
-	model		= 2		# 1: Majorana box, 	2: Box with ABSs on every connection	3: Two ABSs and two Majoranas
+	model		= 1		# 1: Majorana box, 	2: Box with ABSs on every connection	3: Two ABSs and two Majoranas
 	box_symmetry	= 2		# 1: Simple Box,	2: Asymmetric Box,			3: Asymmetric Box with three leads
 	
 	counting_leads		= [0]
-	i_n			= True		### Flag to include noise calculations; i_n means include_noise
+	i_n			= False		### Flag to include noise calculations; i_n means include_noise
 	
 	### Overlaps between Majorans with numbers 0, 1, 2, 3
-	eps01 	= 0e-6
-	eps12 	= 0e-6
-	eps23	= 0e-6
-	
-	### Overlaps between ABSs
-	eps_abs_0	= +0.0*1e-4
-	eps_abs_1	= +0.0*1e-6
-	eps_abs_2	= +1.0*1e-4
-	eps_abs_3	= +0.0*1e-4
+	eps01 	= 1.0e-2
+	eps12 	= 1.5e-2
+	eps23	= 2.0e-2
 	
 	dphi	= 1e-6
+
+	### Overlaps between ABSs
+	eps_abs_0	= +1.0*1e-3
+	eps_abs_1	= +2.0*1e-3+dphi
+	eps_abs_2	= +1.0*1e-3
+	eps_abs_3	= +2.0*1e-3
 	
 	### Rates for the connections between leads 0,1,e and edges 0,1,2,3
-	gamma_00	= 1e-0
+	gamma_00	= 0e-0
 	gamma_01	= 1e-0
 	gamma_02	= 1e-0		## Only relevant for asymetric Box
 	
-	gamma_e2	= 1e-0		## Only relevant for simple box
-	gamma_e3	= 1e-0
+	gamma_e2	= 1e+0		## Only relevant for simple box
+	gamma_e3	= 1e+0
 	
 	gamma_11	= 1e-0		## Only reelvant for asym Box with three leads
 	gamma_12	= 1e-0		## Only reelvant for asym Box with three leads
@@ -48,28 +48,24 @@ def create_transport_setup():
 	phi3	= 0
 	
 	### Wavefct factors for second Majoranas at each edge; only relevant for ABSs
-	factor0	= 0.0
-	factor1	= 0.0
+	factor0	= 1.0
+	factor1	= 1.0
 	### Irrelevant for model 3
-	factor2	= 0.0
-	factor3	= 0.0
+	factor2	= 1.0
+	factor3	= 1.0
 	
 	### Relative wavefct phase-angles for second Majoranas at each edge; only relevant for ABSs in models 2 and 3
-	th0	= 0.00*np.pi
-	th1	= 0.00*np.pi
+	th0	= +0.30*np.pi
+	th1	= +0.00*np.pi
 	### Only relevant for model 2
-	th2	= 0.00*np.pi
-	th3	= 0.00*np.pi
+	th2	= +0.00*np.pi
+	th3	= +0.00*np.pi
 	
 	T_0	= 1e2
 	T_1 	= T_0
 	T_e 	= T_0
 	
 	v_bias	= 2e3
-	mu_0	= v_bias/2
-	mu_1	= mu_0
-	mu_e	= -v_bias/2
-	
 	Vg	= 0
 	dband	= 1e5
 	

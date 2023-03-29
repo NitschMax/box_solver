@@ -18,7 +18,7 @@ class majorana_box:
 		self.diagonal	= False
 		self.U		= np.matrix(np.zeros((self.elec_num, self.elec_num) ) )
 		self.energies	= np.zeros(2**self.elec_num)
-		self.par	= np.concatenate((np.zeros(2**(self.elec_num-1) ), np.ones(2**(self.elec_num-1) ) ) ).astype(np.int)
+		self.par	= np.concatenate((np.zeros(2**(self.elec_num-1) ), np.ones(2**(self.elec_num-1) ) ) ).astype(int)
 		self.elec_en	= np.zeros(2**self.elec_num)
 		self.name	= name
 		self.adj_charging(self.Vg)

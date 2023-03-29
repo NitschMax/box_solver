@@ -8,21 +8,26 @@ import box_class as bc
 
 import numpy as np
 import matplotlib.pyplot as plt
+plt.rcParams.update({
+    "text.usetex": True,
+    "font.family": "serif"
+})
+
 import matplotlib.ticker as ticker
 import os
 
 import scipy.optimize as opt
 from scipy.linalg import eig
 from scipy.special import digamma
-from scipy.integrate import quad
+from scipy.integrate import quad,nquad
 
 import qmeq
 
 
 def main():
 	np.set_printoptions(precision=6)
-	pre_run	= True
 	pre_run	= False
+	pre_run	= True
 	
 	if pre_run:
 		t_set_x	= set.create_transport_setup()
@@ -53,8 +58,7 @@ def main():
 		sys_z	= t_set_z.build_qmeq_sys()
 
 		sys_z.solve(qdq=False, rotateq=False)
-		if not pre_run:
-			phi0	= sys_z.phi0
+		rho0_2	= sys_z.phi0
 
 		lead	= [0,1]
 		i_n	= t_set_z.i_n
@@ -74,8 +78,7 @@ def main():
 		print('Finite time current left lead via kernel: ', finite_cur)
 
 
-	t_set	= set.create_transport_setup()
-	t_set.block_via_phases()
+	t_set	= t_set_z
 
 	t_set.initialize_leads()
 	t_set.initialize_box()
@@ -84,12 +87,29 @@ def main():
 
 	sys	= t_set.build_qmeq_sys()
 	sys.solve(qdq=False, rotateq=False)
+	fig, ax		= plt.subplots(1,1)
+
+	logx	= True
+	logy	= False
+	qs_desc	= False
+
+	T	= 4
+	points	= 1000
+	t	= np.linspace(0e1, 10**T, points )
+	t	= 10**np.linspace(-4.5, 4.2, points )
+	lead	= [0]
+	finite_time_plot(ax, sys_z, rho0, t, lead=lead, logx=logx, logy=logy, plot_charge=True, i_n=i_n, qs_desc=qs_desc, sys_2=sys_x )
+	#transm_charge	= charge_transmission(current_fct, time_evo_rho, rho0, tau=5)
+	#print('Charge transmitted through the left lead: ', transm_charge )
+	plt.tight_layout()
+	plt.show()
+	return
+
 	print(sys.phi0 )
 	print(sys.current)
 	check_validity_of_EV(sys)
 	return
 
-	fig, ax		= plt.subplots(1,1)
 	x	= 10**np.linspace(-6, 0, 16)
 	print(x)
 	X, Y	= np.meshgrid(x, x)
@@ -107,20 +127,10 @@ def main():
 	plt.show()
 	return
 
-	logx	= False
-	logy	= True
-	qs_desc	= False
-	T	= 9
-	t	= 10**np.linspace(0, T, 1000 )
-	t	= np.linspace(0e1, 1e1, 1000 )
-	finite_time_plot(ax, sys_z, rho0, t, lead=lead, logx=logx, logy=logy, plot_charge=False, i_n=i_n, qs_desc=qs_desc )
-	#transm_charge	= charge_transmission(current_fct, time_evo_rho, rho0, tau=5)
-	#print('Charge transmitted through the left lead: ', transm_charge )
-	plt.show()
-	return
-
+	
 def check_validity_of_EV(sys):
 	largest_ev	= quasi_stationary_states(sys, real=True, imag=True, number=1)[0].real
+	print(largest_ev)
 	if np.abs(largest_ev) > 1e-14:
 		print('Positive eigenvalue detected! Check spectrum of Liovillion.')
 	else:
@@ -212,7 +222,7 @@ def filter_smallest_eigen(eigenval, real=True, imag=False, order=True, number=0)
 	result		= rates[:,0]
 	indices		= rates[:,1]
 	if real == True:
-		result	= np.real(rates[:,0] ).astype(np.complex )
+		result	= np.real(rates[:,0] ).astype(complex )
 	if imag == True:
 		result	+= 1j*np.imag(rates[:,0] )
 	return result, indices
@@ -225,7 +235,7 @@ def filter_largest_eigen(eigenval, real=True, imag=False, order=True):
 	result		= rates[:,0]
 	indices		= rates[:,1]
 	if real == True:
-		result	= np.real(rates[:,0] ).astype(np.complex )
+		result	= np.real(rates[:,0] ).astype(complex )
 	if imag == True:
 		result	+= 1j*np.imag(rates[:,0] )
 	return result, indices
@@ -239,21 +249,63 @@ def quasi_stationary_states(sys, real=True, imag=False, number=0):
 
 	return smallest_rate
 
-def charge_transmission(current_fct, time_evo_rho, rho0, tzero=0, tau=np.inf):
-	return quad(lambda x: current_fct(time_evo_rho(rho0, x) ), tzero, tau)
+def charge_transmission(current_fct, time_evo_rho, rho0, tzero=0, tau=np.inf, epsrel=1.5e-8, use_nquad=False):
+	if not use_nquad:
+		result	= quad(lambda x: current_fct(time_evo_rho(rho0, x) )[0], tzero, tau, epsrel=epsrel)
+	else:
+		opts = {'epsrel': epsrel}
+		result	= nquad(lambda x: current_fct(time_evo_rho(rho0, x) )[0], [(tzero, tau)], opts=opts )
+	return result
 
 def model_spec_dof(rho):
 	dof	= rho.size
 	num_occ	= int(np.sqrt(2*dof) )
 	return num_occ, dof
 
+def model_spec_dof_mat(rhoMat):
+	num_occ	= rhoMat.shape[0]
+	dof	= int(num_occ**2/2)	
+	return num_occ, dof
 
-def finite_time_plot(ax, sys, rho0, t, lead=[0], logx=False, logy=False, plot_charge=True, i_n=True, qs_desc=False):
+
+def finite_time_plot(ax, sys, rho0, t, lead=[0], logx=False, logy=False, plot_charge=True, i_n=True, qs_desc=False, sys_2=None):
 	dt		= t[1]-t[0]
 	time_evo_rho	= finite_time_evolution(sys, qs_desc=qs_desc)
 	current_fct	= current(sys, i_n=i_n)
 
-	finite_cur	= np.array([current_fct(time_evo_rho(rho0, time) ) for time in t])
+	include_sys_2	= sys_2 is not None
+
+	if include_sys_2:
+		rho0_2	= rho0.copy()
+		time_evo_rho_2	= finite_time_evolution(sys_2, qs_desc=qs_desc)
+		current_fct_2	= current(sys_2, i_n=i_n)
+
+	if include_sys_2:
+		finite_cur	= []
+		charge		= []
+		for time in t:
+			integration_cut	= np.minimum(time, 10)
+			for k in range(8):
+				rho0	= time_evo_rho_2(rho0_2, time)
+				rho0_2	= time_evo_rho(rho0, time)
+			if plot_charge:
+				#taus	= 10**np.linspace(-4, np.log10(time), 100)
+				#integrand	= np.array([current_fct(time_evo_rho(rho0, tau) )[0] for tau in taus ])
+				#integrand	+= np.array([current_fct_2(time_evo_rho_2(rho0_2, tau) )[0] for tau in taus ])
+				charge_flow	= charge_transmission(current_fct, time_evo_rho, rho0, tzero=0, tau=integration_cut, epsrel=1.5e-8, use_nquad=False)[0]
+				#charge_flow	+= charge_transmission(current_fct_2, time_evo_rho_2, rho0_2, tzero=0, tau=integration_cut, epsrel=1.5e-8, use_nquad=False)[0]
+				if integration_cut < time:
+					charge_flow	+= charge_transmission(current_fct, time_evo_rho, rho0, tzero=integration_cut, tau=time, epsrel=1.5e-8, use_nquad=False)[0]
+					#charge_flow	+= charge_transmission(current_fct_2, time_evo_rho_2, rho0_2, tzero=integration_cut, tau=time, epsrel=1.5e-8, use_nquad=False)[0]
+				charge.append(charge_flow )
+
+			cur	= (current_fct(time_evo_rho(rho0, time) ) + current_fct_2(time_evo_rho_2(rho0_2, time) ) )/2
+			finite_cur.append(current_fct(time_evo_rho(rho0, time) ) )
+		finite_cur	= np.array(finite_cur )
+	else:
+		finite_cur	= np.array([current_fct(time_evo_rho(rho0, time) ) for time in t])
+	fs		= 16
+	current_color	= 'b'
 	
 	if i_n:
 		labels		= ['Current', 'Noise']
@@ -261,31 +313,40 @@ def finite_time_plot(ax, sys, rho0, t, lead=[0], logx=False, logy=False, plot_ch
 	else:
 		labels		= []
 		for k in lead:
-			labels.append('Current via lead {}'.format(k) )
 			if np.less(finite_cur[:,k], 0).all() and logy:
-				ax.plot(t, -finite_cur[:,k])
+				ax.plot(t, -finite_cur[:,k], c=current_color)
 			else:
-				ax.plot(t, finite_cur[:,k])
+				ax.plot(t, finite_cur[:,k], c=current_color)
 
-	ax.set_xlabel(r'$t \, [1/\Gamma]$')
-	ax.set_ylabel(r'$I_{trans} \, [e\Gamma]$')
+	ax.set_xlabel(r'$\tau \, [1/\Gamma]$', fontsize=fs)
+	ax.set_ylabel(r'$I_{trans} \, [e\Gamma]$', fontsize=fs)
+	ax.tick_params(axis='x', labelsize=fs)
+	ax.locator_params(axis='y', nbins=3)
+	ax.set_xlim([0.8e-4, 1.2e4])
 
 	if plot_charge:
 		ax_twin		= ax.twinx()
-		charge		= np.cumsum(finite_cur)*dt
 		color		= 'r'
-		ax_twin.plot(t, charge, c=color)
-		ax_twin.set_ylabel('Charge transmitted through ' + lead_string + ' lead [e]', c=color)
-		ax_twin.tick_params(axis='y', labelcolor=color)
+		ax_twin.set_ylabel('Transmitted charge [e]', c=color, fontsize=fs)
+		ax_twin.tick_params(axis='y', labelcolor=color, labelsize=fs)
+		ax_twin.locator_params(axis='y', nbins=3)
+
+		ax.set_ylabel(r'$I_{trans} \, [e\Gamma]$', c=current_color)
+		ax.tick_params(axis='y', labelcolor=current_color, labelsize=fs)
+
+		if not include_sys_2:
+			charge		= np.cumsum(finite_cur[:,lead]*np.transpose([np.gradient(t)]) )
+		ax_twin.plot(t, charge, c=color, label='Charge through lead {}'.format(lead))
 
 	if logx:
 		ax.set_xscale('log')
 	if logy:
 		ax.set_yscale('log')
+	#ax.set_xticks([1e-3, 1e0, 1e3, 1e6] )
+	ax.set_xticks([1e-4, 1e-2, 1e0, 1e2, 1e4] )
 
-	ax.grid(True)
-	ax.legend(labels=labels)
-	return
+	#ax.grid(True)
+	#ax.legend(labels=labels, loc=7)
 	
 def partial_current(sys, lead=0, i_n=False):
 	Tba	= sys.Tba[lead]
@@ -362,7 +423,7 @@ def map_vec_to_den_mat(sys, rho):
 	half_ofd_dof	= int(ofd_dof/2 )
 
 	par_occ		= int(num_occ/2)
-	zeros		= np.zeros((par_occ, par_occ), dtype=np.complex )
+	zeros		= np.zeros((par_occ, par_occ), dtype=complex )
 	even_par	= zeros.copy()
 	odd_par		= zeros.copy()
 	for indices, value in np.ndenumerate(even_par):
@@ -382,6 +443,27 @@ def map_vec_to_den_mat(sys, rho):
 	den_mat	= np.block([[even_par, zeros], [zeros, odd_par] ] )
 			
 	return den_mat
+
+def map_den_mat_to_vec(sys, rhoMat):
+	num_occ, dof	= model_spec_dof_mat(rhoMat)
+	ofd_dof		= dof - num_occ
+	half_ofd_dof	= int(ofd_dof/2 )
+
+	par_occ		= int(num_occ/2)
+
+	rho		= np.zeros(dof)
+	#rho[:num_occ]	+= np.diag(rhoMat ).real
+
+	iteration_help	= np.zeros((par_occ, par_occ) )
+
+	for indices, values in np.ndenumerate(iteration_help):
+		rho[sys.si.get_ind_dm0(indices[0], indices[1], 0) ]	= rhoMat[indices].real
+		rho[sys.si.get_ind_dm0(indices[0], indices[1], 1) ]	= rhoMat[indices[0]+par_occ, indices[1]+par_occ ].real
+		if indices[0] < indices[1]:
+			rho[sys.si.get_ind_dm0(indices[0], indices[1], 0)+half_ofd_dof ]	= rhoMat[indices].imag
+			rho[sys.si.get_ind_dm0(indices[0], indices[1], 1)+half_ofd_dof ]	= rhoMat[indices[0]+par_occ, indices[1]+par_occ ].imag
+	
+	return rho
 
 def stationary_state_limit(sys, rho0):
 	kernel		= np.matrix(sys.kern )
@@ -412,7 +494,7 @@ def finite_time_evolution(sys, qs_desc=False):
 	eigenval	= eigenval[indices]
 	
 	#time_evol	= lambda rho0, t: normed_occupations(np.sum(np.array([np.exp(eigenval[index]*t)*np.dot(time_evol_mats[index], rho0) for index in indices]), axis=0) )
-	time_evol	= lambda rho0, t: normed_occupations(np.matmul(np.transpose(np.tensordot(time_evol_mats, rho0, axes=1) ), np.exp(eigenval*t) ) )
+	time_evol	= lambda rho0, t: normed_occupations(np.matmul(np.transpose(np.tensordot(time_evol_mats, rho0.copy(), axes=1) ), np.exp(eigenval*t) ) )
 
 	return time_evol
 

@@ -4,7 +4,7 @@ import box_class as bc
 from qmeq import Builder_many_body
 
 import numpy as np
-from scipy.optimize import minimize
+from scipy.optimize import minimize, LinearConstraint
 from copy import copy
 
 class transport_setup:
@@ -83,6 +83,12 @@ class transport_setup:
 		self.box_assigned	= False
 		self.box_connected	= False
 
+	def overlap_arr(self):
+		return np.array([self.eps01, self.eps12, self.eps23, self.eps_abs_0, self.eps_abs_1, self.eps_abs_2, self.eps_abs_3 ])
+
+	def theta_arr(self):
+		return np.array([self.th0, self.th1, self.th2, self.th3])
+
 	def build_qmeq_sys(self):
 		if not self.box_assigned or not self.box_connected or not self.leads_initialized:
 			print('Can not use builder of qmeq as no Majorana box assigned or connected')
@@ -93,6 +99,15 @@ class transport_setup:
 			else:
 				return Builder_many_body(Ea=self.Ea, Na=self.par, Tba=self.tunnel, dband=self.dband, mulst=self.mu_lst, tlst=self.T_lst, kerntype=self.method, itype=self.itype)
 
+	def disconnect_from_source(self):
+		if self.box_symmetry == 2:
+			self.gamma_00	= 0.0
+			self.gamma_01	= 0.0
+			self.gamma_02	= 0.0
+		else:
+			print('Disconnection of source for this geometry not yet implemented')
+		self.initialize_box()
+
 	def adjust_to_z_blockade(self, gamma=1.0):
 		if self.box_symmetry == 1:
 			self.gamma_02	= 0.0
@@ -100,7 +115,8 @@ class transport_setup:
 			self.phi1	= 0.0
 			opt_func	= lambda x: self.tune_couplings_to_z_blockade(x)
 			guess		= [1.0, 1/2*np.pi]					## Blockade-condition for z-blockade in a pure majorana box
-			result		= minimize(opt_func, guess).x
+			bounds		= ((0, np.inf), (-np.pi, np.pi))
+			result		= minimize(opt_func, guess, bounds=bounds).x
 		elif self.box_symmetry == 3:
 			self.gamma_00	= gamma
 			self.gamma_01	= gamma
@@ -111,8 +127,9 @@ class transport_setup:
 			self.gamma_01	= gamma
 			self.phi1	= 0.0
 			opt_func	= lambda x: self.tune_couplings_to_z_blockade(x)
-			guess		= [1.0, 1/2*np.pi]					## Blockade-condition for z-blockade in a pure majorana box
-			result		= minimize(opt_func, guess).x
+			guess		= [1.0, -1/2*np.pi]					## Blockade-condition for z-blockade in a pure majorana box
+			bounds		= ((0, np.inf), (-np.inf, np.inf))
+			result		= minimize(opt_func, guess, bounds=bounds).x
 			#self.tune_couplings_to_z_blockade(result )
 
 	def tune_couplings_to_z_blockade(self, couplings):
@@ -135,7 +152,8 @@ class transport_setup:
 			self.phi1	= 0.0
 			opt_func	= lambda x: self.tune_couplings_to_x_blockade(x)
 			guess		= [1.0, 1/2*np.pi]					## Blockade-condition for x-blockade in a pure majorana box
-			result		= minimize(opt_func, guess).x
+			bounds		= ((0, np.inf), (-np.inf, np.inf))
+			result		= minimize(opt_func, guess, bounds=bounds).x
 			#self.tune_couplings_to_x_blockade(result )
 
 	def tune_couplings_to_x_blockade(self, couplings):
@@ -162,8 +180,8 @@ class transport_setup:
 		return potential_edges
 
 	def tune_phases(self, angles, lead ):
-		#edge_classif	= self.classify_edges(lead)
 		edge_classif	= np.array([1,0,1,0] )
+		edge_classif	= self.classify_edges(lead)
 		edge_phase_angles	= np.array([self.phi0, self.phi1, self.phi2, self.phi3] )
 		angles			= edge_classif*angles + (1-edge_classif)*edge_phase_angles		## Make sure that only the phaseangles of edges attached to lead are changed
 		self.phi0, self.phi1, self.phi2, self.phi3	= angles
@@ -171,26 +189,26 @@ class transport_setup:
 		return self.maj_box.calculate_blockade_cond(lead)
 
 	def block_via_phases(self, lead=0):
-		print('Adjusting phases through lead {} to establish blockade.'.format(lead) )
 		angles_zero	= np.array([np.pi/4, 0, np.pi/3, 0] )
 		opt_func	= lambda x: self.tune_phases(x, lead)
 		bnds		= ((0, 2*np.pi), (0, 2*np.pi), (0, 2*np.pi), (0, 2*np.pi) )
 		min_res		= minimize(opt_func, angles_zero, tol=self.dphi**2, options={'maxiter':1000}, bounds=bnds )
 		return
 
-	def tune_rates(self, rates, lead ):
-		edge_classif	= np.array([1,0,1,0] )
+	def tune_rates(self, rates, lead, tuneable_rates ):
+		edge_classif	= np.array([1,1,1,0] )
 		edge_rates	= np.array([self.gamma_00, self.gamma_01, self.gamma_02, self.gamma_e3] )
-		rates			= edge_classif*rates + (1-edge_classif)*edge_rates		## Make sure that only the rates of edges attached to lead are changed
+		rates		= edge_classif*rates + (1-edge_classif)*edge_rates		## Make sure that only the rates of edges attached to lead are changed
 		self.gamma_00, self.gamma_01, self.gamma_02, self.gamma_e3	= rates
 		self.initialize_box()
 		return self.maj_box.calculate_blockade_cond(lead)
 
-	def block_via_rates(self, lead=0):
+	def block_via_rates(self, lead=0, tuneable_rates=[1,0,1,0]):
 		rates_zero	= np.array([1,1,1,1] )
-		opt_func	= lambda x: self.tune_rates(x, lead)
+		opt_func	= lambda x: self.tune_rates(x, lead, tuneable_rates)
 		bnds		= ((0, np.inf), (0, np.inf), (0, np.inf), (0, np.inf) )
-		min_res		= minimize(opt_func, rates_zero, tol=self.dphi**2, options={'maxiter':10000}, bounds=bnds )
+		constraint 	= LinearConstraint([1, 1, 1, 0], [1], [np.inf])
+		min_res		= minimize(opt_func, rates_zero, tol=self.dphi**2, options={'maxiter':10000}, bounds=bnds, constraints=[constraint] )
 		return
 
 
@@ -211,17 +229,28 @@ class transport_setup:
 			edgy2 	= ec.edge(self.phi2, [1], [self.gamma_12])
 			edgy3 	= ec.edge(self.phi3, [2], [self.gamma_e3])
 		
-		edgy0.create_majorana(0)
-		edgy1.create_majorana(1, overlaps={0: self.eps01})
-		edgy2.create_majorana(2, overlaps={1: self.eps12})
-		edgy3.create_majorana(3, overlaps={2: self.eps23})
+		if self.model == 1:
+			edgy0.create_majorana(0)
+			edgy1.create_majorana(1, overlaps={0: self.eps01})
+			edgy2.create_majorana(2, overlaps={1: self.eps12})
+			edgy3.create_majorana(3, overlaps={2: self.eps23})
+		elif self.model == 2:
+			edgy0.create_majorana(0)
+			edgy0.create_majorana(1, wf_factor=self.factor0, wf_phase_angle=self.th0, overlaps={0: self.eps_abs_0})
 
-		if self.model == 2:
-			edgy0.create_majorana(4, wf_factor=self.factor0, wf_phase_angle=self.th0, overlaps={0: self.eps_abs_0})
-			edgy1.create_majorana(5, wf_factor=self.factor1, wf_phase_angle=self.th1, overlaps={1: self.eps_abs_1})
-			edgy2.create_majorana(6, wf_factor=self.factor2, wf_phase_angle=self.th2, overlaps={2: self.eps_abs_2})
-			edgy3.create_majorana(7, wf_factor=self.factor3, wf_phase_angle=self.th3, overlaps={3: self.eps_abs_3})
+			edgy1.create_majorana(2, overlaps={0: self.eps01})
+			edgy2.create_majorana(3, overlaps={2: self.eps12})
+
+			edgy1.create_majorana(4, wf_factor=self.factor1, wf_phase_angle=self.th1, overlaps={2: self.eps_abs_1})
+			edgy2.create_majorana(5, wf_factor=self.factor2, wf_phase_angle=self.th2, overlaps={3: self.eps_abs_2})
+
+			edgy3.create_majorana(6, overlaps={3: self.eps23})
+			edgy3.create_majorana(7, wf_factor=self.factor3, wf_phase_angle=self.th3, overlaps={6: self.eps_abs_3})
 		elif self.model == 3:
+			edgy0.create_majorana(0)
+			edgy1.create_majorana(1, overlaps={0: self.eps01})
+			edgy2.create_majorana(2, overlaps={1: self.eps12})
+			edgy3.create_majorana(3, overlaps={2: self.eps23})
 			edgy0.create_majorana(4, wf_factor=self.factor0, wf_phase_angle=self.th0, overlaps={0: self.eps_abs_0, 2:self.eps_abs_2})
 			edgy1.create_majorana(5, wf_factor=self.factor1, wf_phase_angle=self.th1, overlaps={1: self.eps_abs_1, 3:self.eps_abs_3})
 		

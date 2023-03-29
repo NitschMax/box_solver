@@ -81,7 +81,7 @@ class maj_operator:
 		self.fac	= fac
 		self.lead	= lead
 		if len(lead) != len(coupling):
-			print('The coupling to the leads is not valid. This can case mistakes in the tunneling.')
+			print('The coupling to the leads is not valid. This can cause mistakes in the tunneling.')
 		self.coupling	= coupling
 		self.overlaps	= overlaps
 
