@@ -15,11 +15,7 @@ def main():
     fig, axes   = plt.subplots(2,1)
     #theta0_variation_plot(fig, axes[0], t_set, thetas)
 
-<<<<<<< HEAD
     points      = 5
-=======
-    points      = 20
->>>>>>> fe8c32d22abf37d214529c2828b6221e8c41aac4
     theta01_sweep_plot(fig, axes, t_set, points)
     fig.tight_layout()
     plt.show()
@@ -38,11 +34,7 @@ def theta01_sweep_plot(fig, axes, t_set, points):
 
         Z   = np.abs(np.array([current_calculation(t_set, X[idx], Y[idx]) for idx, dummy in np.ndenumerate(X) ] ).reshape(X.shape+(2,) ) )
         data    = np.abs(Z[:,:,0]-Z[:,:,1] )/Z[:,:,1]
-<<<<<<< HEAD
         c = ax.contourf(X, Y, data, norm=LogNorm(), locator=ticker.LogLocator())
-=======
-        c = ax.contourf(X, Y, data, norm=LogNorm(), locator=ticker.LogLocator(), vmin=1e-3)
->>>>>>> fe8c32d22abf37d214529c2828b6221e8c41aac4
         
         # Set axis labels and title
         ax.set_xlabel(r"$\theta_0$")
