@@ -238,13 +238,13 @@ class transport_setup:
             edgy0.create_majorana(0)
             edgy0.create_majorana(1, wf_factor=self.factor0, wf_phase_angle=self.th0, overlaps={0: self.eps_abs_0})
 
-            edgy1.create_majorana(2, overlaps={0: self.eps01})
-            edgy2.create_majorana(3, overlaps={2: self.eps12})
+            edgy1.create_majorana(2, overlaps={0: 0*self.eps01})
+            edgy2.create_majorana(3, overlaps={2: 0*self.eps12})
 
             edgy1.create_majorana(4, wf_factor=self.factor1, wf_phase_angle=self.th1, overlaps={2: self.eps_abs_1})
             edgy2.create_majorana(5, wf_factor=self.factor2, wf_phase_angle=self.th2, overlaps={3: self.eps_abs_2})
 
-            edgy3.create_majorana(6, overlaps={3: self.eps23})
+            edgy3.create_majorana(6, overlaps={3: 0*self.eps23})
             edgy3.create_majorana(7, wf_factor=self.factor3, wf_phase_angle=self.th3, overlaps={6: self.eps_abs_3})
         elif self.model == 3:
             edgy0.create_majorana(0)

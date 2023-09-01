@@ -18,28 +18,16 @@ def create_transport_setup():
     i_n         = False     ### Flag to include noise calculations; i_n means include_noise
     
     ### Overlaps between Majorans with numbers 0, 1, 2, 3
-<<<<<<< HEAD
     eps01   = 1.0e-3
     eps12   = 1.5e-3
     eps23   = 2.0e-3
-=======
-    eps01   = 1.0e-2
-    eps12   = 1.5e-2
-    eps23   = 2.0e-2
->>>>>>> fe8c32d22abf37d214529c2828b6221e8c41aac4
     
     dphi    = 1e-6
 
     ### Overlaps between ABSs
-<<<<<<< HEAD
     eps_abs_0   = +0.5*1e-3
     eps_abs_1   = +1.0*1e-3
     eps_abs_2   = +1.5*1e-3
-=======
-    eps_abs_0   = +1.0*1e-3
-    eps_abs_1   = +2.0*1e-3+dphi
-    eps_abs_2   = +1.0*1e-3
->>>>>>> fe8c32d22abf37d214529c2828b6221e8c41aac4
     eps_abs_3   = +2.0*1e-3
     
     ### Rates for the connections between leads 0,1,e and edges 0,1,2,3

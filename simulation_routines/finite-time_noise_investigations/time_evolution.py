@@ -28,11 +28,7 @@ def main():
 
     sys = t_set.build_qmeq_sys()
     sys.solve(qdq=False, rotateq=False)
-<<<<<<< HEAD
     fig, ax = plt.subplots(1, 1, figsize=(6, 4))
-=======
-    fig, ax = plt.subplots(1, 1)
->>>>>>> fe8c32d22abf37d214529c2828b6221e8c41aac4
     ax_twin = ax.twinx()
 
     logx = True
@@ -40,15 +36,9 @@ def main():
     qs_desc = False
 
     T = 4
-<<<<<<< HEAD
     points = 1000
     t = np.linspace(0e1, 10**T, points)
     t = 10**np.linspace(-4.5, 6.2, points)
-=======
-    points = 100
-    t = np.linspace(0e1, 10**T, points)
-    t = 10**np.linspace(-4.5, 4.2, points)
->>>>>>> fe8c32d22abf37d214529c2828b6221e8c41aac4
     lead = [0]
     finite_time_plot(ax,
                      ax_twin,
@@ -59,18 +49,12 @@ def main():
                      logx=logx,
                      logy=logy,
                      plot_charge=True,
-<<<<<<< HEAD
                      plot_current=False,
                      i_n=t_set.i_n,
                      qs_desc=qs_desc,
                      sys_2=sys_x,
                      linestyle='--',
                      put_label=False)
-=======
-                     i_n=t_set.i_n,
-                     qs_desc=qs_desc,
-                     sys_2=sys_x)
->>>>>>> fe8c32d22abf37d214529c2828b6221e8c41aac4
 
     finite_time_plot(ax,
                      ax_twin,
@@ -81,20 +65,12 @@ def main():
                      logx=logx,
                      logy=logy,
                      plot_charge=True,
-<<<<<<< HEAD
                      plot_current=True,
                      i_n=t_set.i_n,
                      qs_desc=qs_desc,
                      sys_2=None,
                      linestyle='-',
                      put_label=True)
-=======
-                     i_n=t_set.i_n,
-                     qs_desc=qs_desc,
-                     sys_2=None,
-                     linestyle='--',
-                     put_label=False)
->>>>>>> fe8c32d22abf37d214529c2828b6221e8c41aac4
 
     # transm_charge  = charge_transmission(current_fct, time_evo_rho, rho0, tau=5)
     # print('Charge transmitted through the left lead: ', transm_charge )
@@ -424,16 +400,12 @@ def finite_time_plot(ax,
                      logx=False,
                      logy=False,
                      plot_charge=True,
-<<<<<<< HEAD
                      plot_current=True,
-=======
->>>>>>> fe8c32d22abf37d214529c2828b6221e8c41aac4
                      i_n=True,
                      qs_desc=False,
                      sys_2=None,
                      linestyle='-',
                      put_label=True):
-<<<<<<< HEAD
 
     finite_cur, charge = calculate_finite_time_current(sys,
                                                        rho0,
@@ -480,65 +452,14 @@ def finite_time_plot(ax,
             ax_twin.tick_params(axis='y', labelcolor=color, labelsize=fs)
             ax_twin.set_yticks([0, 0.5, 1, 1.5])
 
-=======
-    finite_cur, charge = calculate_finite_time_current(sys,
-                                                       rho0,
-                                                       t,
-                                                       lead=lead,
-                                                       i_n=i_n,
-                                                       plot_charge=plot_charge,
-                                                       sys_2=sys_2)
-    fs = 16
-    current_color = 'b'
-
-    if i_n:
-        labels = ['Current', 'Noise']
-        ax.plot(t, finite_cur)
-        ax.legend(labels=labels, loc=7)
-    else:
-        labels = []
-        for k in lead:
-            if np.less(finite_cur[:, k], 0).all() and logy:
-                ax.plot(t, -finite_cur[:, k], c=current_color, ls=linestyle)
-            else:
-                ax.plot(t, finite_cur[:, k], c=current_color, ls=linestyle)
-
-    if put_label:
-        ax.set_xlabel(r'$\tau \, [1/\Gamma]$', fontsize=fs)
-        ax.set_ylabel(r'$I_{trans} \, [e\Gamma]$', fontsize=fs)
-        ax.tick_params(axis='x', labelsize=fs)
-        ax.locator_params(axis='y', nbins=3)
-        ax.set_xlim([0.8e-4, 1.2e4])
-
-    if plot_charge:
-        color = 'r'
-        if put_label:
-            ax_twin.set_ylabel('Transmitted charge [e]', c=color, fontsize=fs)
-            ax_twin.tick_params(axis='y', labelcolor=color, labelsize=fs)
-            ax_twin.locator_params(axis='y', nbins=3)
-
->>>>>>> fe8c32d22abf37d214529c2828b6221e8c41aac4
             ax.set_ylabel(r'$I_{trans} \, [e\Gamma]$', c=current_color)
             ax.tick_params(axis='y', labelcolor=current_color, labelsize=fs)
 
         ax_twin.plot(t,
-<<<<<<< HEAD
                      2 * np.array(charge),
                      c=color,
                      label='Charge through lead {}'.format(lead),
                      ls=linestyle)
-=======
-                     charge,
-                     c=color,
-                     label='Charge through lead {}'.format(lead),
-                     ls=linestyle)
-
-    if logx:
-        ax.set_xscale('log')
-    if logy:
-        ax.set_yscale('log')
-    ax.set_xticks([1e-4, 1e-2, 1e0, 1e2, 1e4])
->>>>>>> fe8c32d22abf37d214529c2828b6221e8c41aac4
 
 
 def partial_current(sys, lead=0, i_n=False):
