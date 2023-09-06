@@ -252,14 +252,14 @@ def charge_transmission_cycle(current_fct_1,
     else:
         integration_range = T
 
-    print('Pre-running system {} cycles'.format(pre_run))
+    # print('Pre-running system {} cycles'.format(pre_run))
     for k in range(int(pre_run)):
         rho = time_evo_1(rho, T)
         rho = time_evo_2(rho, T)
     epsrel = 1e-1
 
     for i in range(n):
-        print('Cycle {} of {}'.format(i + 1, n))
+        # print('Cycle {} of {}'.format(i + 1, n))
         additional_charge = te.charge_transmission(current_fct_1,
                                                    time_evo_1,
                                                    rho,

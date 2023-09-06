@@ -12,6 +12,7 @@ def save_data(data, params, data_format=0):
 
 def load_data(params, data_format=0):
 	file_path = data_dir(params, data_format)
+	print('Loading data from: ', file_path)
 	try:
 		data = np.load(file_path)
 		print('Data loaded from: ', file_path)

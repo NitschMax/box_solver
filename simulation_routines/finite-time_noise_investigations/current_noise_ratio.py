@@ -103,7 +103,9 @@ def nanolund_annual(sys, t_set, fig, axes, points):
 def sweep_func(sys, t_set, t0, t2):
     t_set.gamma_00 = hf.gamma_from_tunnel(t0)
     t_set.gamma_02 = hf.gamma_from_tunnel(t2)
-    t_set.block_via_phases(lead=0)
+    minimum = t_set.block_via_phases(lead=0)
+
+    return [minimum.fun, minimum.fun]
 
     t_set.connect_box()
     sys.Tba = t_set.tunnel
@@ -144,7 +146,9 @@ def sweep_phases(sys, t_set, phi_avg, phi_diff):
     #t_set.gamma_02 = 1
     t_set.phi0 = phi_avg + phi_diff
     t_set.phi2 = phi_avg - phi_diff
-    t_set.block_via_rates(lead=0, tuneable_rates=[1, 1, 0, 0])
+    minimum = t_set.block_via_rates(lead=0, tuneable_rates=[1, 1, 0, 0])
+
+    return [minimum.fun, minimum.fun]
 
     t_set.connect_box()
     sys.Tba = t_set.tunnel
@@ -203,16 +207,25 @@ def colorbar_plot(X, Y, I, fig, axes, logscale, fs):
     else:
         second_plot = True
 
+    # Make the colorplot black and white
+    # All values above 1e-3 are white, all values below are black
+
+    I[:, :, 0] = np.where(I[:, :, 0] > 1e-3, 0, 1)
+    logscale = False
+    cmap = 'binary'
     if logscale:
         print(I[:, :, 0])
-        c1 = axes[0].contourf(X, Y, I[:, :, 0], locator=ticker.LogLocator())
+        c1 = axes[0].contourf(X,
+                              Y,
+                              I[:, :, 0],
+                              locator=ticker.LogLocator(),
+                              cmap=cmap)
         if second_plot:
-            c2 = axes[1].contourf(X, Y, I[:, :, 1] / I[:, :, 0],
-                                  cmap='Blues')  #, cmap='RdYlGn'
+            c2 = axes[1].contourf(X, Y, I[:, :, 1] / I[:, :, 0], cmap=cmap)
     else:
-        c1 = axes[0].contourf(X, Y, I[:, :, 1] / I[:, :, 0])
+        c1 = axes[0].contourf(X, Y, I[:, :, 0], cmap=cmap)
         if second_plot:
-            c2 = axes[1].contourf(X, Y, I[:, :, 0])
+            c2 = axes[1].contourf(X, Y, I[:, :, 1] / I[:, :, 0], cmap=cmap)
 
     cbar = fig.colorbar(c1, ax=axes[0])
     cbar.ax.locator_params(axis='y', nbins=3)
