@@ -7,13 +7,20 @@ def get_environment():
     return 'local' if 'local' in hostname else 'cluster'
 
 def base_dir():
-	base_dir = "/Users/ma0274ni/Documents/projects/majorana_box/data/fusion_rule"
-	return base_dir
-
+    environment = get_environment()
+    if environment == 'local':
+        base_dir = "/Users/ma0274ni/Documents/projects/majorana_box/data/fusion_rule"
+    elif environment == 'cluster':
+        base_dir = '/home/ma0274ni/Documents/projects/majorana_box/data/fusion_rule'
+    else:
+        raise ValueError("Unknown environment")
+    
+    return base_dir
+	
 def save_data(data, params, data_format=0):
-	file_path = data_dir(params, data_format)
-	np.save(file_path, data)
-	print('Data saved in: ', file_path)
+    file_path = data_dir(params, data_format)
+    np.save(file_path, data)
+    print('Data saved in: ', file_path)
 
 def load_data(params, data_format=0):
 	file_path = data_dir(params, data_format)
@@ -31,7 +38,7 @@ def data_dir(params, data_format):
 	format_dir = "format_{}".format(data_format)
 
 	# Define the base directory where the data will be saved
-	base_dir = "/Users/ma0274ni/Documents/projects/majorana_box/data/fusion_rule"
+	base_dir = base_dir()
 	cwd = os.getcwd()
 
 	# Create a directory with a specific name based on the parameters
