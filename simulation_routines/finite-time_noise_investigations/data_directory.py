@@ -1,5 +1,10 @@
 import os
 import numpy as np
+import socket
+
+def get_environment():
+    hostname = socket.gethostname()
+    return 'local' if 'local' in hostname else 'cluster'
 
 def base_dir():
 	base_dir = "/Users/ma0274ni/Documents/projects/majorana_box/data/fusion_rule"
