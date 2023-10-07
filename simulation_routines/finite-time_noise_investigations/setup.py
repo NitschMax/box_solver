@@ -32,7 +32,7 @@ def create_transport_setup():
     eps_abs_3 = +2.0 * 1e-3
 
     ### Rates for the connections between leads 0,1,e and edges 0,1,2,3
-    gamma_00 = 0e-0
+    gamma_00 = 1e-0
     gamma_01 = 1e-0
     gamma_02 = 1e-0  ## Only relevant for asymetric Box
 
@@ -57,10 +57,10 @@ def create_transport_setup():
 
     ### Relative wavefct phase-angles for second Majoranas at each edge; only relevant for ABSs in models 2 and 3
     th0 = +0.30 * np.pi
-    th1 = +0.00 * np.pi
+    th1 = -0.20 * np.pi
     ### Only relevant for model 2
-    th2 = +0.00 * np.pi
-    th3 = +0.00 * np.pi
+    th2 = +0.10 * np.pi
+    th3 = -0.15 * np.pi
 
     T_0 = 1e2
     T_1 = T_0

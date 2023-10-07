@@ -2,14 +2,18 @@ import help_functions as hf
 import matplotlib.pyplot as plt
 
 import cyclic_blockade as cb
+import data_directory as dd
 import setup as set
 import time_evolution as te
 
 plt.rcParams.update({"text.usetex": True, "font.family": "serif"})
 
+from multiprocessing import Pool
+
 import matplotlib.ticker as ticker
 import numpy as np
 import qmeq
+from matplotlib import colors
 
 
 def main():
@@ -36,13 +40,35 @@ def main():
     # plt.show()
     plt.close()
 
-    points = 41
+    points = 81
     fig, axes = plt.subplots(1, 2)
     #axes   = [axes]
     logsc = True
 
-    tunnel_sweep_plot(sys, t_set, fig, [axes[0]], points, logscale=logsc)
-    phase_sweep_plot(sys, t_set, fig, [axes[1]], points, logscale=logsc)
+    current_condition = True
+    t_set.blockade_condition_via_current = current_condition
+
+    params = param_dict()
+    params = fill_param_dict(params, t_set, points)
+    recalculate = False
+    print('Starting tunnel sweep')
+    tunnel_sweep_plot(sys,
+                      t_set,
+                      fig, [axes[0]],
+                      points,
+                      params,
+                      logscale=logsc,
+                      recalculate=recalculate)
+    recalculate = False
+    print('Starting phase sweep')
+    phase_sweep_plot(sys,
+                     t_set,
+                     fig, [axes[1]],
+                     points,
+                     params,
+                     logscale=logsc,
+                     recalculate=recalculate)
+
     plt.show()
     plt.close()
     return
@@ -78,7 +104,8 @@ def nanolund_annual(sys, t_set, fig, axes, points):
                                points,
                                logscale=True,
                                data=data,
-                               rerun=False)
+                               recalculate=False)
+
     data = [X, Y, I]
     np.save(dir + 'data/X', X)
     np.save(dir + 'data/Y', Y)
@@ -100,47 +127,105 @@ def nanolund_annual(sys, t_set, fig, axes, points):
     return
 
 
-def sweep_func(sys, t_set, t0, t2):
+def sweep_func(t_set, t0, t2, idx, guess=None):
+    print(idx)
     t_set.gamma_00 = hf.gamma_from_tunnel(t0)
     t_set.gamma_02 = hf.gamma_from_tunnel(t2)
-    minimum = t_set.block_via_phases(lead=0)
+    minimum = t_set.block_via_phases(lead=0, phase_angle_guess=guess)
 
     return [minimum.fun, minimum.fun]
 
-    t_set.connect_box()
-    sys.Tba = t_set.tunnel
 
-    sys.solve(qdq=False, rotateq=False)
-    return np.array(sys.current_noise)
-
-
-def tunnel_sweep_calc(sys, t_set, points):
+def tunnel_sweep_calc(sys, t_set, points, params, recalculate=False):
     t1 = hf.tunnel_from_gamma(t_set.gamma_01)
-    x = np.linspace(0, 2 * t1, points)
+    x = np.linspace(+1e-4 * t1, 2 * t1, points)
     y = x
 
     X, Y = np.meshgrid(x, y)
 
-    I = np.array([
-        sweep_func(sys, t_set, X[idx], Y[idx]) for idx in np.ndindex(X.shape)
-    ])
-    I = I.reshape(X.shape + (2, )).real
+    I = None
+    if not recalculate:
+        I = dd.load_data(params, '0_blockade-tunnel-sweep')
+    if I is None:
+        # Set up loop over sweep_func with parallel processing
+        # 1. Create a list of arguments to sweep_func
+
+        args = [(t_set.copy(), X[idx], Y[idx], idx)
+                for idx in np.ndindex(X.shape)]
+
+        # 2. Create a function that takes the arguments and calls sweep_func
+        # 3. Use multiprocessing to call the function with the arguments
+
+        # Use Pool.map to call the function with the arguments
+        # Can you make pool return feedback about the progress?
+        # A:
+
+        I = np.array(Pool().map(sweep_func_wrapper, args))
+        I = I.reshape(X.shape + (2, )).real
+        dd.save_data(I, params, '0_blockade-tunnel-sweep')
 
     return X / t1, Y / t1, I
 
 
-def tunnel_sweep_plot(sys, t_set, fig, axes, points, logscale=False):
-    X, Y, I = tunnel_sweep_calc(sys, t_set, points)
+def sweep_func_wrapper(args):
+    return sweep_func(*args)
+
+
+def tunnel_sweep_plot(sys,
+                      t_set,
+                      fig,
+                      axes,
+                      points,
+                      params,
+                      logscale=False,
+                      lead=0,
+                      recalculate=False):
+
+    X, Y, I = tunnel_sweep_calc(sys,
+                                t_set,
+                                points,
+                                params,
+                                recalculate=recalculate)
+
     fs = 18
     for ax in axes:
         ax.locator_params(axis='both', nbins=3)
         ax.set_xlabel(r'$|t_0|/t$', size=fs)
         ax.set_ylabel(r'$|t_2|/t$', size=fs)
-    colorbar_plot(X, Y, I, fig, axes, logscale, fs)
+    cbar = colorbar_plot(X, Y, I, fig, axes, logscale, fs)
+    # How include a 1-d line in the plot?
+    if t_set.model == 1:
+        fine_X = np.linspace(0, 2, 10000)
+        inner_circle_X = fine_X[fine_X <= 1]
+        outer_circle_X = fine_X[fine_X >= 1]
+        lw = 2
+        # How to get an orange dashed line?
+        # A: Use plot with linestyle='--'
+        # And the color orange is 'r'
+        # No that's red
+        # A:
+        axes[0].plot(inner_circle_X,
+                     np.sqrt(1 - inner_circle_X**2),
+                     '--',
+                     color='orange',
+                     linewidth=lw)
+        axes[0].plot(outer_circle_X,
+                     np.sqrt(outer_circle_X**2 - 1),
+                     '--',
+                     color='orange',
+                     linewidth=lw)
+        axes[0].plot(fine_X,
+                     np.sqrt(fine_X**2 + 1),
+                     '--',
+                     color='orange',
+                     linewidth=lw)
+        axes[0].set_xlim(0, 2)
+        axes[0].set_ylim(0, 2)
     return
 
 
-def sweep_phases(sys, t_set, phi_avg, phi_diff):
+def sweep_phases(t_set, phi_avg, phi_diff, idx):
+    print(idx)
     #t_set.gamma_00 = 1
     #t_set.gamma_01 = 1
     #t_set.gamma_02 = 1
@@ -158,18 +243,35 @@ def sweep_phases(sys, t_set, phi_avg, phi_diff):
     return np.array(sys.current_noise)
 
 
-def phase_sweep_calc(sys, t_set, points):
+def phase_sweep_calc(sys, t_set, points, params, recalculate=False):
     x = np.linspace(-np.pi / 2 - 1e-2, np.pi / 2 + 1e-2, points)
     y = x
 
     X, Y = np.meshgrid(x, y)
 
-    I = np.array([
-        sweep_phases(sys, t_set, X[idx], Y[idx]) for idx in np.ndindex(X.shape)
-    ])
-    I = I.reshape(X.shape + (2, )).real
+    I = None
+    if not recalculate:
+        I = dd.load_data(params, '0_blockade-phase-sweep')
+    if I is None:
+        args = [(t_set.copy(), X[idx], Y[idx], idx)
+                for idx in np.ndindex(X.shape)]
+        I = np.array(Pool().map(sweep_phases_wrapper, args))
+        # Got the error: BrokenPipeError: [Errno 32] Broken pipe
+        # when running this code. What does it mean?
+        # A: It means that the process that you are trying to write to
+        # has been closed. This can happen if you try to write to a
+        # process that has already finished. In this case, it means
+        # that the process has finished before you have finished
+        # writing to it. This can happen if you are writing too much
+
+        I = I.reshape(X.shape + (2, )).real
+        dd.save_data(I, params, '0_blockade-phase-sweep')
 
     return X, Y, I
+
+
+def sweep_phases_wrapper(args):
+    return sweep_phases(*args)
 
 
 def phase_sweep_plot(sys,
@@ -177,15 +279,12 @@ def phase_sweep_plot(sys,
                      fig,
                      axes,
                      points,
+                     params,
                      logscale=False,
-                     data=None,
-                     rerun=False):
-    if data is not None and rerun is False:
-        X = data[0]
-        Y = data[1]
-        I = data[2]
-    else:
-        X, Y, I = phase_sweep_calc(sys, t_set, points)
+                     lead=0,
+                     recalculate=False):
+
+    X, Y, I = phase_sweep_calc(sys, t_set, points, params, recalculate)
     fs = 18
     for ax in axes:
         ax.set_xlabel(r'$\phi_\textrm{avg}$', size=fs)
@@ -198,6 +297,44 @@ def phase_sweep_plot(sys,
         ax.yaxis.set_major_formatter(plt.FuncFormatter(format_func))
 
     colorbar_plot(X, Y, I, fig, axes, logscale, fs)
+
+    if t_set.model == 1:
+        fine_X = np.linspace(-np.pi / 2, np.pi / 2, 1000)
+        # Choose linewidth for the lines
+        lw = 2
+        axes[0].plot(fine_X,
+                     np.pi / 4 * np.ones_like(fine_X),
+                     '--',
+                     color='orange',
+                     linewidth=lw)
+        axes[0].plot(fine_X,
+                     -np.pi / 4 * np.ones_like(fine_X),
+                     '--',
+                     color='orange',
+                     linewidth=lw)
+        axes[0].plot(fine_X,
+                     np.pi / 2 - fine_X,
+                     '--',
+                     color='orange',
+                     linewidth=lw)
+        axes[0].plot(fine_X,
+                     -np.pi / 2 - fine_X,
+                     '--',
+                     color='orange',
+                     linewidth=lw)
+        axes[0].plot(fine_X,
+                     np.pi / 2 + fine_X,
+                     '--',
+                     color='orange',
+                     linewidth=lw)
+        axes[0].plot(fine_X,
+                     -np.pi / 2 + fine_X,
+                     '--',
+                     color='orange',
+                     linewidth=lw)
+        axes[0].set_xlim(-np.pi / 2, np.pi / 2)
+        axes[0].set_ylim(-np.pi / 2, np.pi / 2)
+
     return X, Y, I
 
 
@@ -210,16 +347,21 @@ def colorbar_plot(X, Y, I, fig, axes, logscale, fs):
     # Make the colorplot black and white
     # All values above 1e-3 are white, all values below are black
 
-    I[:, :, 0] = np.where(I[:, :, 0] > 1e-3, 0, 1)
-    logscale = False
-    cmap = 'binary'
+    #I[:, :, 0] = np.where(I[:, :, 0] > 1e-3, 0, 1)
+    # Define minimum value below which data is cut off
+    cmap = 'viridis'
     if logscale:
-        print(I[:, :, 0])
-        c1 = axes[0].contourf(X,
-                              Y,
-                              I[:, :, 0],
-                              locator=ticker.LogLocator(),
-                              cmap=cmap)
+        # Cast I to float to avoid overflow
+        # c1 = axes[0].contourf(X.astype(float),
+        #                       Y.astype(float),
+        #                       I[:, :, 0].astype(float),
+        #                       locator=ticker.LogLocator(),
+        #                       cmap=cmap)
+        c1 = axes[0].pcolormesh(X.astype(float),
+                                Y.astype(float),
+                                I[:, :, 0].astype(float),
+                                cmap=cmap,
+                                norm=colors.LogNorm(vmin=1.4e-7, vmax=5e-1))
         if second_plot:
             c2 = axes[1].contourf(X, Y, I[:, :, 1] / I[:, :, 0], cmap=cmap)
     else:
@@ -227,13 +369,19 @@ def colorbar_plot(X, Y, I, fig, axes, logscale, fs):
         if second_plot:
             c2 = axes[1].contourf(X, Y, I[:, :, 1] / I[:, :, 0], cmap=cmap)
 
+    # Print minimum and maximum values of I
+    print('I_min = ', I[:, :, 0].min())
+    print('I_max = ', I[:, :, 0].max())
     cbar = fig.colorbar(c1, ax=axes[0])
-    cbar.ax.locator_params(axis='y', nbins=3)
-
-    axes[0].tick_params(labelsize=fs)
+    cbar.locator = ticker.LogLocator(numticks=4)
+    cbar.update_ticks()
+    # Disable minor ticks for logscale
+    cbar.ax.minorticks_off()
 
     cbar.ax.set_title(r'$ I_\textrm{min} \, [\Gamma e]$', size=fs, pad=10)
     cbar.ax.tick_params(labelsize=fs)
+
+    axes[0].tick_params(labelsize=fs)
 
     if second_plot:
         cbar = fig.colorbar(c2, ax=axes[1])
@@ -245,7 +393,7 @@ def colorbar_plot(X, Y, I, fig, axes, logscale, fs):
         cbar.ax.tick_params(labelsize=fs)
 
     fig.tight_layout()
-    return
+    return cbar
 
 
 def current_noise_plot_phi0(sys, t_set, ax, phi_range, phi_idx):
@@ -293,6 +441,40 @@ def current_from_setup(sys, t_set, phi, phi_idx):
 
     sys.solve(qdq=False, rotateq=False)
     return sys.current_noise
+
+
+def param_dict():
+    params = {
+        "theta0": 0,
+        "theta1": 0,
+        "theta2": 0,
+        "theta3": 0,
+        "model": 1,
+        "gridpoints": 0,
+        "routine": "1vN",
+        "current_condition": False,
+    }
+    return params
+
+
+def fill_param_dict(params, t_set, points):
+    params['model'] = t_set.model
+    if params['model'] == 1:
+        # Set all the thetas to 0
+        params['theta0'] = 0
+        params['theta1'] = 0
+        params['theta2'] = 0
+        params['theta3'] = 0
+    else:
+        params['theta0'] = t_set.th0
+        params['theta1'] = t_set.th1
+        params['theta2'] = t_set.th2
+        params['theta3'] = t_set.th3
+
+    params['routine'] = t_set.method
+    params['gridpoints'] = points
+    params['current_condition'] = t_set.blockade_condition_via_current
+    return params
 
 
 def format_func(value, tick_number):

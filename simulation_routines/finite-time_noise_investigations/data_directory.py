@@ -24,7 +24,7 @@ def load_data(params, data_format=0):
 
 def data_dir(params, data_format):
 	format_dir = "format_{}".format(data_format)
-	
+
 	# Define the base directory where the data will be saved
 	base_dir = "/Users/ma0274ni/Documents/projects/majorana_box/data/fusion_rule"
 	cwd = os.getcwd()
@@ -32,7 +32,7 @@ def data_dir(params, data_format):
 	# Create a directory with a specific name based on the parameters
 	dir_path = os.path.join(base_dir, format_dir)
 	os.makedirs(dir_path, exist_ok=True)
-	
+
 	# Save the data to a file with a specific name based on the parameters
 	file_name = "data_{}.npy".format("_".join(["{}-{}".format(k, v) for k, v in params.items()]))
 	file_path = os.path.join(dir_path, file_name)

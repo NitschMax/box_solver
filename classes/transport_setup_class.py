@@ -84,6 +84,7 @@ class transport_setup:
         self.edges_assigned = False
         self.box_assigned = False
         self.box_connected = False
+        self.blockade_condition_via_current = False
 
     def overlap_arr(self):
         return np.array([
@@ -238,16 +239,30 @@ class transport_setup:
         ) * edge_phase_angles  ## Make sure that only the phaseangles of edges attached to lead are changed
         self.phi0, self.phi1, self.phi2, self.phi3 = angles
         self.initialize_box()
-        return self.maj_box.calculate_blockade_cond(lead)
+        return self.calculate_blockade_cond(lead)
 
-    def block_via_phases(self, lead=0):
-        angles_zero = np.array([np.pi / 4, 0, np.pi / 3, 0])
+    def calculate_blockade_cond(self, lead=0):
+        if self.blockade_condition_via_current:
+            self.initialize_leads()
+            self.initialize_box()
+            self.connect_box()
+            sys = self.build_qmeq_sys()
+            sys.solve(qdq=False, rotateq=False)
+            return sys.current_noise[lead]
+        else:
+            return self.maj_box.calculate_blockade_cond(lead=lead)
+
+    def block_via_phases(self, lead=0, phase_angle_guess=None):
+        if phase_angle_guess is None:
+            angles_zero = np.array([np.pi / 4, 0, np.pi / 3, 0])
+        else:
+            angles_zero = phase_angle_guess
         opt_func = lambda x: self.tune_phases(x, lead)
         bnds = ((0, 2 * np.pi), (0, 2 * np.pi), (0, 2 * np.pi), (0, 2 * np.pi))
         min_res = minimize(opt_func,
                            angles_zero,
                            tol=self.dphi**2,
-                           options={'maxiter': 1000},
+                           options={'maxiter': 10000},
                            bounds=bnds)
         return min_res
 
@@ -260,12 +275,13 @@ class transport_setup:
         ) * edge_rates  ## Make sure that only the rates of edges attached to lead are changed
         self.gamma_00, self.gamma_01, self.gamma_02, self.gamma_e3 = rates
         self.initialize_box()
-        return self.maj_box.calculate_blockade_cond(lead)
+        return self.calculate_blockade_cond(lead)
 
     def block_via_rates(self, lead=0, tuneable_rates=[1, 0, 1, 0]):
         rates_zero = np.array([1, 1, 1, 1])
         opt_func = lambda x: self.tune_rates(x, lead, tuneable_rates)
-        bnds = ((0, np.inf), (0, np.inf), (0, np.inf), (0, np.inf))
+        bnds = ((self.dphi, np.inf), (self.dphi, np.inf), (self.dphi, np.inf),
+                (self.dphi, np.inf))
         constraint = LinearConstraint([1, 1, 1, 0], [1], [np.inf])
         min_res = minimize(opt_func,
                            rates_zero,
