@@ -76,7 +76,7 @@ def main():
 	mu2	= -mu1/1
 
 	dband	= 1e4
-	Vg	= +0e1
+	Vg	= -1e4
 	
 	T_lst 	= { 0:T1 , 1:T1}
 	mu_lst 	= { 0:mu1 , 1:mu2}
@@ -200,6 +200,8 @@ def main():
 		faktorA		= 1 - deviat
 		faktorB		= faktorA
 		faktorR		= 1
+		theta_u		= np.pi/2
+		theta_d		= np.pi/2
 		angles, I	= phase_plot_calculate(maj_box, vary_left, vary_right, model, gamma, dband, mu_lst, T_lst, method, itype, faktorA, faktorB, faktorU, faktorD, faktorR, theta_u, theta_d, phi, dphi, phaseR, epsU, epsD, epsL, epsR, epsLu, epsRu, epsLd, epsRd, epsMu, epsMd, points=points, blockade_figure=blockade_figure )
 		ax.plot(angles, I, linewidth=lw, c='g', linestyle='dashed' )
 
@@ -441,20 +443,21 @@ def bias_plot_create(maj_box, par, tunnel, dband, T_lst, mu_lst, method, itype, 
 	for el in unordered_res:
 		I[el[0] ]	= el[1]
 	
-	fs	= 34
+	fs	= 20
 
 	c	= ax1.pcolormesh(X/T1, Y/T1, I/gamma, shading='auto', rasterized=True)
 	cticks	= [-1, 0, 1]
 	cbar	= fig.colorbar(c, ax=ax1, ticks=cticks)
 	ax1.locator_params(axis='both', nbins=3 )
-	ax1.set_xlabel(r'$ \alpha_g V_g/T$', fontsize=fs)
+	# ax1.set_xlabel(r'$ \alpha_g V_g/T$', fontsize=fs)
+	ax1.set_xlabel(r'$ V_g/T$', fontsize=fs)
 	ax1.set_ylabel(r'$V_{b}/T$', fontsize=fs)
 	ax1.tick_params(labelsize=fs)
 	ax1.set_xticks([-40, 0, 40])
 	ax1.set_yticks([-40, 0, 40])
 	cbar.ax.set_ylim(-1, 1 )
 	cbar.ax.locator_params(axis='y', nbins=7 )
-	cbar.ax.set_title(r'$I/e \Gamma$', size=fs, y=1.05)
+	cbar.ax.set_title(r'$I/e \Gamma$', size=fs, y=1.02)
 	cbar.ax.tick_params(labelsize=fs)
 	plt.tight_layout()
 	plt.show()
