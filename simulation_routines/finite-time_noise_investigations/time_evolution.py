@@ -36,7 +36,7 @@ def main():
     qs_desc = False
 
     T = 4
-    points = 1000
+    points = 100
     t = np.linspace(0e1, 10**T, points)
     t = 10**np.linspace(-4.5, 6.2, points)
     lead = [0]
@@ -55,6 +55,11 @@ def main():
                      sys_2=sys_x,
                      linestyle='--',
                      put_label=False)
+
+    T = 4
+    points = 1000
+    t = np.linspace(0e1, 10**T, points)
+    t = 10**np.linspace(-4.5, 6.2, points)
 
     finite_time_plot(ax,
                      ax_twin,
@@ -106,7 +111,7 @@ def do_pre_run():
     t_set_x.initialize_leads()
     t_set_x.initialize_box()
 
-    t_set_x.adjust_to_x_blockade()
+    t_set_x.adjust_to_x_blockade(gamma=t_set_x.gamma_01)
 
     t_set_x.connect_box()
 
@@ -121,7 +126,7 @@ def do_pre_run():
 
     t_set_z = t_set_x.copy()
 
-    t_set_z.adjust_to_z_blockade()
+    t_set_z.adjust_to_z_blockade(gamma=t_set_z.gamma_01)
 
     t_set_z.initialize_leads()
     t_set_z.initialize_box()
@@ -342,7 +347,7 @@ def calculate_finite_time_current(sys,
         charge = []
         for time in t:
             integration_cut = np.minimum(time, 10)
-            for k in range(8):
+            for k in range(1000):
                 rho0 = time_evo_rho_2(rho0_2, time)
                 rho0_2 = time_evo_rho(rho0, time)
             if plot_charge:
@@ -444,6 +449,9 @@ def finite_time_plot(ax,
         ax.set_xscale('log')
     if logy:
         ax.set_yscale('log')
+
+    # Change lower and upper limits of ax_twin to -0.05 and 1.6
+    ax_twin.set_ylim([-0.08, 1.65])
 
     if plot_charge:
         color = 'r'
