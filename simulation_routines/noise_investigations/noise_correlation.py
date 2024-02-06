@@ -1,10 +1,10 @@
+from sys import path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import qmeq
 
-import cyclic_blockade as cb
 import setup as set
-import time_evolution as te
 
 
 def main():

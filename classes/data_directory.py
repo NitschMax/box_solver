@@ -6,7 +6,7 @@ def get_environment():
     hostname = socket.gethostname()
     return 'local' if 'local' in hostname else 'cluster'
 
-def base_dir():
+def get_base_dir():
     environment = get_environment()
     if environment == 'local':
         base_dir = "/Users/ma0274ni/Documents/projects/majorana_box/data/fusion_rule"
@@ -38,7 +38,7 @@ def data_dir(params, data_format):
 	format_dir = "format_{}".format(data_format)
 
 	# Define the base directory where the data will be saved
-	base_dir = base_dir()
+	base_dir = get_base_dir()
 	cwd = os.getcwd()
 
 	# Create a directory with a specific name based on the parameters

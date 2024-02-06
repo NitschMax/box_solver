@@ -1,10 +1,8 @@
+import data_directory as dd
 import help_functions as hf
 import matplotlib.pyplot as plt
 
-import cyclic_blockade as cb
-import data_directory as dd
 import setup as set
-import time_evolution as te
 
 plt.rcParams.update({"text.usetex": True, "font.family": "serif"})
 
