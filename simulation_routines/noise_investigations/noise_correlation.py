@@ -1,9 +1,3 @@
-import path_to_noise_qmeq as noise_qmeq
-
-noise_qmeq.noise_qmeq_path()
-import sys
-
-print(sys.path)
 import matplotlib.pyplot as plt
 import numpy as np
 import qmeq
