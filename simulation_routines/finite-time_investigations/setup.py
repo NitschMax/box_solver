@@ -16,7 +16,7 @@ def create_transport_setup():
     box_symmetry = 2  # 1: Simple Box,    2: Asymmetric Box,          3: Asymmetric Box with three leads
 
     counting_leads = [0]
-    i_n = True  ### Flag to include noise calculations; i_n means include_noise
+    i_n = False  ### Flag to include noise calculations; i_n means include_noise
 
     ### Overlaps between Majorans with numbers 0, 1, 2, 3
     eps01 = 1.0e-3

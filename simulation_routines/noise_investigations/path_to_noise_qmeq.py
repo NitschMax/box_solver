@@ -5,5 +5,8 @@ import sys
 
 def noise_qmeq_path():
     home_dir = os.path.expanduser("~")
-    sys.path.append(home_dir +
-                    '/Documents/projects/majorana_box/noise_calculations/qmeq')
+    ## Append path to begining not end of python path
+    #sys.path.insert(
+    #    1,
+    #    home_dir + '/Documents/projects/majorana_box/noise_calculations/qmeq')
+    #print(sys.path)
